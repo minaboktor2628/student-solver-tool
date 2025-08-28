@@ -1,47 +1,51 @@
-import z from "zod";
+import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import * as XLSX from "xlsx";
-import { isExcelName, isExcelType } from "@/lib/utils";
-
-type Row = Record<string, unknown>;
-type Sheets = Record<string, Row[]>;
+import { ExcelFileSchema } from "@/types/excel";
+import { toSafeFilename } from "@/lib/utils";
+import type { EditorFile } from "@/types/editor";
 
 export const excelRoute = createTRPCRouter({
-  validate: publicProcedure
+  toJson: publicProcedure
     .input(
       z
         .instanceof(FormData)
         .transform((fd) => Object.fromEntries(fd.entries()))
         .pipe(
           z.object({
-            file: z
-              .instanceof(File)
-              .refine((f) => f.size > 0, "File must not be empty.")
-              .refine(
-                (f) => isExcelType(f.type) || isExcelName(f.name),
-                "File must be .xlsx or .xls",
-              ),
+            file: ExcelFileSchema,
           }),
         ),
     )
-    .mutation(async ({ input }) => {
+    .mutation<EditorFile[]>(async ({ input }) => {
       const arrayBuffer = await input.file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-      const allSheets: Sheets = {};
+
+      const files: EditorFile[] = [];
 
       for (const sheetName of workbook.SheetNames) {
         const ws = workbook.Sheets[sheetName];
         if (!ws) continue;
 
-        const rows = XLSX.utils.sheet_to_json<Row>(ws, {
-          defval: null,
-          raw: true,
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: true });
+        files.push({
+          filename: `/${toSafeFilename(sheetName)}.json`,
+          code: JSON.stringify(rows, null, 2),
+          language: "json",
         });
-
-        allSheets[sheetName] = rows;
       }
 
-      return { allSheets };
+      if (files.length === 0) {
+        files.push({
+          filename: "/data.json",
+          code: '{ message: "No data found in workbook." }',
+          language: "json",
+        });
+      }
+
+      return files;
     }),
+
+  validate: publicProcedure.mutation(() => "validating"),
 });
