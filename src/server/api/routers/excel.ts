@@ -5,6 +5,13 @@ import { ExcelFileSchema } from "@/types/excel";
 import { toSafeFilename } from "@/lib/utils";
 import type { EditorFile } from "@/types/editor";
 
+async function fileToWorkbook(file: File) {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  return workbook;
+}
+
 export const excelRoute = createTRPCRouter({
   toJson: publicProcedure
     .input(
@@ -13,27 +20,35 @@ export const excelRoute = createTRPCRouter({
         .transform((fd) => Object.fromEntries(fd.entries()))
         .pipe(
           z.object({
-            file: ExcelFileSchema,
+            assignements: ExcelFileSchema,
+            pla: ExcelFileSchema,
+            ta: ExcelFileSchema,
           }),
         ),
     )
     .mutation<EditorFile[]>(async ({ input }) => {
-      const arrayBuffer = await input.file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+      const workbooks = await Promise.all(
+        [input.pla, input.ta, input.assignements].map(fileToWorkbook),
+      );
 
       const files: EditorFile[] = [];
 
-      for (const sheetName of workbook.SheetNames) {
-        const ws = workbook.Sheets[sheetName];
-        if (!ws) continue;
+      for (const workbook of workbooks) {
+        for (const sheetName of workbook.SheetNames) {
+          const ws = workbook.Sheets[sheetName];
+          if (!ws) continue;
 
-        const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: true });
-        files.push({
-          filename: `/${toSafeFilename(sheetName)}.json`,
-          code: JSON.stringify(rows, null, 2),
-          language: "json",
-        });
+          const rows = XLSX.utils.sheet_to_json(ws, {
+            defval: null,
+            raw: true,
+          });
+
+          files.push({
+            filename: `/${toSafeFilename(sheetName)}.json`,
+            code: JSON.stringify(rows, null, 2),
+            language: "json",
+          });
+        }
       }
 
       if (files.length === 0) {
