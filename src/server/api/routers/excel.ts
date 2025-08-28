@@ -3,6 +3,9 @@ import { createTRPCRouter, publicProcedure } from "../trpc";
 import * as XLSX from "xlsx";
 import { isExcelName, isExcelType } from "@/lib/utils";
 
+type Row = Record<string, unknown>;
+type Sheets = Record<string, Row[]>;
+
 export const excelRoute = createTRPCRouter({
   validate: publicProcedure
     .input(
@@ -24,12 +27,18 @@ export const excelRoute = createTRPCRouter({
     .mutation(async ({ input }) => {
       const arrayBuffer = await input.file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const workbook = XLSX.read(buffer, { type: "buffer" });
+      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+      const allSheets: Sheets = {};
 
-      const allSheets: Record<string, unknown[]> = {};
       for (const sheetName of workbook.SheetNames) {
         const ws = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: true });
+        if (!ws) continue;
+
+        const rows = XLSX.utils.sheet_to_json<Row>(ws, {
+          defval: null,
+          raw: true,
+        });
+
         allSheets[sheetName] = rows;
       }
 
