@@ -18,11 +18,6 @@ import {
   CodeBlockFiles,
   CodeBlockHeader,
   CodeBlockItem,
-  CodeBlockSelect,
-  CodeBlockSelectContent,
-  CodeBlockSelectItem,
-  CodeBlockSelectTrigger,
-  CodeBlockSelectValue,
   type CodeBlockData,
 } from "@/components/ui/shadcn-io/code-block";
 
@@ -37,7 +32,7 @@ export default function ValidationForm() {
   const [files, setFiles] = useState<File[] | undefined>();
   const [code, setCode] = useState<CodeBlockData[]>([
     {
-      code: "",
+      code: '{ value: "No data yet" }',
       filename: "data.json",
       language: "json",
     },
@@ -77,47 +72,30 @@ export default function ValidationForm() {
         <DropzoneContent />
       </Dropzone>
       <Button onClick={handleSubmit}>Validate</Button>
-      {code.length && (
-        <CodeBlock data={code} defaultValue={code[0]?.language}>
-          <CodeBlockHeader>
-            <CodeBlockFiles>
-              {(item) => (
-                <CodeBlockFilename key={item.language} value={item.language}>
-                  {item.filename}
-                </CodeBlockFilename>
-              )}
-            </CodeBlockFiles>
-            <CodeBlockSelect>
-              <CodeBlockSelectTrigger>
-                <CodeBlockSelectValue />
-              </CodeBlockSelectTrigger>
-              <CodeBlockSelectContent>
-                {(item) => (
-                  <CodeBlockSelectItem
-                    key={item.language}
-                    value={item.language}
-                  >
-                    {item.language}
-                  </CodeBlockSelectItem>
-                )}
-              </CodeBlockSelectContent>
-            </CodeBlockSelect>
-            <CodeBlockCopyButton
-              onCopy={() => console.log("Copied code to clipboard")}
-              onError={() => console.error("Failed to copy code to clipboard")}
-            />
-          </CodeBlockHeader>
-          <CodeBlockBody>
+      <CodeBlock data={code} defaultValue={code[0]?.language}>
+        <CodeBlockHeader>
+          <CodeBlockFiles>
             {(item) => (
-              <CodeBlockItem key={item.language} value={item.language}>
-                <CodeBlockContent language={item.language}>
-                  {item.code}
-                </CodeBlockContent>
-              </CodeBlockItem>
+              <CodeBlockFilename key={item.language} value={item.language}>
+                {item.filename}
+              </CodeBlockFilename>
             )}
-          </CodeBlockBody>
-        </CodeBlock>
-      )}
+          </CodeBlockFiles>
+          <CodeBlockCopyButton
+            onCopy={() => toast.info("Copied code to clipboard")}
+            onError={() => toast.error("Failed to copy code to clipboard")}
+          />
+        </CodeBlockHeader>
+        <CodeBlockBody>
+          {(item) => (
+            <CodeBlockItem key={item.language} value={item.language}>
+              <CodeBlockContent language={item.language}>
+                {item.code}
+              </CodeBlockContent>
+            </CodeBlockItem>
+          )}
+        </CodeBlockBody>
+      </CodeBlock>
     </div>
   );
 }
