@@ -81,3 +81,22 @@ export function usedRange(ws: XLSX.WorkSheet): XLSX.Range {
 
   return { s: { r: minR, c: minC }, e: { r: maxR, c: maxC } };
 }
+
+export function sanitizeSheet(rows: Record<string, unknown>[]) {
+  return rows.map((row) => {
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(row)) {
+      const cleanKey = key.replace(/[\n\t]+/g, " ").trim();
+
+      let cleanValue = value;
+      if (typeof value === "string") {
+        cleanValue = value.trim();
+      }
+
+      sanitized[cleanKey] = cleanValue;
+    }
+
+    return sanitized;
+  });
+}

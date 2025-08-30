@@ -10,7 +10,11 @@ export const ExcelFileSchema = z
     "File must be .xlsx or .xls",
   );
 
-export const ExcelInputFiles = ["assignments", "pla", "ta"] as const;
+export const ExcelInputFiles = [
+  "Assignments",
+  "PLA Preferences",
+  "TA Preferences",
+] as const;
 export type ExcelInputFileEnum = (typeof ExcelInputFiles)[number];
 
 export const ExcelFileToJsonInputSchema = z.object(
@@ -44,6 +48,18 @@ const yesNoBoolean = z.preprocess((val) => {
   return false;
 }, z.boolean());
 
+const numberOrNull = z.preprocess((val) => {
+  if (val === null || val === undefined) return null;
+  if (typeof val === "string") {
+    const trimmed = val.trim().toLowerCase();
+    if (trimmed === "" || trimmed === "tbd" || trimmed === "n/a") return null;
+    const num = Number(val);
+    return Number.isNaN(num) ? null : num;
+  }
+  if (typeof val === "number") return val;
+  return null;
+}, z.number().nullable());
+
 export const AllocationSchema = z.object({
   "Academic Period": z.string(),
   Section: z.string(),
@@ -55,14 +71,14 @@ export const AllocationSchema = z.object({
   "Section Cap": z.number().nullable(),
   Enrollment: z.number(),
   "Waitlist Count": z.number(),
-  "Student Hour Allocation": z.number(),
+  "Student Hour Allocation": numberOrNull,
 });
 
 export const AssignmentSchema = AllocationSchema.omit({
   "Student Hour Allocation": true,
 }).extend({
   TAs: z.string().nullable(),
-  "PLAs (formerly SAs)": z.string().nullable(),
+  PLAs: z.string().nullable(),
   GLAs: z.string().nullable(),
 });
 
@@ -70,17 +86,36 @@ export type Allocation = z.infer<typeof AllocationSchema>;
 export type Assignment = z.infer<typeof AssignmentSchema>;
 
 export const AssistantSchema = z.object({
-  First: z.string().min(1, "First name is too short."),
-  Last: z.string().min(1, "Last name is too short."),
-  Email: z
-    .string()
-    .email()
-    .endsWith("@wpi.edu", "Email does not end with @wpi.edu"),
+  First: z.string().min(1),
+  Last: z.string().min(1),
+  Email: z.string().email().endsWith("@wpi.edu"),
 });
+
 export type Assistant = z.infer<typeof AssistantSchema>;
 
 export const AssistantPreferencesSchema = AssistantSchema.extend({
   Comments: z.string().nullable(),
-}) // Everything else (courses, "Available X Term?", time slots, etc.) becomes boolean
-  .catchall(yesNoBoolean);
+  // Everything else (courses, "Available X Term?", time slots, etc.) becomes boolean
+}).catchall(yesNoBoolean);
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
+
+export const ExcelSheetNames = [
+  "Allocations",
+  "Assignments",
+  "TAs",
+  "PLAs",
+  "GLAs",
+  "PLA Preferences",
+  "TA Preferences",
+] as const;
+export type ExcelSheetNameEnum = (typeof ExcelSheetNames)[number];
+
+export const ExcelSheetSchema: Record<ExcelSheetNameEnum, z.ZodTypeAny> = {
+  Allocations: AllocationSchema,
+  Assignments: AssignmentSchema,
+  TAs: AssistantSchema,
+  PLAs: AssistantSchema,
+  GLAs: AssistantSchema,
+  "PLA Preferences": AssistantPreferencesSchema,
+  "TA Preferences": AssistantPreferencesSchema,
+};

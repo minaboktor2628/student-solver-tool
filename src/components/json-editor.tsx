@@ -38,7 +38,7 @@ export default function JsonEditor({ files, onChange, height = 600 }: Props) {
       {/* Explorer */}
       <ResizablePanel
         className="overflow-y-auto border-r"
-        defaultSize={16}
+        defaultSize={10}
         minSize={8}
         maxSize={40}
       >

@@ -1,10 +1,15 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import * as XLSX from "xlsx";
-import { ExcelFileToJsonInputSchema, ExcelInputFiles } from "@/types/excel";
-import { toSafeFilename } from "@/lib/utils";
+import {
+  ExcelFileToJsonInputSchema,
+  ExcelInputFiles,
+  ExcelSheetNames,
+  ExcelSheetSchema,
+} from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
-import { excelFileToWorkbook, usedRange } from "@/lib/xlsx";
+import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
+import { TRPCError } from "@trpc/server";
 
 export const excelRoute = createTRPCRouter({
   toJson: publicProcedure
@@ -23,7 +28,6 @@ export const excelRoute = createTRPCRouter({
       );
 
       const files: EditorFile[] = [];
-      const workbookJson: Record<string, unknown[]> = {};
 
       for (const { workbook, originalName } of workbooks) {
         const sheetNames = workbook.SheetNames;
@@ -33,38 +37,45 @@ export const excelRoute = createTRPCRouter({
           const ws = workbook.Sheets[sheetName];
           if (!ws) continue;
 
-          const rows = XLSX.utils.sheet_to_json(ws, {
+          // Use workbook filename if only one sheet, otherwise sheet name
+          const baseName = z
+            .enum(ExcelSheetNames)
+            .safeParse(isSingleSheet ? originalName : sheetName);
+
+          if (!baseName.success) continue;
+
+          const rawRows = XLSX.utils.sheet_to_json(ws, {
             raw: true,
             defval: null,
             blankrows: false,
             range: usedRange(ws),
           });
 
-          // Use workbook filename if only one sheet, otherwise sheet name
-          const baseName = isSingleSheet ? originalName : sheetName;
+          const sanitizedRows = sanitizeSheet(
+            rawRows as Record<string, unknown>[],
+          );
 
-          workbookJson[baseName] = rows;
+          const schemaForSheet = ExcelSheetSchema[baseName.data];
+          const parsed = schemaForSheet.array().safeParse(sanitizedRows);
 
+          if (!parsed.success) {
+            console.error(baseName.data);
+            console.error(z.prettifyError(parsed.error));
+            // Surface a helpful error; you can also collect all and return a report
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Validation failed for "${baseName.data}"`,
+              cause: parsed.error,
+            });
+          }
+
+          // 3) Emit validated JSON
           files.push({
-            filename: `/${toSafeFilename(baseName)}.json`,
-            code: JSON.stringify(rows, null, 2),
+            filename: `/${baseName.data}.json`,
+            code: JSON.stringify(parsed.data, null, 2),
             language: "json",
           });
         }
-      }
-
-      files.push({
-        filename: `/ALL.json`,
-        code: JSON.stringify(workbookJson, null, 2),
-        language: "json",
-      });
-
-      if (files.length === 0) {
-        files.push({
-          filename: "/data.json",
-          code: '{ "message": "No data found in workbook." }',
-          language: "json",
-        });
       }
 
       return files;
