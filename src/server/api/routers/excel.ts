@@ -9,7 +9,6 @@ import {
 } from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
 import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
-import { TRPCError } from "@trpc/server";
 
 export const excelRoute = createTRPCRouter({
   toJson: publicProcedure
@@ -58,28 +57,19 @@ export const excelRoute = createTRPCRouter({
           const schemaForSheet = ExcelSheetSchema[baseName.data];
           const parsed = schemaForSheet.array().safeParse(sanitizedRows);
 
-          if (!parsed.success) {
-            console.error(baseName.data);
-            console.error(z.prettifyError(parsed.error));
-            // Surface a helpful error; you can also collect all and return a report
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Validation failed for "${baseName.data}"`,
-              cause: parsed.error,
-            });
-          }
-
-          // 3) Emit validated JSON
+          if (!parsed.success) console.error(parsed.error);
           files.push({
             filename: `/${baseName.data}.json`,
-            code: JSON.stringify(parsed.data, null, 2),
             language: "json",
+            code: JSON.stringify(
+              parsed.success ? parsed.data : sanitizedRows,
+              null,
+              2,
+            ),
           });
         }
       }
 
       return files;
     }),
-
-  validate: publicProcedure.mutation(() => "validating"),
 });

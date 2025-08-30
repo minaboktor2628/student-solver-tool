@@ -87,7 +87,7 @@ export function sanitizeSheet(rows: Record<string, unknown>[]) {
     const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(row)) {
-      const cleanKey = key.replace(/[\n\t]+/g, " ").trim();
+      const cleanKey = key.replace(/[\n\t*]+/g, " ").trim();
 
       let cleanValue = value;
       if (typeof value === "string") {

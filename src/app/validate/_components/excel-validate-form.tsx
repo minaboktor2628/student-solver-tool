@@ -72,7 +72,7 @@ export default function ValidationForm() {
         className="flex flex-col"
       >
         <div className="flex items-center justify-between border-b p-2">
-          <h3 className="text-sm font-medium">Inputs & Actions</h3>
+          <h3 className="text-sm font-medium">Input & Validate</h3>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 px-2">
               <ChevronsUpDown className="mr-1 size-4" />

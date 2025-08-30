@@ -74,24 +74,44 @@ export const AllocationSchema = z.object({
   "Student Hour Allocation": numberOrNull,
 });
 
-export const AssignmentSchema = AllocationSchema.omit({
-  "Student Hour Allocation": true,
-}).extend({
-  TAs: z.string().nullable(),
-  PLAs: z.string().nullable(),
-  GLAs: z.string().nullable(),
-});
-
-export type Allocation = z.infer<typeof AllocationSchema>;
-export type Assignment = z.infer<typeof AssignmentSchema>;
-
 export const AssistantSchema = z.object({
-  First: z.string().min(1),
-  Last: z.string().min(1),
+  First: z.string(),
+  Last: z.string(),
   Email: z.string().email().endsWith("@wpi.edu"),
 });
 
 export type Assistant = z.infer<typeof AssistantSchema>;
+
+const peoplePreprocessor = z.preprocess(
+  (val) => {
+    if (val === null) return [];
+    if (typeof val !== "string") return [];
+
+    // normalize whitespace (replace newlines/tabs/periods with comma)
+    const normalized = val.replace(/[\n\t.]/g, ",");
+
+    return normalized
+      .split(";")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const [last, first] = entry.split(",").map((s) => s.trim());
+        return { First: first ?? "", Last: last ?? "" };
+      });
+  },
+  z.array(AssistantSchema.omit({ Email: true }).nullable()),
+);
+
+export const AssignmentSchema = AllocationSchema.omit({
+  "Student Hour Allocation": true,
+}).extend({
+  TAs: peoplePreprocessor,
+  PLAs: peoplePreprocessor,
+  GLAs: peoplePreprocessor,
+});
+
+export type Allocation = z.infer<typeof AllocationSchema>;
+export type Assignment = z.infer<typeof AssignmentSchema>;
 
 export const AssistantPreferencesSchema = AssistantSchema.extend({
   Comments: z.string().nullable(),
