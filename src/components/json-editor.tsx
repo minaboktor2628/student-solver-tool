@@ -14,10 +14,9 @@ import { LoadingSpinner } from "./loading-spinner";
 interface Props {
   files: EditorFile[];
   onChange?: (files: EditorFile[]) => void;
-  height?: number | string;
 }
 
-export default function JsonEditor({ files, onChange, height = 600 }: Props) {
+export default function JsonEditor({ files, onChange }: Props) {
   const { resolvedTheme } = useTheme();
   const [activeIndex, setActiveIndex] = useState(0);
   const activeFile = files[activeIndex];
@@ -30,11 +29,7 @@ export default function JsonEditor({ files, onChange, height = 600 }: Props) {
   }
 
   return (
-    <ResizablePanelGroup
-      direction="horizontal"
-      className="w-full"
-      style={{ height }}
-    >
+    <ResizablePanelGroup direction="horizontal" className="w-full">
       {/* Explorer */}
       <ResizablePanel
         className="overflow-y-auto border-r"
@@ -70,7 +65,7 @@ export default function JsonEditor({ files, onChange, height = 600 }: Props) {
           value={activeFile?.code ?? ""}
           onChange={handleChange}
           options={{
-            minimap: { enabled: false },
+            minimap: { enabled: true },
             lineNumbers: "on",
             wordWrap: "on",
             automaticLayout: true, // reacts to resizes
