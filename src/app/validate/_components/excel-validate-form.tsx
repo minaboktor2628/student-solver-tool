@@ -45,8 +45,10 @@ export default function ValidationForm() {
 
   const excelParse = api.excel.parseExcelWorkbooks.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: (data) => {
-      setEditorFiles(data);
+    onSuccess: ({ files, isValid }) => {
+      toast(`ret=${isValid}`);
+      setEditorFiles(files);
+      setAllFilesValid(isValid);
     },
   });
 

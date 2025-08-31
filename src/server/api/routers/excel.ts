@@ -24,7 +24,7 @@ export const excelRoute = createTRPCRouter({
         .transform((fd) => Object.fromEntries(fd.entries()))
         .pipe(ExcelFileToJsonInputSchema),
     )
-    .mutation<EditorFile[]>(async ({ input }) => {
+    .mutation(async ({ input }) => {
       const workbooks = await Promise.all(
         ExcelInputFiles.map(async (key) => {
           const wb = await excelFileToWorkbook(input[key]);
@@ -33,6 +33,7 @@ export const excelRoute = createTRPCRouter({
       );
 
       const files: EditorFile[] = [];
+      let isValid = true; // if any errors occur, set this to false
 
       for (const { workbook, originalName } of workbooks) {
         const sheetNames = workbook.SheetNames;
@@ -61,23 +62,36 @@ export const excelRoute = createTRPCRouter({
           );
 
           const schemaForSheet = ExcelSheetSchema[baseName.data];
-          const parsed = schemaForSheet.array().safeParse(sanitizedRows);
+          const rowResults = sanitizedRows.map((row, i) => {
+            const res = schemaForSheet.safeParse(row);
+            if (res.success) {
+              return { ok: true, value: res.data };
+            } else {
+              isValid = false;
+              return {
+                ok: false,
+                value: row,
+                errors: res.error.issues.map((iss) => ({
+                  rowIndex: i + 1,
+                  path: iss.path,
+                  message: iss.message,
+                  code: iss.code,
+                })),
+              };
+            }
+          });
 
-          if (!parsed.success) console.error(parsed.error);
+          const mergedRows = rowResults.map((r) => r.value);
 
           files.push({
             filename: sheetnameToJsonFilename(baseName.data),
             language: "json",
-            code: JSON.stringify(
-              parsed.success ? parsed.data : sanitizedRows,
-              null,
-              2,
-            ),
+            code: JSON.stringify(mergedRows, null, 2),
           });
         }
       }
 
-      return files;
+      return { files, isValid };
     }),
 
   validate: publicProcedure

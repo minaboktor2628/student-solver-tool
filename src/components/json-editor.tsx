@@ -24,8 +24,6 @@ interface Props {
   onValidityChange: (allValid: boolean) => void;
 }
 
-const SCHEMA_URI_PREFIX = "inmemory://schema";
-
 const toSchemaEntries = () =>
   ExcelSheetNames.map((sheetName) => {
     const modelPath = sheetnameToJsonFilename(sheetName);
@@ -36,7 +34,7 @@ const toSchemaEntries = () =>
     });
     return {
       fileMatch: [modelPath],
-      uri: `${SCHEMA_URI_PREFIX}${modelPath}`, // any stable unique URI
+      uri: `inmemory://schema${modelPath}`,
       schema: jsonSchema,
     };
   });
@@ -59,7 +57,6 @@ export default function JsonEditor({
   };
 
   const onMount: OnMount = (editor, monaco) => {
-    // 1) Turn on JSON validation with our schemas
     monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
       validate: true,
       allowComments: false,
@@ -68,29 +65,33 @@ export default function JsonEditor({
       schemas: toSchemaEntries(),
     });
 
-    // 2) Track markers across ALL models and surface a boolean
+    files.map((f) => {
+      const uri = monaco.Uri.parse(
+        f.filename.startsWith("inmemory://")
+          ? f.filename
+          : `inmemory://${f.filename}`,
+      );
+      // Reuse existing or create new
+      return (
+        monaco.editor.getModel(uri) ??
+        monaco.editor.createModel(f.code ?? "", "json", uri)
+      );
+    });
+
     const updateValidity = () => {
-      const allModels = monaco.editor
+      const allJsonModels = monaco.editor
         .getModels()
         .filter((m) => m.getLanguageId() === "json");
-      const hasAnyMarkers = allModels.some(
+      const hasAnyMarkers = allJsonModels.some(
         (m) => monaco.editor.getModelMarkers({ resource: m.uri }).length > 0,
       );
       onValidityChange(!hasAnyMarkers);
     };
 
-    // Run initially and on any marker change
     updateValidity();
     const d1 = monaco.editor.onDidChangeMarkers(updateValidity);
+    const d2 = editor.onDidChangeModelContent(updateValidity);
 
-    // Also update when value changes (helps in edge cases)
-    const d2 = editor.onDidChangeModelContent(() => {
-      // debounced update: Monaco will revalidate automatically
-      // but this guarantees onValidityChange toggles promptly
-      updateValidity();
-    });
-
-    // Clean up
     editor.onDidDispose(() => {
       d1.dispose();
       d2.dispose();
@@ -118,9 +119,7 @@ export default function JsonEditor({
           ))}
         </ul>
       </ResizablePanel>
-
       <ResizableHandle withHandle />
-
       <ResizablePanel>
         <Editor
           path={activeFile?.filename}
