@@ -6,12 +6,18 @@ import {
   ExcelInputFiles,
   ExcelSheetNames,
   ExcelSheetSchema,
+  ValidationInputSchema,
 } from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
-import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
+import {
+  excelFileToWorkbook,
+  sanitizeSheet,
+  sheetnameToJsonFilename,
+  usedRange,
+} from "@/lib/xlsx";
 
 export const excelRoute = createTRPCRouter({
-  toJson: publicProcedure
+  parseExcelWorkbooks: publicProcedure
     .input(
       z
         .instanceof(FormData)
@@ -58,8 +64,9 @@ export const excelRoute = createTRPCRouter({
           const parsed = schemaForSheet.array().safeParse(sanitizedRows);
 
           if (!parsed.success) console.error(parsed.error);
+
           files.push({
-            filename: `/${baseName.data}.json`,
+            filename: sheetnameToJsonFilename(baseName.data),
             language: "json",
             code: JSON.stringify(
               parsed.success ? parsed.data : sanitizedRows,
@@ -71,5 +78,11 @@ export const excelRoute = createTRPCRouter({
       }
 
       return files;
+    }),
+
+  validate: publicProcedure
+    .input(ValidationInputSchema)
+    .mutation(async ({ input }) => {
+      return input; // TODO:
     }),
 });

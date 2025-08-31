@@ -1,3 +1,4 @@
+import type { ExcelSheetNameEnum } from "@/types/excel";
 import * as XLSX from "xlsx";
 
 export async function excelFileToWorkbook(file: File) {
@@ -99,4 +100,8 @@ export function sanitizeSheet(rows: Record<string, unknown>[]) {
 
     return sanitized;
   });
+}
+
+export function sheetnameToJsonFilename(str: string): string {
+  return `/${str}.json`;
 }

@@ -77,7 +77,10 @@ export const AllocationSchema = z.object({
 export const AssistantSchema = z.object({
   First: z.string(),
   Last: z.string(),
-  Email: z.string().email().endsWith("@wpi.edu"),
+  Email: z
+    .string()
+    .email()
+    .regex(/@wpi\.edu$/),
 });
 
 export type Assistant = z.infer<typeof AssistantSchema>;
@@ -139,3 +142,20 @@ export const ExcelSheetSchema: Record<ExcelSheetNameEnum, z.ZodTypeAny> = {
   "PLA Preferences": AssistantPreferencesSchema,
   "TA Preferences": AssistantPreferencesSchema,
 };
+
+export const ValidationArraySchemasBySheetName: Record<
+  ExcelSheetNameEnum,
+  z.ZodTypeAny
+> = {
+  Allocations: z.array(AllocationSchema).min(1),
+  Assignments: z.array(AssignmentSchema).min(1),
+  TAs: z.array(AssistantSchema).min(1),
+  PLAs: z.array(AssistantSchema).min(1),
+  GLAs: z.array(AssistantSchema).min(1),
+  "PLA Preferences": z.array(AssistantPreferencesSchema).min(1),
+  "TA Preferences": z.array(AssistantPreferencesSchema).min(1),
+};
+
+export const ValidationInputSchema = z.object(
+  ValidationArraySchemasBySheetName,
+);
