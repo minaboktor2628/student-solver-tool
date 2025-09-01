@@ -15,7 +15,6 @@ import {
   ExcelSheetNames,
   ValidationArraySchemasBySheetName,
 } from "@/types/excel";
-import { sheetnameToJsonFilename } from "@/lib/xlsx";
 import zodToJsonSchema from "zod-to-json-schema";
 import React from "react";
 
@@ -27,15 +26,14 @@ interface Props {
 
 const toSchemaEntries = () =>
   ExcelSheetNames.map((sheetName) => {
-    const modelPath = sheetnameToJsonFilename(sheetName);
     const zodSchema = ValidationArraySchemasBySheetName[sheetName];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const jsonSchema = zodToJsonSchema(zodSchema, {
       name: sheetName.replace(/\s+/g, ""),
     });
     return {
-      fileMatch: [modelPath],
-      uri: `inmemory://schema${modelPath}`,
+      fileMatch: [sheetName],
+      uri: `inmemory://schema${sheetName}`,
       schema: jsonSchema,
     };
   });
@@ -115,7 +113,7 @@ export default function JsonEditor({
               onClick={() => setActiveIndex(i)}
               title={f.filename}
             >
-              {f.filename.replace(/^\//, "")}
+              {f.filename}
             </li>
           ))}
         </ul>
@@ -131,6 +129,7 @@ export default function JsonEditor({
           value={activeFile?.code ?? ""}
           onChange={handleChange}
           onMount={onMount}
+          className="max-h-screen"
           options={{
             minimap: { enabled: false },
             lineNumbers: "on",

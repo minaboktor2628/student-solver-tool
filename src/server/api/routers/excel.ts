@@ -9,23 +9,7 @@ import {
   ValidationInputSchema,
 } from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
-import {
-  excelFileToWorkbook,
-  sanitizeSheet,
-  sheetnameToJsonFilename,
-  usedRange,
-} from "@/lib/xlsx";
-
-type RowResult<T> = {
-  ok: boolean;
-  value: T | Record<string, unknown>;
-  errors?: {
-    rowIndex: number;
-    path: (string | number)[];
-    message: string;
-    code: string;
-  }[];
-};
+import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
 
 export const excelRoute = createTRPCRouter({
   parseExcelWorkbooks: publicProcedure
@@ -74,31 +58,20 @@ export const excelRoute = createTRPCRouter({
           const sanitizedRows = sanitizeSheet(rawRows);
 
           const schemaForSheet = ExcelSheetSchema[baseName.data];
-          const rowResults: RowResult<unknown>[] = sanitizedRows.map(
-            (row, i) => {
-              const res = schemaForSheet.safeParse(row);
-              if (res.success) {
-                return { ok: true, value: res.data as Record<string, unknown> };
-              } else {
-                isValid = false;
-                return {
-                  ok: false,
-                  value: row,
-                  errors: res.error.issues.map((iss) => ({
-                    rowIndex: i + 1,
-                    path: iss.path,
-                    message: iss.message,
-                    code: iss.code,
-                  })),
-                };
-              }
-            },
-          );
+          const rowResults = sanitizedRows.map((row) => {
+            const res = schemaForSheet.safeParse(row);
+            if (res.success) {
+              return { ok: true, value: res.data };
+            } else {
+              isValid = false;
+              return { ok: false, value: row };
+            }
+          });
 
           const mergedRows = rowResults.map((r) => r.value);
 
           files.push({
-            filename: sheetnameToJsonFilename(baseName.data),
+            filename: baseName.data,
             language: "json",
             code: JSON.stringify(mergedRows, null, 2),
           });

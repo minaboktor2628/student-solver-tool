@@ -77,10 +77,7 @@ export const AllocationSchema = z.object({
 export const AssistantSchema = z.object({
   First: z.string(),
   Last: z.string(),
-  Email: z
-    .string()
-    .email()
-    .regex(/@wpi\.edu$/),
+  Email: z.string().email().endsWith("@wpi.edu"),
 });
 
 export type Assistant = z.infer<typeof AssistantSchema>;
@@ -91,6 +88,7 @@ const peoplePreprocessor = z.preprocess(
     if (typeof val !== "string") return [];
 
     // normalize whitespace (replace newlines/tabs/periods with comma)
+    // TODO: Should we replace periods or make it an error?
     const normalized = val.replace(/[\n\t.]/g, ",");
 
     return normalized
@@ -137,7 +135,7 @@ export const ExcelSheetNames = [
 ] as const;
 export type ExcelSheetNameEnum = (typeof ExcelSheetNames)[number];
 
-export const ExcelSheetSchema: Record<ExcelSheetNameEnum, z.ZodTypeAny> = {
+export const ExcelSheetSchema = {
   Allocations: AllocationSchema,
   Assignments: AssignmentSchema,
   TAs: AssistantSchema,
@@ -145,21 +143,25 @@ export const ExcelSheetSchema: Record<ExcelSheetNameEnum, z.ZodTypeAny> = {
   GLAs: AssistantSchema,
   "PLA Preferences": AssistantPreferencesSchema,
   "TA Preferences": AssistantPreferencesSchema,
+} as const satisfies Record<ExcelSheetNameEnum, z.ZodTypeAny>;
+
+type ArraySchemaMap<M extends Record<string, z.ZodTypeAny>> = {
+  [K in keyof M]: z.ZodArray<M[K]>;
 };
 
-export const ValidationArraySchemasBySheetName: Record<
-  ExcelSheetNameEnum,
-  z.ZodTypeAny
-> = {
-  Allocations: z.array(AllocationSchema).min(1),
-  Assignments: z.array(AssignmentSchema).min(1),
-  TAs: z.array(AssistantSchema).min(1),
-  PLAs: z.array(AssistantSchema).min(1),
-  GLAs: z.array(AssistantSchema).min(1),
-  "PLA Preferences": z.array(AssistantPreferencesSchema).min(1),
-  "TA Preferences": z.array(AssistantPreferencesSchema).min(1),
-};
+function toArraySchemas<M extends Record<string, z.ZodTypeAny>>(
+  m: M,
+  min = 1,
+): ArraySchemaMap<M> {
+  const entries = Object.entries(m).map(([k, v]) => [k, z.array(v).min(min)]);
+  return Object.fromEntries(entries) as ArraySchemaMap<M>;
+}
+
+export const ValidationArraySchemasBySheetName =
+  toArraySchemas(ExcelSheetSchema);
 
 export const ValidationInputSchema = z.object(
   ValidationArraySchemasBySheetName,
 );
+
+export type ValidationInput = z.infer<typeof ValidationInputSchema>;

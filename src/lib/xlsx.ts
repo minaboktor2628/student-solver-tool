@@ -101,7 +101,3 @@ export function sanitizeSheet(rows: Record<string, unknown>[]) {
     return sanitized;
   });
 }
-
-export function sheetnameToJsonFilename(str: string): string {
-  return `/${str}.json`;
-}
