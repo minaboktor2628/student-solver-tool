@@ -99,10 +99,14 @@ const peoplePreprocessor = z.preprocess(
       .filter(Boolean)
       .map((entry) => {
         const [last, first] = entry.split(",").map((s) => s.trim());
-        return { First: first ?? "", Last: last ?? "" };
+        return { First: first ?? "", Last: last ?? "", Locked: false };
       });
   },
-  z.array(AssistantSchema.omit({ Email: true }).nullable()),
+  z.array(
+    AssistantSchema.omit({ Email: true })
+      .extend({ Locked: z.boolean() })
+      .nullable(),
+  ),
 );
 
 export const AssignmentSchema = AllocationSchema.omit({
