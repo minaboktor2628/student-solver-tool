@@ -17,6 +17,7 @@ import {
 } from "@/types/excel";
 import { sheetnameToJsonFilename } from "@/lib/xlsx";
 import zodToJsonSchema from "zod-to-json-schema";
+import React from "react";
 
 interface Props {
   files: EditorFile[];
@@ -65,7 +66,7 @@ export default function JsonEditor({
       schemas: toSchemaEntries(),
     });
 
-    files.map((f) => {
+    files.forEach((f) => {
       const uri = monaco.Uri.parse(
         f.filename.startsWith("inmemory://")
           ? f.filename

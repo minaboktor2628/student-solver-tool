@@ -16,6 +16,17 @@ import {
   usedRange,
 } from "@/lib/xlsx";
 
+type RowResult<T> = {
+  ok: boolean;
+  value: T | Record<string, unknown>;
+  errors?: {
+    rowIndex: number;
+    path: (string | number)[];
+    message: string;
+    code: string;
+  }[];
+};
+
 export const excelRoute = createTRPCRouter({
   parseExcelWorkbooks: publicProcedure
     .input(
@@ -50,36 +61,39 @@ export const excelRoute = createTRPCRouter({
 
           if (!baseName.success) continue;
 
-          const rawRows = XLSX.utils.sheet_to_json(ws, {
-            raw: true,
-            defval: null,
-            blankrows: false,
-            range: usedRange(ws),
-          });
-
-          const sanitizedRows = sanitizeSheet(
-            rawRows as Record<string, unknown>[],
+          const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+            ws,
+            {
+              raw: true,
+              defval: null,
+              blankrows: false,
+              range: usedRange(ws),
+            },
           );
 
+          const sanitizedRows = sanitizeSheet(rawRows);
+
           const schemaForSheet = ExcelSheetSchema[baseName.data];
-          const rowResults = sanitizedRows.map((row, i) => {
-            const res = schemaForSheet.safeParse(row);
-            if (res.success) {
-              return { ok: true, value: res.data };
-            } else {
-              isValid = false;
-              return {
-                ok: false,
-                value: row,
-                errors: res.error.issues.map((iss) => ({
-                  rowIndex: i + 1,
-                  path: iss.path,
-                  message: iss.message,
-                  code: iss.code,
-                })),
-              };
-            }
-          });
+          const rowResults: RowResult<unknown>[] = sanitizedRows.map(
+            (row, i) => {
+              const res = schemaForSheet.safeParse(row);
+              if (res.success) {
+                return { ok: true, value: res.data as Record<string, unknown> };
+              } else {
+                isValid = false;
+                return {
+                  ok: false,
+                  value: row,
+                  errors: res.error.issues.map((iss) => ({
+                    rowIndex: i + 1,
+                    path: iss.path,
+                    message: iss.message,
+                    code: iss.code,
+                  })),
+                };
+              }
+            },
+          );
 
           const mergedRows = rowResults.map((r) => r.value);
 

@@ -7,7 +7,7 @@ import {
   DropzoneEmptyState,
 } from "@/components/ui/shadcn-io/dropzone";
 import { api } from "@/trpc/react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import type { EditorFile } from "@/types/editor";
 import JsonEditor from "@/components/json-editor";
@@ -25,6 +25,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { sheetnameToJsonFilename } from "@/lib/xlsx";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function ValidationForm() {
   const [isOpen, setIsOpen] = useState(true);
@@ -48,7 +54,6 @@ export default function ValidationForm() {
     onSuccess: ({ files, isValid }) => {
       toast(`ret=${isValid}`);
       setEditorFiles(files);
-      setAllFilesValid(isValid);
     },
   });
 
@@ -74,6 +79,10 @@ export default function ValidationForm() {
     excelParse.mutate(fd);
   }
 
+  const isValidateButtonDisabled = excelValidate.isPending || !allFilesValid;
+  const isUploadButtonDisabled =
+    ExcelInputFiles.length !== pickedCount || excelParse.isPending;
+
   return (
     <div className="flex h-screen min-h-0 flex-col">
       <Collapsible
@@ -83,6 +92,60 @@ export default function ValidationForm() {
       >
         <div className="flex items-center justify-between border-b p-2">
           <h3 className="text-sm font-medium">Input & Validate</h3>
+          <div className="flex flex-row gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex-1">
+                    <Button
+                      className="w-full"
+                      onClick={handleUploadAndParse}
+                      disabled={isUploadButtonDisabled}
+                    >
+                      {excelParse.isPending ? (
+                        <LoadingSpinner>Uploading...</LoadingSpinner>
+                      ) : (
+                        "Upload"
+                      )}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {isUploadButtonDisabled
+                      ? "Select all required Excel files before uploading"
+                      : "Upload the Excel workbooks"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex-1">
+                    <Button
+                      className="w-full"
+                      onClick={() => toast("TODO")}
+                      disabled={false} // TODO: disable valid button
+                    >
+                      {excelValidate.isPending ? (
+                        <LoadingSpinner>Validating...</LoadingSpinner>
+                      ) : (
+                        "Validate"
+                      )}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {isValidateButtonDisabled
+                      ? "Upload and fix errors before validating. You can check each file's right scrollbar/sidebar to see the errors."
+                      : "Run validation"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <CollapsibleTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 px-2">
               <ChevronsUpDown className="mr-1 size-4" />
@@ -101,32 +164,6 @@ export default function ValidationForm() {
                   name={name}
                 />
               ))}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                className="flex-1"
-                onClick={handleUploadAndParse}
-                disabled={
-                  ExcelInputFiles.length !== pickedCount || excelParse.isPending
-                }
-              >
-                {excelParse.isPending ? (
-                  <LoadingSpinner>Uploading...</LoadingSpinner>
-                ) : (
-                  "Upload"
-                )}
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => toast("TODO")}
-                disabled={excelValidate.isPending || !allFilesValid}
-              >
-                {excelValidate.isPending ? (
-                  <LoadingSpinner>Validating...</LoadingSpinner>
-                ) : (
-                  "Validate"
-                )}
-              </Button>
             </div>
           </div>
         </CollapsibleContent>
