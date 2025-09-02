@@ -17,7 +17,11 @@ import {
 } from "@/types/excel";
 import zodToJsonSchema from "zod-to-json-schema";
 import React from "react";
+import { useRef } from "react";
+import { Braces } from "lucide-react";
 
+type ErrorCountMap = Record<string, number>;
+type Monaco = Parameters<OnMount>[1];
 interface Props {
   files: EditorFile[];
   onChange: (files: EditorFile[]) => void;
@@ -41,9 +45,12 @@ export default function JsonEditor({
   onValidityChange,
 }: Props) {
   const { resolvedTheme } = useTheme();
-
   const [activeIndex, setActiveIndex] = useState(0);
   const activeFile = files[activeIndex];
+
+  // keep Monaco instance so we can convert filenames -> URIs in render
+  const monacoRef = useRef<Monaco | null>(null);
+  const [errorCounts, setErrorCounts] = useState<ErrorCountMap>({});
 
   const handleChange = (value?: string) => {
     const next = files.map((f, i) =>
@@ -53,6 +60,8 @@ export default function JsonEditor({
   };
 
   const onMount: OnMount = (editor, monaco) => {
+    monacoRef.current = monaco;
+
     monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
       validate: true,
       allowComments: false,
@@ -64,32 +73,44 @@ export default function JsonEditor({
 
     files.forEach((f) => {
       const uri = monaco.Uri.parse(f.filename);
-      // Reuse existing or create new
       return (
         monaco.editor.getModel(uri) ??
         monaco.editor.createModel(f.code ?? "", "json", uri)
       );
     });
 
-    const updateValidity = () => {
-      const allJsonModels = monaco.editor
+    const recompute = () => {
+      const counts: ErrorCountMap = {};
+      const models = monaco.editor
         .getModels()
         .filter((m) => m.getLanguageId() === "json");
-      const hasAnyMarkers = allJsonModels.some(
-        (m) => monaco.editor.getModelMarkers({ resource: m.uri }).length > 0,
-      );
-      onValidityChange(!hasAnyMarkers);
+      for (const m of models) {
+        const markers = monaco.editor.getModelMarkers({ resource: m.uri });
+        const errors = markers.filter(
+          (x) => x.severity === monaco.MarkerSeverity.Error,
+        ).length;
+        counts[m.uri.toString()] = errors;
+      }
+      setErrorCounts(counts);
+
+      const hasAnyErrors = Object.values(counts).some((n) => n > 0);
+      onValidityChange(!hasAnyErrors);
     };
 
-    updateValidity();
-    const d1 = monaco.editor.onDidChangeMarkers(updateValidity);
-    const d2 = editor.onDidChangeModelContent(updateValidity);
+    // initial + listeners
+    recompute();
+    const d1 = monaco.editor.onDidChangeMarkers(recompute);
+    const d2 = editor.onDidChangeModelContent(recompute);
 
     editor.onDidDispose(() => {
       d1.dispose();
       d2.dispose();
     });
   };
+
+  // helper to get the key we used above (uri.toString())
+  const uriKeyFor = (filename: string) =>
+    monacoRef.current?.Uri.parse(filename).toString() ?? filename;
 
   return (
     <ResizablePanelGroup direction="horizontal" className="w-full">
@@ -100,16 +121,30 @@ export default function JsonEditor({
         maxSize={40}
       >
         <ul className="text-sm">
-          {files.map((f, i) => (
-            <li
-              key={f.filename}
-              className={`cursor-pointer truncate px-2 py-1 ${i === activeIndex ? "bg-accent" : ""}`}
-              onClick={() => setActiveIndex(i)}
-              title={f.filename}
-            >
-              {f.filename}
-            </li>
-          ))}
+          {files.map((f, i) => {
+            const key = uriKeyFor(f.filename);
+            const errCount = errorCounts[key] ?? 0;
+            const hasErrors = errCount > 0;
+            return (
+              <li
+                key={f.filename}
+                className={`group flex cursor-pointer items-center gap-2 truncate px-2 py-1 ${i === activeIndex ? "bg-accent" : ""}`}
+                onClick={() => setActiveIndex(i)}
+                title={f.filename}
+              >
+                <span
+                  className={`${hasErrors ? "underline decoration-red-600 decoration-wavy underline-offset-2" : ""} truncate`}
+                >
+                  <Braces className="mr-2 inline size-4" /> {f.filename}.json
+                </span>
+                {hasErrors && (
+                  <span className="ml-auto rounded bg-red-600/15 px-1.5 py-0.5 text-[10px] leading-none text-red-700">
+                    {errCount}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </ResizablePanel>
       <ResizableHandle withHandle />

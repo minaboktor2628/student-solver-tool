@@ -189,7 +189,7 @@ export default function ValidationPage() {
           </div>
         </CollapsibleContent>
       </Collapsible>
-      <div className="flex-1">
+      <div className="flex-1 px-2">
         <JsonEditor
           files={editorFiles}
           onChange={setEditorFiles}
