@@ -48,21 +48,60 @@ const yesNoBoolean = z.preprocess((val) => {
   return false;
 }, z.boolean());
 
-const numberOrNull = z.preprocess((val) => {
-  if (val === null || val === undefined) return null;
-  if (typeof val === "string") {
-    const trimmed = val.trim().toLowerCase();
-    if (trimmed === "" || trimmed === "tbd" || trimmed === "n/a") return null;
-    const num = Number(val);
-    return Number.isNaN(num) ? null : num;
-  }
-  if (typeof val === "number") return val;
-  return null;
-}, z.number().nullable());
+// For course alloc number
+const numberWithMOE = z.preprocess(
+  (val) => {
+    let num = 0;
+
+    if (val === null || val === undefined) {
+      num = 0;
+    } else if (typeof val === "string") {
+      const trimmed = val.trim().toLowerCase();
+      if (trimmed === "" || trimmed === "tbd" || trimmed === "n/a") {
+        num = 0;
+      } else {
+        const parsed = Number(val);
+        num = Number.isNaN(parsed) ? 0 : parsed;
+      }
+    } else if (typeof val === "number") {
+      num = val;
+    }
+
+    return { Calculated: num, MOE: 10 };
+  },
+  z.object({
+    Calculated: z.number(),
+    MOE: z.number(),
+  }),
+);
+
+// Regex to capture "CS ####-XXX"
+const CS_SECTION_RE = /CS\s*([0-9]{3,4})\s*[-–—]\s*([A-Z]{1,3}\d{2,3})/i;
+
+const SectionSchema = z.preprocess(
+  (val) => {
+    if (typeof val !== "string") return val;
+
+    const m = CS_SECTION_RE.exec(val);
+    if (!m) return val;
+
+    const [, courseNum, subsection] = m;
+    return {
+      Course: `CS ${courseNum}`,
+      Subsection: subsection!.toUpperCase(),
+    };
+  },
+  z.object({
+    Course: z.string().regex(/^CS \d{3,4}$/, 'Expected like "CS 1102"'),
+    Subsection: z
+      .string()
+      .regex(/^[A-Z]{1,3}\d{2,3}$/, 'Expected like "AL01" or "A01"'),
+  }),
+);
 
 export const AllocationSchema = z.object({
   "Academic Period": z.string(),
-  Section: z.string(),
+  Section: SectionSchema,
   CrossListed: yesNoBoolean,
   "Meeting Pattern(s)": z.string().nullable(),
   Instructors: z.string().nullable(),
@@ -71,7 +110,7 @@ export const AllocationSchema = z.object({
   "Section Cap": z.number().nullable(),
   Enrollment: z.number(),
   "Waitlist Count": z.number(),
-  "Student Hour Allocation": numberOrNull,
+  "Student Hour Allocation": numberWithMOE,
 });
 
 export const AssistantSchema = z.object({
@@ -82,37 +121,43 @@ export const AssistantSchema = z.object({
 
 export type Assistant = z.infer<typeof AssistantSchema>;
 
-const peoplePreprocessor = z.preprocess(
-  (val) => {
-    if (val === null) return [];
-    if (typeof val !== "string") return [];
+const makePeoplePreprocessor = (defaultHours: number) =>
+  z.preprocess(
+    (val) => {
+      if (val === null) return [];
+      if (typeof val !== "string") return [];
 
-    // normalize whitespace (replace newlines/tabs/periods with comma)
-    // TODO: Should we replace periods or make it an error?
-    const normalized = val.replace(/[\n\t.]/g, ",");
+      // normalize whitespace (replace newlines/tabs/periods with comma)
+      // TODO: Should we replace periods or make it an error?
+      const normalized = val.replace(/[\n\t.]/g, ",");
 
-    return normalized
-      .split(";")
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-      .map((entry) => {
-        const [last, first] = entry.split(",").map((s) => s.trim());
-        return { First: first ?? "", Last: last ?? "", Locked: false };
-      });
-  },
-  z.array(
-    AssistantSchema.omit({ Email: true })
-      .extend({ Locked: z.boolean() })
-      .nullable(),
-  ),
-);
+      return normalized
+        .split(";")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .map((entry) => {
+          const [last, first] = entry.split(",").map((s) => s.trim());
+          return {
+            First: first ?? "",
+            Last: last ?? "",
+            Locked: false,
+            Hours: defaultHours,
+          };
+        });
+    },
+    z.array(
+      AssistantSchema.omit({ Email: true })
+        .extend({ Locked: z.boolean(), Hours: z.number() })
+        .nullable(),
+    ),
+  );
 
 export const AssignmentSchema = AllocationSchema.omit({
   "Student Hour Allocation": true,
 }).extend({
-  TAs: peoplePreprocessor,
-  PLAs: peoplePreprocessor,
-  GLAs: peoplePreprocessor,
+  TAs: makePeoplePreprocessor(20),
+  PLAs: makePeoplePreprocessor(10),
+  GLAs: makePeoplePreprocessor(20),
 });
 
 export type Allocation = z.infer<typeof AllocationSchema>;
