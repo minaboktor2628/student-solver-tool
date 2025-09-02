@@ -32,14 +32,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const DEFAULT_FILES: EditorFile[] = [
-  { code: "No input data.", filename: "Temp file", language: "txt" },
-];
-
 export default function ValidationPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [areAllFilesValid, setAreAllFilesValid] = useState(false);
-  const [editorFiles, setEditorFiles] = useState<EditorFile[]>(DEFAULT_FILES);
+  const [editorFiles, setEditorFiles] = useState<EditorFile[]>(
+    ExcelSheetNames.map((name) => ({
+      filename: `${name}.temp`,
+      code: "[]",
+      language: "json",
+    })),
+  );
+
   const [selected, setSelected] = useState<
     Partial<Record<ExcelInputFileEnum, File>>
   >({});
@@ -48,9 +51,7 @@ export default function ValidationPage() {
 
   const parserApi = api.excel.parseExcelWorkbooks.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: ({ files }) => {
-      setEditorFiles(files);
-    },
+    onSuccess: ({ files }) => setEditorFiles(files),
   });
 
   const validationApi = api.excel.validate.useMutation({
