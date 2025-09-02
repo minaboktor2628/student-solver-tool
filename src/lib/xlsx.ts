@@ -1,4 +1,3 @@
-import type { ExcelSheetNameEnum } from "@/types/excel";
 import * as XLSX from "xlsx";
 
 export async function excelFileToWorkbook(file: File) {

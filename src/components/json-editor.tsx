@@ -27,10 +27,7 @@ interface Props {
 const toSchemaEntries = () =>
   ExcelSheetNames.map((sheetName) => {
     const zodSchema = ValidationArraySchemasBySheetName[sheetName];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const jsonSchema = zodToJsonSchema(zodSchema, {
-      name: sheetName.replace(/\s+/g, ""),
-    });
+    const jsonSchema = zodToJsonSchema(zodSchema, { name: sheetName });
     return {
       fileMatch: [sheetName],
       uri: `inmemory://schema${sheetName}`,
@@ -62,14 +59,11 @@ export default function JsonEditor({
       enableSchemaRequest: false,
       trailingCommas: "error",
       schemas: toSchemaEntries(),
+      schemaValidation: "error",
     });
 
     files.forEach((f) => {
-      const uri = monaco.Uri.parse(
-        f.filename.startsWith("inmemory://")
-          ? f.filename
-          : `inmemory://${f.filename}`,
-      );
+      const uri = monaco.Uri.parse(f.filename);
       // Reuse existing or create new
       return (
         monaco.editor.getModel(uri) ??
