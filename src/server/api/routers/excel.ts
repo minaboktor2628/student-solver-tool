@@ -10,6 +10,7 @@ import {
 } from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
 import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
+import { TRPCError } from "@trpc/server";
 
 export const excelRoute = createTRPCRouter({
   parseExcelWorkbooks: publicProcedure
@@ -28,7 +29,6 @@ export const excelRoute = createTRPCRouter({
       );
 
       const files: EditorFile[] = [];
-      let isValid = true; // if any errors occur, set this to false
 
       for (const { workbook, originalName } of workbooks) {
         const sheetNames = workbook.SheetNames;
@@ -60,12 +60,8 @@ export const excelRoute = createTRPCRouter({
           const schemaForSheet = ExcelSheetSchema[baseName.data];
           const rowResults = sanitizedRows.map((row) => {
             const res = schemaForSheet.safeParse(row);
-            if (res.success) {
-              return { ok: true, value: res.data };
-            } else {
-              isValid = false;
-              return { ok: false, value: row };
-            }
+            if (res.success) return { ok: true, value: res.data };
+            else return { ok: false, value: row };
           });
 
           const mergedRows = rowResults.map((r) => r.value);
@@ -84,7 +80,7 @@ export const excelRoute = createTRPCRouter({
           message: "Uploaded the wrong files, or in the wrong order.",
         });
 
-      return { files, errors };
+      return { files };
     }),
 
   validate: publicProcedure

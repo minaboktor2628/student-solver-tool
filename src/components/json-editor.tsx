@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 import type { OnMount } from "@monaco-editor/react";
 import type { EditorFile } from "@/types/editor";
@@ -33,7 +33,7 @@ const toSchemaEntries = () =>
     const zodSchema = ValidationArraySchemasBySheetName[sheetName];
     const jsonSchema = zodToJsonSchema(zodSchema, { name: sheetName });
     return {
-      fileMatch: [sheetName],
+      fileMatch: [sheetName, `${sheetName}.temp`],
       uri: `inmemory://schema${sheetName}`,
       schema: jsonSchema,
     };
@@ -50,6 +50,7 @@ export default function JsonEditor({
 
   // keep Monaco instance so we can convert filenames -> URIs in render
   const monacoRef = useRef<Monaco | null>(null);
+  const recomputeRef = useRef<(() => void) | null>(null);
   const [errorCounts, setErrorCounts] = useState<ErrorCountMap>({});
 
   const handleChange = (value?: string) => {
@@ -91,6 +92,7 @@ export default function JsonEditor({
         ).length;
         counts[m.uri.toString()] = errors;
       }
+
       setErrorCounts(counts);
 
       const hasAnyErrors = Object.values(counts).some((n) => n > 0);
@@ -99,6 +101,7 @@ export default function JsonEditor({
 
     // initial + listeners
     recompute();
+    recomputeRef.current = recompute;
     const d1 = monaco.editor.onDidChangeMarkers(recompute);
     const d2 = editor.onDidChangeModelContent(recompute);
 
@@ -107,6 +110,21 @@ export default function JsonEditor({
       d2.dispose();
     });
   };
+
+  useEffect(() => {
+    const monaco = monacoRef.current;
+
+    if (!monaco) return;
+    files.forEach((f) => {
+      const uri = monaco.Uri.parse(f.filename);
+      return (
+        monaco.editor.getModel(uri) ??
+        monaco.editor.createModel(f.code ?? "", "json", uri)
+      );
+    });
+
+    recomputeRef?.current?.();
+  }, [files]);
 
   // helper to get the key we used above (uri.toString())
   const uriKeyFor = (filename: string) =>
