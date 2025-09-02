@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run format:write",
+      "pre-commit": "echo hey",
+    }
+  },
   "scripts": {
     "build": "next build",
     "check": "next lint && tsc --noEmit",
@@ -94,6 +100,7 @@
     "@types/recharts": "^2.0.1",
     "eslint": "^9.23.0",
     "eslint-config-next": "^15.2.3",
+    "husky": "^9.1.7",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
