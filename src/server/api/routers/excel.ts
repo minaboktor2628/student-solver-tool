@@ -78,7 +78,13 @@ export const excelRoute = createTRPCRouter({
         }
       }
 
-      return { files, isValid };
+      if (files.length !== ExcelSheetNames.length)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Uploaded the wrong files, or in the wrong order.",
+        });
+
+      return { files, errors };
     }),
 
   validate: publicProcedure
