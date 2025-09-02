@@ -190,7 +190,7 @@ export default function JsonEditor({
           onMount={onMount}
           className="max-h-screen"
           options={{
-            minimap: { enabled: false },
+            minimap: { enabled: true },
             lineNumbers: "on",
             wordWrap: "on",
             automaticLayout: true,
