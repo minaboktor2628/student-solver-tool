@@ -56,7 +56,10 @@ export default function ValidationPage() {
 
   const validationApi = api.excel.validate.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: console.log,
+    onSuccess: (data) => {
+      console.log(data);
+      toast("Success!");
+    },
   });
 
   function handleDrop(key: ExcelInputFileEnum, files: File[]) {
