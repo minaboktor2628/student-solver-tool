@@ -32,9 +32,10 @@ const toSchemaEntries = () =>
   ExcelSheetNames.map((sheetName) => {
     const zodSchema = ValidationArraySchemasBySheetName[sheetName];
     const jsonSchema = zodToJsonSchema(zodSchema, { name: sheetName });
+
     return {
-      fileMatch: [sheetName, `${sheetName}.temp`],
-      uri: `inmemory://schema${sheetName}`,
+      fileMatch: [sheetName],
+      uri: `inmemory://schemas/${sheetName}.schema.json`,
       schema: jsonSchema,
     };
   });
@@ -81,26 +82,22 @@ export default function JsonEditor({
     });
 
     const recompute = () => {
-      const counts: ErrorCountMap = {};
+      const counts: Record<string, number> = {};
       const models = monaco.editor
         .getModels()
         .filter((m) => m.getLanguageId() === "json");
+
       for (const m of models) {
         const markers = monaco.editor.getModelMarkers({ resource: m.uri });
-        const errors = markers.filter(
+        counts[m.uri.toString()] = markers.filter(
           (x) => x.severity === monaco.MarkerSeverity.Error,
         ).length;
-        counts[m.uri.toString()] = errors;
       }
 
       setErrorCounts(counts);
-
-      const hasAnyErrors = Object.values(counts).some((n) => n > 0);
-      onValidityChange(!hasAnyErrors);
+      onValidityChange(!Object.values(counts).some((n) => n > 0));
     };
 
-    // initial + listeners
-    recompute();
     recomputeRef.current = recompute;
     const d1 = monaco.editor.onDidChangeMarkers(recompute);
     const d2 = editor.onDidChangeModelContent(recompute);
@@ -109,24 +106,39 @@ export default function JsonEditor({
       d1.dispose();
       d2.dispose();
     });
+
+    // run once initially
+    recompute();
   };
 
   useEffect(() => {
     const monaco = monacoRef.current;
-
     if (!monaco) return;
-    files.forEach((f) => {
-      const uri = monaco.Uri.parse(f.filename);
-      return (
-        monaco.editor.getModel(uri) ??
-        monaco.editor.createModel(f.code ?? "", "json", uri)
-      );
-    });
 
-    recomputeRef?.current?.();
+    const keep = new Set<string>();
+
+    for (const f of files) {
+      const uri = monaco.Uri.parse(f.filename);
+      keep.add(uri.toString());
+
+      let model = monaco.editor.getModel(uri);
+      if (!model) {
+        model = monaco.editor.createModel(f.code ?? "", "json", uri);
+      } else if (model.getValue() !== (f.code ?? "")) {
+        model.setValue(f.code ?? ""); // triggers JSON worker re-validate
+      }
+    }
+
+    // dispose models that are no longer represented in props
+    for (const m of monaco.editor.getModels()) {
+      if (m.getLanguageId() !== "json") continue;
+      if (!keep.has(m.uri.toString())) m.dispose();
+    }
+
+    // force a recompute right after batch updates
+    recomputeRef.current?.();
   }, [files]);
 
-  // helper to get the key we used above (uri.toString())
   const uriKeyFor = (filename: string) =>
     monacoRef.current?.Uri.parse(filename).toString() ?? filename;
 

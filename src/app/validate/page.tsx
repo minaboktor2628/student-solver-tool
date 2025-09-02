@@ -37,7 +37,7 @@ export default function ValidationPage() {
   const [areAllFilesValid, setAreAllFilesValid] = useState(false);
   const [editorFiles, setEditorFiles] = useState<EditorFile[]>(
     ExcelSheetNames.map((name) => ({
-      filename: `${name}.temp`,
+      filename: name,
       code: "[]",
       language: "json",
     })),
