@@ -32,12 +32,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const DEFAULT_FILES: EditorFile[] = [
+  { code: "No input data.", filename: "Temp file", language: "txt" },
+];
+
 export default function ValidationPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [areAllFilesValid, setAreAllFilesValid] = useState(false);
-  const [editorFiles, setEditorFiles] = useState<EditorFile[]>([
-    { code: "No input data.", filename: "Temp file", language: "txt" },
-  ]);
+  const [editorFiles, setEditorFiles] = useState<EditorFile[]>(DEFAULT_FILES);
   const [selected, setSelected] = useState<
     Partial<Record<ExcelInputFileEnum, File>>
   >({});
@@ -46,8 +48,7 @@ export default function ValidationPage() {
 
   const parserApi = api.excel.parseExcelWorkbooks.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: ({ files, isValid }) => {
-      setAreAllFilesValid(isValid);
+    onSuccess: ({ files }) => {
       setEditorFiles(files);
     },
   });
