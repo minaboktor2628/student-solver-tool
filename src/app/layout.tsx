@@ -35,7 +35,7 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Toaster />
+          <Toaster richColors toastOptions={{ duration: 5000 }} />
           <TRPCReactProvider>
             <Navbar logo={<Calculator />} navigationLinks={links} />
             {children}
