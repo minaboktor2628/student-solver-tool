@@ -6,7 +6,6 @@ import {
   ExcelInputFiles,
   ExcelSheetNames,
   ExcelSheetSchema,
-  ValidationInputSchema,
 } from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
 import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
@@ -81,11 +80,5 @@ export const excelRoute = createTRPCRouter({
         });
 
       return { files };
-    }),
-
-  validate: publicProcedure
-    .input(ValidationInputSchema)
-    .mutation(async ({ input }) => {
-      return input; // TODO:
     }),
 });

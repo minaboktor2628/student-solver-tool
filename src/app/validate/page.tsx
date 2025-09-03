@@ -31,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ValidationResultsDialog } from "@/components/validation-results-dialog";
 
 export default function ValidationPage() {
   const [isOpen, setIsOpen] = useState(true);
@@ -47,6 +48,14 @@ export default function ValidationPage() {
     Partial<Record<ExcelInputFileEnum, File>>
   >({});
 
+  const [validationResult, setValidationResult] = useState<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  } | null>(null);
+
+  const [showResultsDialog, setShowResultsDialog] = useState(false);
+
   const pickedCount = Object.values(selected).filter(Boolean).length;
 
   const parserApi = api.excel.parseExcelWorkbooks.useMutation({
@@ -54,11 +63,28 @@ export default function ValidationPage() {
     onSuccess: ({ files }) => setEditorFiles(files),
   });
 
-  const validationApi = api.excel.validate.useMutation({
-    onError: (error) => toast.error(error.message),
+  const validationApi = api.validation.validate.useMutation({
+    onError: (error) => {
+      console.error("Validation API error:", error);
+      toast.error(error.message);
+    },
     onSuccess: (data) => {
-      console.log(data);
-      toast("Success!");
+      console.log("Validation API success:", data);
+      
+      if (data.success && data.result) {
+        console.log("Validation result:", data.result);
+        setValidationResult(data.result);
+        setShowResultsDialog(true); // Show the dialog
+        
+        if (data.result.isValid) {
+          toast.success("Validation passed! All assignments are valid.");
+        } else {
+          toast.error(`Validation failed with ${data.result.errors.length} error(s).`);
+        }
+      } else {
+        console.error("Validation failed:", data.error);
+        toast.error("Validation failed: " + data.error);
+      }
     },
   });
 
@@ -66,6 +92,7 @@ export default function ValidationPage() {
     if (!files?.length) return;
     const file = files[0]!;
     setSelected((prev) => ({ ...prev, [key]: file }));
+    setValidationResult(null);
   }
 
   function handleUploadAndParse() {
@@ -78,6 +105,7 @@ export default function ValidationPage() {
     }
 
     parserApi.mutate(fd);
+    setValidationResult(null);
   }
 
   function handleValidate() {
@@ -164,7 +192,7 @@ export default function ValidationPage() {
                 <TooltipContent>
                   <p>
                     {isValidateButtonDisabled
-                      ? "Upload Excel files and fix all thier errors before validating. You can check each file's sidebar to see the errors."
+                      ? "Upload Excel files and fix all their errors before validating. You can check each file's sidebar to see the errors."
                       : "Run validation"}
                   </p>
                 </TooltipContent>
@@ -193,6 +221,7 @@ export default function ValidationPage() {
           </div>
         </CollapsibleContent>
       </Collapsible>
+      
       <div className="flex-1 px-2">
         <JsonEditor
           files={editorFiles}
@@ -200,6 +229,12 @@ export default function ValidationPage() {
           onValidityChange={setAreAllFilesValid}
         />
       </div>
+
+      <ValidationResultsDialog
+        isOpen={showResultsDialog}
+        onOpenChange={setShowResultsDialog}
+        result={validationResult}
+      />
     </div>
   );
 }
