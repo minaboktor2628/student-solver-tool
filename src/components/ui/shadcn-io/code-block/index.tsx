@@ -96,7 +96,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-
 export type BundledLanguage = string;
 
 const filenameIconMap = {
@@ -250,12 +249,6 @@ const codeBlockClassName = cn(
   "[&_.line]:relative",
 );
 
-export type CodeBlockData = {
-  language: string;
-  filename: string;
-  code: string;
-};
-
 type CodeBlockContextType = {
   value: string | undefined;
   onValueChange: ((value: string) => void) | undefined;
@@ -273,6 +266,12 @@ export type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   value?: string;
   onValueChange?: (value: string) => void;
   data: CodeBlockData[];
+};
+
+type CodeBlockData = {
+  language: string;
+  filename: string;
+  code: string;
 };
 
 export const CodeBlock = ({
