@@ -1,47 +1,91 @@
-import z from "zod";
+import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import * as XLSX from "xlsx";
-import { isExcelName, isExcelType } from "@/lib/utils";
-
-type Row = Record<string, unknown>;
-type Sheets = Record<string, Row[]>;
+import {
+  ExcelFileToJsonInputSchema,
+  ExcelInputFiles,
+  ExcelSheetNames,
+  ExcelSheetSchema,
+  ValidationInputSchema,
+} from "@/types/excel";
+import type { EditorFile } from "@/types/editor";
+import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
+import { TRPCError } from "@trpc/server";
 
 export const excelRoute = createTRPCRouter({
-  validate: publicProcedure
+  parseExcelWorkbooks: publicProcedure
     .input(
       z
         .instanceof(FormData)
         .transform((fd) => Object.fromEntries(fd.entries()))
-        .pipe(
-          z.object({
-            file: z
-              .instanceof(File)
-              .refine((f) => f.size > 0, "File must not be empty.")
-              .refine(
-                (f) => isExcelType(f.type) || isExcelName(f.name),
-                "File must be .xlsx or .xls",
-              ),
-          }),
-        ),
+        .pipe(ExcelFileToJsonInputSchema),
     )
     .mutation(async ({ input }) => {
-      const arrayBuffer = await input.file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-      const allSheets: Sheets = {};
+      const workbooks = await Promise.all(
+        ExcelInputFiles.map(async (key) => {
+          const wb = await excelFileToWorkbook(input[key]);
+          return { workbook: wb, originalName: key };
+        }),
+      );
 
-      for (const sheetName of workbook.SheetNames) {
-        const ws = workbook.Sheets[sheetName];
-        if (!ws) continue;
+      const files: EditorFile[] = [];
 
-        const rows = XLSX.utils.sheet_to_json<Row>(ws, {
-          defval: null,
-          raw: true,
-        });
+      for (const { workbook, originalName } of workbooks) {
+        const sheetNames = workbook.SheetNames;
+        const isSingleSheet = sheetNames.length === 1;
 
-        allSheets[sheetName] = rows;
+        for (const sheetName of sheetNames) {
+          const ws = workbook.Sheets[sheetName];
+          if (!ws) continue;
+
+          // Use workbook filename if only one sheet, otherwise sheet name
+          const baseName = z
+            .enum(ExcelSheetNames)
+            .safeParse(isSingleSheet ? originalName : sheetName);
+
+          if (!baseName.success) continue;
+
+          const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+            ws,
+            {
+              raw: true,
+              defval: null,
+              blankrows: false,
+              range: usedRange(ws),
+            },
+          );
+
+          const sanitizedRows = sanitizeSheet(rawRows);
+
+          const schemaForSheet = ExcelSheetSchema[baseName.data];
+          const rowResults = sanitizedRows.map((row) => {
+            const res = schemaForSheet.safeParse(row);
+            if (res.success) return { ok: true, value: res.data };
+            else return { ok: false, value: row };
+          });
+
+          const mergedRows = rowResults.map((r) => r.value);
+
+          files.push({
+            filename: baseName.data,
+            language: "json",
+            code: JSON.stringify(mergedRows, null, 2),
+          });
+        }
       }
 
-      return { allSheets };
+      if (files.length !== ExcelSheetNames.length)
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Uploaded the wrong files, or in the wrong order.",
+        });
+
+      return { files };
+    }),
+
+  validate: publicProcedure
+    .input(ValidationInputSchema)
+    .mutation(async ({ input }) => {
+      return input; // TODO:
     }),
 });
