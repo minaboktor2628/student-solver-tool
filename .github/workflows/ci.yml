@@ -20,20 +20,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-
-      - name: Enable Corepack + install pnpm
-        run: |
-          corepack enable
-          corepack install
-          pnpm --version
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       # - name: Generate Prisma Client
       #   run: pnpm run postinstall
