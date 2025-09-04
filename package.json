@@ -1,5 +1,5 @@
 {
-  "name": "ta-solver",
+  "name": "SST",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -20,7 +20,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "cypress:open": "cypress open"
+    "test:ci": "vitest run --coverage=false --reporter=dot",
+    "cypress:open": "cypress open",
     "prepare": "husky"
   },
   "dependencies": {

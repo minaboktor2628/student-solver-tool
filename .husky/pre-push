@@ -1,1 +1,5 @@
+echo ">> Running prettier formatter..."
 npm run format:write
+
+echo ">> Running lint fix..."
+npm run lint:fix
