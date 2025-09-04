@@ -1,4 +1,3 @@
- 
 import {
   transformerNotationDiff,
   transformerNotationErrorLevel,
