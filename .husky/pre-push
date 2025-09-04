@@ -2,4 +2,4 @@ echo ">> Running prettier formatter..."
 npm run format:write
 
 echo ">> Running lint fix..."
-npm run lint:fix
+SKIP_ENV_VALIDATION=true npm run lint:fix
