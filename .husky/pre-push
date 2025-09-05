@@ -1,5 +1,5 @@
 echo ">> Running prettier formatter..."
-npm run format:write
+pnpm run format:write
 
 echo ">> Running lint fix..."
-SKIP_ENV_VALIDATION=true npm run lint:fix
+SKIP_ENV_VALIDATION=true pnpm run lint:fix
