@@ -1,6 +1,6 @@
 ##### DEPENDENCIES
 
-FROM --platform=linux/amd64 node:22-alpine AS deps
+FROM --platform=linux/amd64 node:22-bookworm-slim AS deps
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
@@ -11,13 +11,13 @@ COPY prisma ./
 # Install dependencies 
 
 COPY package.json pnpm-lock.yaml\* ./
-RUN npm install -g pnpm && pnpm i
+RUN corepack enable && pnpm i
 
 ##### BUILDER
 
-FROM --platform=linux/amd64 node:22-alpine AS builder
+FROM --platform=linux/amd64 node:22-bookworm-slim AS builder
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-ARG DATABASE_URL
+RUN corepack enable
 ARG NEXT_PUBLIC_CLIENTVAR
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -25,12 +25,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN \
-    if [ -f yarn.lock ]; then SKIP_ENV_VALIDATION=1 yarn build; \
-    elif [ -f package-lock.json ]; then SKIP_ENV_VALIDATION=1 npm run build; \
-    elif [ -f pnpm-lock.yaml ]; then npm install -g pnpm && SKIP_ENV_VALIDATION=1 pnpm run build; \
-    else echo "Lockfile not found." && exit 1; \
-    fi
+RUN SKIP_ENV_VALIDATION=1 pnpm run build
 
 ##### RUNNER
 
