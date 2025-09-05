@@ -1,6 +1,6 @@
 ##### DEPENDENCIES
 
-FROM --platform=linux/amd64 node:20-bookworm-slim AS deps
+FROM --platform=linux/amd64 node:22-alpine AS deps
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
@@ -8,20 +8,14 @@ WORKDIR /app
 
 COPY prisma ./
 
-# Install dependencies based on the preferred package manager
+# Install dependencies 
 
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml\* ./
-
-RUN \
-    if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then npm ci; \
-    elif [ -f pnpm-lock.yaml ]; then npm install -g pnpm && pnpm i; \
-    else echo "Lockfile not found." && exit 1; \
-    fi
+COPY package.json pnpm-lock.yaml\* ./
+RUN npm install -g pnpm && pnpm i
 
 ##### BUILDER
 
-FROM --platform=linux/amd64 node:20-bookworm-slim AS builder
+FROM --platform=linux/amd64 node:22-alpine AS builder
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 ARG DATABASE_URL
 ARG NEXT_PUBLIC_CLIENTVAR
@@ -40,7 +34,7 @@ RUN \
 
 ##### RUNNER
 
-FROM --platform=linux/amd64 gcr.io/distroless/nodejs20-debian12 AS runner
+FROM --platform=linux/amd64 gcr.io/distroless/nodejs22-debian12 AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
