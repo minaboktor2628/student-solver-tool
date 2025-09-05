@@ -70,7 +70,7 @@ When adding additional environment variables, the schema in [src/env.js](./src/e
 
 If you would like to skip environment variable checking when running the app/command,
 you will need to set the `SKIP_ENV_VALIDATION` to `true`.
-This can be useful for CI/CD, or other situations where you are OK with not needing environment variables.
+This can be useful for CI/CD or when building w/ Docker.
 
 Example:
 
