@@ -48,6 +48,31 @@ const yesNoBoolean = z.preprocess((val) => {
   return false;
 }, z.boolean());
 
+// Collapse any "Available ..." keys into one "Available" boolean
+const normalizeAvailableKeys = (input: unknown) => {
+  if (typeof input !== "object" || input === null) return input;
+
+  const src = input as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  let availableAgg: boolean | undefined;
+
+  for (const [key, value] of Object.entries(src)) {
+    if (/^\s*available\b/i.test(key)) {
+      const b = yesNoBoolean.safeParse(value).success
+        ? yesNoBoolean.parse(value)
+        : !!value;
+      availableAgg = (availableAgg ?? false) || b;
+    } else {
+      out[key] = value;
+    }
+  }
+
+  // Always ensure Available exists, default true if none present
+  out.Available = availableAgg ?? true;
+
+  return out;
+};
+
 // For course alloc number
 const numberWithMOE = z.preprocess(
   (val) => {
@@ -159,16 +184,22 @@ export const AssignmentSchema = AllocationSchema.omit({
 }).extend({
   TAs: makePeoplePreprocessor(20),
   PLAs: makePeoplePreprocessor(10),
-  GLAs: makePeoplePreprocessor(20),
+  GLAs: makePeoplePreprocessor(10),
 });
 
 export type Allocation = z.infer<typeof AllocationSchema>;
 export type Assignment = z.infer<typeof AssignmentSchema>;
 
-export const AssistantPreferencesSchema = AssistantSchema.extend({
-  Comments: z.string().nullable(),
-  // Everything else (courses, "Available X Term?", time slots, etc.) becomes boolean
-}).catchall(yesNoBoolean);
+export const AssistantPreferencesSchema = z.preprocess(
+  normalizeAvailableKeys,
+  AssistantSchema.extend({
+    Comments: z.string().nullable(),
+    // ensure "Available" exists after preprocessing
+    Available: yesNoBoolean,
+  })
+    // every other key (courses, timeslots, etc.) -> boolean
+    .catchall(yesNoBoolean),
+);
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 
 export const ExcelSheetNames = [
