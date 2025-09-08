@@ -1,12 +1,5 @@
-import type { Allocation, Assignment } from "./excel";
-
-export type ValidationStepResult = {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-};
-
-export type AllocationWithAssignment = Allocation & Assignment; // used to merge the two later
+import type { Allocation, Assignment } from "@/types/excel";
+import type { AllocationWithAssignment } from "@/types/validation";
 
 export function mergeAllocationsAndAssignments(
   allocations: Allocation[],

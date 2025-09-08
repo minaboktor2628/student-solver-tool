@@ -187,6 +187,7 @@ export const AssignmentSchema = AllocationSchema.omit({
   GLAs: makePeoplePreprocessor(10),
 });
 
+export type AllocationWithAssignment = Allocation & Assignment; // used to merge the two later
 export type Allocation = z.infer<typeof AllocationSchema>;
 export type Assignment = z.infer<typeof AssignmentSchema>;
 

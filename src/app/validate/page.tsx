@@ -54,7 +54,7 @@ export default function ValidationPage() {
     onSuccess: ({ files }) => setEditorFiles(files),
   });
 
-  const validationApi = api.excel.validate.useMutation({
+  const validationApi = api.validate.validate.useMutation({
     onError: (error) => toast.error(error.message),
     onSuccess: (data) => {
       console.log(data);
