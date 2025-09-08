@@ -146,9 +146,10 @@ const makePeoplePreprocessor = (defaultHours: number) =>
         });
     },
     z.array(
-      AssistantSchema.omit({ Email: true })
-        .extend({ Locked: z.boolean(), Hours: z.number() })
-        .nullable(),
+      AssistantSchema.omit({ Email: true }).extend({
+        Locked: z.boolean(),
+        Hours: z.number(),
+      }),
     ),
   );
 
