@@ -13,6 +13,7 @@ import {
 import type { EditorFile } from "@/types/editor";
 import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
 import { TRPCError } from "@trpc/server";
+import type { ValidationStepResult } from "@/types/validation";
 
 export const excelRoute = createTRPCRouter({
   parseExcelWorkbooks: publicProcedure
@@ -91,12 +92,11 @@ export const excelRoute = createTRPCRouter({
       return {
         input,
         duplicated: ensureNoDuplicates(input.Assignments),
-        assignemnts: input.Assignments,
       };
     }),
 });
 
-function ensureNoDuplicates(input: Assignment[]) {
+function ensureNoDuplicates(input: Assignment[]): ValidationStepResult {
   const plaSet = new Set();
   const taSet = new Set();
   const glaSet = new Set();
@@ -109,24 +109,24 @@ function ensureNoDuplicates(input: Assignment[]) {
     for (const pla of assignment.PLAs) {
       const fullName = pla.First + " " + pla.Last;
       if (plaSet.has(fullName))
-        errors.push(`PLA ${fullName} is duplicated in ${courseFullName}.`);
-      plaSet.add(fullName);
+        errors.push(`PLAs: ${fullName} is duplicated in ${courseFullName}.`);
+      else plaSet.add(fullName);
     }
 
     for (const gla of assignment.GLAs) {
       const fullName = gla.First + " " + gla.Last;
       if (glaSet.has(fullName))
-        errors.push(`GLA ${fullName} is duplicated in ${courseFullName}.`);
+        errors.push(`GLAs: ${fullName} is duplicated in ${courseFullName}.`);
       else glaSet.add(fullName);
     }
 
     for (const ta of assignment.TAs) {
       const fullName = ta.First + " " + ta.Last;
       if (taSet.has(fullName))
-        errors.push(`TA  ${fullName} is duplicated in ${courseFullName}.`);
+        errors.push(`TAs: ${fullName} is duplicated in ${courseFullName}.`);
       else taSet.add(fullName);
     }
   }
 
-  return { isValid: errors.length === 0, errors };
+  return { isValid: errors.length === 0, errors, warnings: [] };
 }

@@ -121,19 +121,23 @@ export const AssistantSchema = z.object({
 
 export type Assistant = z.infer<typeof AssistantSchema>;
 
+const PeopleSchema = AssistantSchema.omit({ Email: true }).extend({
+  Locked: z.boolean(),
+  Hours: z.number(),
+});
+const PeopleArraySchema = z.array(PeopleSchema);
 const makePeoplePreprocessor = (defaultHours: number) =>
-  z.preprocess(
-    (val) => {
-      if (val === null) return [];
-      if (typeof val !== "string") return [];
+  z.preprocess((val) => {
+    if (val == null) return [];
+    if (Array.isArray(val)) return PeopleArraySchema.parse(val); // already parsed -> pass through
 
+    if (typeof val === "string") {
       // normalize whitespace (replace newlines/tabs/periods with comma)
       // TODO: Should we replace periods or make it an error?
       const normalized = val.replace(/[\n\t.]/g, ",");
-
       return normalized
         .split(";")
-        .map((entry) => entry.trim())
+        .map((s) => s.trim())
         .filter(Boolean)
         .map((entry) => {
           const [last, first] = entry.split(",").map((s) => s.trim());
@@ -144,14 +148,11 @@ const makePeoplePreprocessor = (defaultHours: number) =>
             Hours: defaultHours,
           };
         });
-    },
-    z.array(
-      AssistantSchema.omit({ Email: true }).extend({
-        Locked: z.boolean(),
-        Hours: z.number(),
-      }),
-    ),
-  );
+    }
+
+    // Not string/array/null -> let schema fail instead of silently erasing data
+    return z.NEVER;
+  }, PeopleArraySchema);
 
 export const AssignmentSchema = AllocationSchema.omit({
   "Student Hour Allocation": true,
