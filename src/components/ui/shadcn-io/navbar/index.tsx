@@ -29,10 +29,11 @@ export interface NavbarNavItem {
 export interface NavbarProps extends React.HTMLAttributes<HTMLElement> {
   logo: React.ReactNode;
   navigationLinks: NavbarNavItem[];
+  authSlot?: React.ReactNode;
 }
 
 export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
-  ({ className, logo, navigationLinks, ...props }, ref) => {
+  ({ className, logo, authSlot, navigationLinks, ...props }, ref) => {
     const [isMobile, setIsMobile] = useState(false);
     const containerRef = useRef<HTMLElement>(null);
     const pathname = usePathname();
@@ -152,16 +153,7 @@ export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
           </div>
           {/* Right side */}
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hover:bg-accent hover:text-accent-foreground text-sm font-medium"
-              onClick={() => {
-                console.log("TODO");
-              }}
-            >
-              TODO: Sign in
-            </Button>
+            {authSlot}
             <ModeToggle />
           </div>
         </div>
