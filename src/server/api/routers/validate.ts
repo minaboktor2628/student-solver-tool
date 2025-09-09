@@ -58,7 +58,7 @@ function ensureCourseNeedsAreMet(
     xs.reduce((acc, x) => acc + x.Hours, 0);
 
   for (const assignment of assignments) {
-    const course = assignment.Section.Course;
+    const course = sectionKey(assignment.Section);
     const { Calculated: hoursNeeded, MOE } =
       assignment["Student Hour Allocation"];
 
@@ -208,6 +208,7 @@ function ensureAssistantsAreAssignedToOnlyOneClass(
   const glaSet = new Set();
 
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   for (const assignment of assignments) {
     const courseFullName = sectionKey(assignment.Section);
@@ -222,7 +223,7 @@ function ensureAssistantsAreAssignedToOnlyOneClass(
     for (const gla of assignment.GLAs) {
       const fullName = personKey(gla);
       if (glaSet.has(fullName))
-        errors.push(`GLA "${fullName}" is duplicated in ${courseFullName}.`);
+        warnings.push(`GLA "${fullName}" is duplicated in ${courseFullName}.`);
       else glaSet.add(fullName);
     }
 
@@ -237,7 +238,7 @@ function ensureAssistantsAreAssignedToOnlyOneClass(
   return {
     ok: errors.length === 0,
     errors,
-    warnings: [],
+    warnings,
     meta: {
       ms: Math.round(performance.now() - t0),
       rule: "Assistant is assigned to only one class.",
