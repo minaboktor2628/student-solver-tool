@@ -74,31 +74,36 @@ const normalizeAvailableKeys = (input: unknown) => {
 };
 
 // For course alloc number
-const numberWithMOE = z.preprocess(
-  (val) => {
-    let num = 0;
 
-    if (val === null || val === undefined) {
-      num = 0;
-    } else if (typeof val === "string") {
-      const trimmed = val.trim().toLowerCase();
-      if (trimmed === "" || trimmed === "tbd" || trimmed === "n/a") {
-        num = 0;
-      } else {
-        const parsed = Number(val);
-        num = Number.isNaN(parsed) ? 0 : parsed;
-      }
-    } else if (typeof val === "number") {
-      num = val;
-    }
+export const NumberWithMOESchema = z.object({
+  Calculated: z.number(),
+  MOE: z.number(),
+});
+export type NumberWithMOE = z.infer<typeof NumberWithMOESchema>;
 
-    return { Calculated: num, MOE: 10 };
-  },
-  z.object({
-    Calculated: z.number(),
-    MOE: z.number(),
-  }),
-);
+const toNumber = (v: unknown): number => {
+  if (v == null) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    const t = v.trim().toLowerCase();
+    if (t === "" || t === "tbd" || t === "n/a") return 0;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+export const numberWithMOE = z.preprocess((val) => {
+  const defaultMarginOfError = 10;
+  if (val && typeof val === "object" && !Array.isArray(val)) {
+    const o = val as Record<string, unknown>;
+    return {
+      Calculated: toNumber(o.Calculated),
+      MOE: toNumber(o.MOE ?? defaultMarginOfError),
+    };
+  }
+  return { Calculated: toNumber(val), MOE: defaultMarginOfError };
+}, NumberWithMOESchema);
 
 // Regex to capture "CS ####-XXX"
 const CS_SECTION_RE = /CS\s*([0-9]{3,4})\s*[-–—]\s*([A-Z]{1,3}\d{2,3})/i;
