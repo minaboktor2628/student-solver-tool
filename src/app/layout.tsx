@@ -41,7 +41,7 @@ export default function RootLayout({
             <Navbar
               logo={<Calculator />}
               navigationLinks={links}
-              // authSlot={<AuthButton />}
+              authSlot={<AuthButton />}
             />
             {children}
           </TRPCReactProvider>
