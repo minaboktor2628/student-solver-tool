@@ -127,7 +127,7 @@ export default function ValidationPage() {
     ExcelInputFiles.length !== pickedCount || parserApi.isPending;
 
   return (
-    <div className="flex h-screen min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
@@ -207,14 +207,16 @@ export default function ValidationPage() {
           </div>
         </CollapsibleContent>
       </Collapsible>
-      <div className="flex-1 px-2">
-        <ResizablePanelGroup direction="horizontal">
+      <div className="min-h-0 flex-1 px-2">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
           <ResizablePanel>
-            <JsonEditor
-              files={editorFiles}
-              onChange={setEditorFiles}
-              onValidityChange={setAreAllFilesValid}
-            />
+            <div className="h-full">
+              <JsonEditor
+                files={editorFiles}
+                onChange={setEditorFiles}
+                onValidityChange={setAreAllFilesValid}
+              />
+            </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel minSize={20} defaultSize={30}>

@@ -188,7 +188,7 @@ export default function JsonEditor({
           value={activeFile?.code ?? ""}
           onChange={handleChange}
           onMount={onMount}
-          className="max-h-screen"
+          className="h-full"
           options={{
             minimap: { enabled: true },
             lineNumbers: "on",

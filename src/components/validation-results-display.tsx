@@ -32,7 +32,7 @@ export function ValidationResultsDisplay({
   }
 
   return (
-    <ScrollArea className="h-screen">
+    <ScrollArea className="h-full">
       <Card className="max-w-4xl rounded-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
