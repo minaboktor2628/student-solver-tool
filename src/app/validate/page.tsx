@@ -177,6 +177,7 @@ export default function ValidationPage() {
               <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
             </Button>
           </CollapsibleTrigger>
+
         </div>
         <CollapsibleContent className="px-2 py-2">
           <div className="flex flex-col space-y-2">
