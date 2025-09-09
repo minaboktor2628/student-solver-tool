@@ -31,10 +31,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { ValidationResult } from "@/types/validation";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { ValidationResultsDisplay } from "@/components/validation-results-display";
 
 export default function ValidationPage() {
   const [isOpen, setIsOpen] = useState(true);
   const [areAllFilesValid, setAreAllFilesValid] = useState(false);
+  const [validationResults, setValidationResults] = useState<
+    ValidationResult[]
+  >([]);
   const [editorFiles, setEditorFiles] = useState<EditorFile[]>(
     ExcelSheetNames.map((name) => ({
       filename: name,
@@ -56,10 +66,7 @@ export default function ValidationPage() {
 
   const validationApi = api.validate.validateFullSolution.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: (data) => {
-      console.log(data);
-      toast("Success!");
-    },
+    onSuccess: ({ issues }) => setValidationResults(issues),
   });
 
   function handleDrop(key: ExcelInputFileEnum, files: File[]) {
@@ -194,11 +201,19 @@ export default function ValidationPage() {
         </CollapsibleContent>
       </Collapsible>
       <div className="flex-1 px-2">
-        <JsonEditor
-          files={editorFiles}
-          onChange={setEditorFiles}
-          onValidityChange={setAreAllFilesValid}
-        />
+        <ResizablePanelGroup direction="horizontal">
+          <ResizablePanel>
+            <JsonEditor
+              files={editorFiles}
+              onChange={setEditorFiles}
+              onValidityChange={setAreAllFilesValid}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel minSize={20} defaultSize={30}>
+            <ValidationResultsDisplay result={validationResults} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );

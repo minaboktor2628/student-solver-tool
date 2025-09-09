@@ -8,7 +8,7 @@ import { createTRPCRouter, publicProcedure } from "../trpc";
 import { ValidationInputSchema } from "@/types/excel";
 import type {
   AllocationWithAssignment,
-  ValidationStepResult,
+  ValidationResult,
 } from "@/types/validation";
 
 export const validateRoute = createTRPCRouter({
@@ -29,28 +29,28 @@ export const validateRoute = createTRPCRouter({
       );
 
       return {
-        allocationWithAssignment,
-        duplicated: ensureAssistantsAreAssignedToOnlyOneClass(
-          allocationWithAssignment,
-        ),
-        assistantsExist: ensureAssignedTAsAndPLAsAreAvailable(
-          allocationWithAssignment,
-          plaAvailableSet,
-          taAvailableSet,
-        ),
-        assistantsQualified: ensureAssignedAssistantsAreQualified(
-          allocationWithAssignment,
-          makeCourseToAssistantMap(input["PLA Preferences"]),
-          makeCourseToAssistantMap(input["TA Preferences"]),
-        ),
-        courseNeedsMet: ensureCourseNeedsAreMet(allocationWithAssignment),
+        issues: [
+          ensureAssistantsAreAssignedToOnlyOneClass(allocationWithAssignment),
+          ensureAssignedTAsAndPLAsAreAvailable(
+            allocationWithAssignment,
+            plaAvailableSet,
+            taAvailableSet,
+          ),
+          ensureAssignedAssistantsAreQualified(
+            allocationWithAssignment,
+            makeCourseToAssistantMap(input["PLA Preferences"]),
+            makeCourseToAssistantMap(input["TA Preferences"]),
+          ),
+          ensureCourseNeedsAreMet(allocationWithAssignment),
+        ],
       };
     }),
 });
 
 function ensureCourseNeedsAreMet(
   assignments: AllocationWithAssignment[],
-): ValidationStepResult {
+): ValidationResult {
+  const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -100,14 +100,23 @@ function ensureCourseNeedsAreMet(
     // If diff === 0, perfect match so no message
   }
 
-  return { isValid: errors.length === 0, errors, warnings };
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    meta: {
+      ms: Math.round(performance.now() - t0),
+      rule: "Courses should have sufficient staffing.",
+    },
+  };
 }
 
 function ensureAssignedAssistantsAreQualified(
   assignments: AllocationWithAssignment[],
   courseToAssistantsPla: Record<string, Set<string>>,
   courseToAssistantsTa: Record<string, Set<string>>,
-): ValidationStepResult {
+): ValidationResult {
+  const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -116,13 +125,11 @@ function ensureAssignedAssistantsAreQualified(
 
     const taSet = courseToAssistantsTa[key];
     if (!taSet) {
-      warnings.push(`No qualified TAs listed for section ${key}.`);
       continue;
     }
 
     const plaSet = courseToAssistantsPla[key];
     if (!plaSet) {
-      warnings.push(`No qualified PLAs listed for section ${key}.`);
       continue;
     }
 
@@ -140,14 +147,23 @@ function ensureAssignedAssistantsAreQualified(
       }
     }
   }
-  return { isValid: errors.length === 0, errors, warnings };
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    meta: {
+      ms: Math.round(performance.now() - t0),
+      rule: "Assistants should only be assigned to courses that they are qualified for.",
+    },
+  };
 }
 
 function ensureAssignedTAsAndPLAsAreAvailable(
   assignments: AllocationWithAssignment[],
   plaAvailableSet: Set<string>,
   taAvailableSet: Set<string>,
-): ValidationStepResult {
+): ValidationResult {
+  const t0 = performance.now();
   const errors: string[] = [];
 
   for (const assignment of assignments) {
@@ -172,12 +188,21 @@ function ensureAssignedTAsAndPLAsAreAvailable(
     }
   }
 
-  return { isValid: errors.length === 0, errors, warnings: [] };
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings: [],
+    meta: {
+      ms: Math.round(performance.now() - t0),
+      rule: "Assigned assistant exists and is available for this term.",
+    },
+  };
 }
 
 function ensureAssistantsAreAssignedToOnlyOneClass(
   assignments: AllocationWithAssignment[],
-): ValidationStepResult {
+): ValidationResult {
+  const t0 = performance.now();
   const plaSet = new Set();
   const taSet = new Set();
   const glaSet = new Set();
@@ -209,5 +234,13 @@ function ensureAssistantsAreAssignedToOnlyOneClass(
     }
   }
 
-  return { isValid: errors.length === 0, errors, warnings: [] };
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings: [],
+    meta: {
+      ms: Math.round(performance.now() - t0),
+      rule: "Assistant is assigned to only one class.",
+    },
+  };
 }

@@ -1,7 +1,6 @@
 import type {
   Allocation,
   Assignment,
-  Assistant,
   AssistantPreferences,
 } from "@/types/excel";
 import type { AllocationWithAssignment } from "@/types/validation";
