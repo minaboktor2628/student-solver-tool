@@ -29,6 +29,7 @@ export const validateRoute = createTRPCRouter({
       );
 
       return {
+        allocationWithAssignment,
         duplicated: ensureAssistantsAreAssignedToOnlyOneClass(
           allocationWithAssignment,
         ),
@@ -42,9 +43,65 @@ export const validateRoute = createTRPCRouter({
           makeCourseToAssistantMap(input["PLA Preferences"]),
           makeCourseToAssistantMap(input["TA Preferences"]),
         ),
+        courseNeedsMet: ensureCourseNeedsAreMet(allocationWithAssignment),
       };
     }),
 });
+
+function ensureCourseNeedsAreMet(
+  assignments: AllocationWithAssignment[],
+): ValidationStepResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const sumHours = (xs: { Hours: number }[]) =>
+    xs.reduce((acc, x) => acc + x.Hours, 0);
+
+  for (const assignment of assignments) {
+    const course = assignment.Section.Course;
+    const { Calculated: hoursNeeded, MOE } =
+      assignment["Student Hour Allocation"];
+
+    const assistantHoursAssigned =
+      sumHours(assignment.PLAs) +
+      sumHours(assignment.GLAs) +
+      sumHours(assignment.TAs);
+
+    const diff = assistantHoursAssigned - hoursNeeded; // positive = extra, negative = short
+
+    // Too few hours
+    if (diff < 0) {
+      if (Math.abs(diff) > MOE) {
+        errors.push(
+          `${course}: short by ${Math.abs(diff)}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOE}h).`,
+        );
+      } else {
+        warnings.push(
+          `${course}: short by ${Math.abs(diff)}h but within MOE ${MOE}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
+        );
+      }
+      continue; // no need to also check the overage branch
+    }
+
+    // Too many hours
+    if (diff > 0) {
+      if (diff > MOE) {
+        warnings.push(
+          `${course}: over by ${diff}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOE}h).`,
+        );
+      } else {
+        // within MOE
+        warnings.push(
+          `${course}: over by ${diff}h but within MOE ${MOE}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
+        );
+      }
+    }
+
+    // If diff === 0, perfect match so no message
+  }
+
+  return { isValid: errors.length === 0, errors, warnings };
+}
 
 function ensureAssignedAssistantsAreQualified(
   assignments: AllocationWithAssignment[],
@@ -133,21 +190,21 @@ function ensureAssistantsAreAssignedToOnlyOneClass(
     for (const pla of assignment.PLAs) {
       const fullName = personKey(pla);
       if (plaSet.has(fullName))
-        errors.push(`PLAs: ${fullName} is duplicated in ${courseFullName}.`);
+        errors.push(`PLA "${fullName}" is duplicated in ${courseFullName}.`);
       else plaSet.add(fullName);
     }
 
     for (const gla of assignment.GLAs) {
       const fullName = personKey(gla);
       if (glaSet.has(fullName))
-        errors.push(`GLAs: ${fullName} is duplicated in ${courseFullName}.`);
+        errors.push(`GLA "${fullName}" is duplicated in ${courseFullName}.`);
       else glaSet.add(fullName);
     }
 
     for (const ta of assignment.TAs) {
       const fullName = personKey(ta);
       if (taSet.has(fullName))
-        errors.push(`TAs: ${fullName} is duplicated in ${courseFullName}.`);
+        errors.push(`TA "${fullName}" is duplicated in ${courseFullName}.`);
       else taSet.add(fullName);
     }
   }
