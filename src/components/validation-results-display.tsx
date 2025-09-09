@@ -21,8 +21,10 @@ export function ValidationResultsDisplay({
         </CardHeader>
         <CardContent>
           <Alert variant="default">
-            <AlertTitle>No issues.</AlertTitle>
-            <AlertDescription>There are no validation issues.</AlertDescription>
+            <AlertTitle>No issues yet.</AlertTitle>
+            <AlertDescription>
+              Make sure to press the validate button for issues to show up here.
+            </AlertDescription>
           </Alert>
         </CardContent>
       </Card>
@@ -54,15 +56,12 @@ export function ValidationResultsDisplay({
               </h3>
 
               {r.errors.length > 0 && (
-                <Alert
-                  variant="destructive"
-                  className="border-red-200 bg-red-50"
-                >
-                  <AlertTitle className="flex items-center gap-2 text-red-800">
+                <Alert variant="destructive">
+                  <AlertTitle className="flex items-center gap-2">
                     <XCircle className="h-5 w-5" />
                     Errors ({r.errors.length})
                   </AlertTitle>
-                  <AlertDescription className="text-red-700">
+                  <AlertDescription>
                     <ul className="list-inside list-disc space-y-2 text-sm">
                       {r.errors.map((error, idx) => (
                         <li key={idx} className="py-1 break-words">
@@ -75,15 +74,12 @@ export function ValidationResultsDisplay({
               )}
 
               {r.warnings.length > 0 && (
-                <Alert
-                  variant="default"
-                  className="border-yellow-200 bg-yellow-50"
-                >
-                  <AlertTitle className="flex items-center gap-2 text-yellow-800">
+                <Alert variant="warning">
+                  <AlertTitle className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
                     Warnings ({r.warnings.length})
                   </AlertTitle>
-                  <AlertDescription className="text-yellow-700">
+                  <AlertDescription>
                     <ul className="list-inside list-disc space-y-2 text-sm">
                       {r.warnings.map((warning, idx) => (
                         <li key={idx} className="py-1 break-words">
@@ -96,15 +92,12 @@ export function ValidationResultsDisplay({
               )}
 
               {r.ok && r.warnings.length === 0 && (
-                <Alert
-                  variant="default"
-                  className="border-green-200 bg-green-50"
-                >
-                  <AlertTitle className="flex items-center gap-2 text-green-800">
+                <Alert variant="success">
+                  <AlertTitle className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5" />
                     Success!
                   </AlertTitle>
-                  <AlertDescription className="text-green-700">
+                  <AlertDescription>
                     All validation checks passed successfully.
                   </AlertDescription>
                 </Alert>
