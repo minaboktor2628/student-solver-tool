@@ -38,14 +38,21 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { ValidationResultsDisplay } from "@/components/validation-results-display";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export default function ValidationPage() {
-  const [isOpen, setIsOpen] = useState(true);
-  const [areAllFilesValid, setAreAllFilesValid] = useState(false);
-  const [validationResults, setValidationResults] = useState<
+  const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true);
+  const [areAllFilesValid, setAreAllFilesValid] = useLocalStorage(
+    "validation:allValid",
+    false,
+  );
+
+  const [validationResults, setValidationResults] = useLocalStorage<
     ValidationResult[]
-  >([]);
-  const [editorFiles, setEditorFiles] = useState<EditorFile[]>(
+  >("validation:results", []);
+
+  const [editorFiles, setEditorFiles] = useLocalStorage<EditorFile[]>(
+    "validation:editorFiles",
     ExcelSheetNames.map((name) => ({
       filename: name,
       code: "[]",
