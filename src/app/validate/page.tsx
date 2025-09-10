@@ -15,7 +15,6 @@ import { ChevronsUpDown, UploadIcon } from "lucide-react";
 import {
   ACCEPT_MAP,
   ExcelInputFiles,
-  ExcelSheetNames,
   ValidationInputSchema,
   type ExcelInputFileEnum,
 } from "@/types/excel";
@@ -53,10 +52,10 @@ export default function ValidationPage() {
 
   const [editorFiles, setEditorFiles] = useLocalStorage<EditorFile[]>(
     "validation:editorFiles",
-    ExcelSheetNames.map((name) => ({
+    Object.keys(ValidationInputSchema.shape).map((name) => ({
       filename: name,
-      code: "[]",
       language: "json",
+      code: "[]",
     })),
   );
 
@@ -118,10 +117,7 @@ export default function ValidationPage() {
     validationApi.mutate(result.data);
   }
 
-  const isValidateButtonDisabled =
-    ExcelSheetNames.length !== editorFiles.length ||
-    validationApi.isPending ||
-    !areAllFilesValid;
+  const isValidateButtonDisabled = validationApi.isPending || !areAllFilesValid;
 
   const isUploadButtonDisabled =
     ExcelInputFiles.length !== pickedCount || parserApi.isPending;
@@ -192,7 +188,7 @@ export default function ValidationPage() {
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="px-2 py-2">
+        <CollapsibleContent className="border-b px-2 py-2">
           <div className="flex flex-col space-y-2">
             <div className="flex flex-col gap-2 sm:flex-row">
               {ExcelInputFiles.map((name) => (
@@ -207,7 +203,7 @@ export default function ValidationPage() {
           </div>
         </CollapsibleContent>
       </Collapsible>
-      <div className="min-h-0 flex-1 px-2">
+      <div className="min-h-0 flex-1 p-2">
         <ResizablePanelGroup direction="horizontal" className="h-full">
           <ResizablePanel>
             <div className="h-full">
@@ -218,8 +214,8 @@ export default function ValidationPage() {
               />
             </div>
           </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel minSize={20} defaultSize={30}>
+          <ResizableHandle withHandle className="bg-background" />
+          <ResizablePanel minSize={20} defaultSize={30} maxSize={60}>
             <ValidationResultsDisplay result={validationResults} />
           </ResizablePanel>
         </ResizablePanelGroup>

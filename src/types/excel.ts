@@ -128,7 +128,7 @@ const SectionSchema = z.preprocess(
   }),
 );
 
-export const AllocationSchema = z.object({
+export const AllocationWithoutAssistantsSchema = z.object({
   "Academic Period": z.string(),
   Section: SectionSchema,
   CrossListed: yesNoBoolean,
@@ -183,7 +183,7 @@ const makePeoplePreprocessor = (defaultHours: number) =>
     return z.NEVER;
   }, PeopleArraySchema);
 
-export const AssignmentSchema = AllocationSchema.omit({
+export const AssignmentSchema = AllocationWithoutAssistantsSchema.omit({
   "Student Hour Allocation": true,
 }).extend({
   TAs: makePeoplePreprocessor(20),
@@ -191,8 +191,17 @@ export const AssignmentSchema = AllocationSchema.omit({
   GLAs: makePeoplePreprocessor(10),
 });
 
-export type Allocation = z.infer<typeof AllocationSchema>;
+export type AllocationWithoutAssistants = z.infer<
+  typeof AllocationWithoutAssistantsSchema
+>;
 export type Assignment = z.infer<typeof AssignmentSchema>;
+
+export const AllocationSchema = AllocationWithoutAssistantsSchema.extend({
+  TAs: PeopleArraySchema,
+  PLAs: PeopleArraySchema,
+  GLAs: PeopleArraySchema,
+});
+export type Allocation = z.infer<typeof AllocationSchema>;
 
 export const AssistantPreferencesSchema = z.preprocess(
   normalizeAvailableKeys,
@@ -206,44 +215,17 @@ export const AssistantPreferencesSchema = z.preprocess(
 );
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 
-export const ExcelSheetNames = [
-  "Allocations",
-  "Assignments",
-  "TAs",
-  "PLAs",
-  "GLAs",
-  "PLA Preferences",
-  "TA Preferences",
-] as const;
-export type ExcelSheetNameEnum = (typeof ExcelSheetNames)[number];
-
 export const ExcelSheetSchema = {
-  Allocations: AllocationSchema,
+  Allocations: AllocationWithoutAssistantsSchema,
   Assignments: AssignmentSchema,
-  TAs: AssistantSchema,
-  PLAs: AssistantSchema,
-  GLAs: AssistantSchema,
   "PLA Preferences": AssistantPreferencesSchema,
   "TA Preferences": AssistantPreferencesSchema,
-} as const satisfies Record<ExcelSheetNameEnum, z.ZodTypeAny>;
+} as const;
 
-type ArraySchemaMap<M extends Record<string, z.ZodTypeAny>> = {
-  [K in keyof M]: z.ZodArray<M[K]>;
-};
-
-function toArraySchemas<M extends Record<string, z.ZodTypeAny>>(
-  m: M,
-  min = 1,
-): ArraySchemaMap<M> {
-  const entries = Object.entries(m).map(([k, v]) => [k, z.array(v).min(min)]);
-  return Object.fromEntries(entries) as ArraySchemaMap<M>;
-}
-
-export const ValidationArraySchemasBySheetName =
-  toArraySchemas(ExcelSheetSchema);
-
-export const ValidationInputSchema = z.object(
-  ValidationArraySchemasBySheetName,
-);
+export const ValidationInputSchema = z.object({
+  Allocations: z.array(AllocationSchema).min(1),
+  "PLA Preferences": z.array(AssistantPreferencesSchema).min(1),
+  "TA Preferences": z.array(AssistantPreferencesSchema).min(1),
+});
 
 export type ValidationInput = z.infer<typeof ValidationInputSchema>;

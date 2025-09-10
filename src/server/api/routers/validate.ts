@@ -1,25 +1,16 @@
 import {
   makeCourseToAssistantMap,
-  mergeAllocationsAndAssignments,
   personKey,
   sectionKey,
 } from "@/lib/validation";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import { ValidationInputSchema } from "@/types/excel";
-import type {
-  AllocationWithAssignment,
-  ValidationResult,
-} from "@/types/validation";
+import { ValidationInputSchema, type Allocation } from "@/types/excel";
+import type { ValidationResult } from "@/types/validation";
 
 export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
-      const allocationWithAssignment = mergeAllocationsAndAssignments(
-        input.Allocations,
-        input.Assignments,
-      );
-
       const plaAvailableSet = new Set(
         input["PLA Preferences"].filter((a) => a.Available).map(personKey),
       );
@@ -30,26 +21,24 @@ export const validateRoute = createTRPCRouter({
 
       return {
         issues: [
-          ensureAssistantsAreAssignedToOnlyOneClass(allocationWithAssignment),
+          ensureAssistantsAreAssignedToOnlyOneClass(input.Allocations),
           ensureAssignedTAsAndPLAsAreAvailable(
-            allocationWithAssignment,
+            input.Allocations,
             plaAvailableSet,
             taAvailableSet,
           ),
           ensureAssignedAssistantsAreQualified(
-            allocationWithAssignment,
+            input.Allocations,
             makeCourseToAssistantMap(input["PLA Preferences"]),
             makeCourseToAssistantMap(input["TA Preferences"]),
           ),
-          ensureCourseNeedsAreMet(allocationWithAssignment),
+          ensureCourseNeedsAreMet(input.Allocations),
         ],
       };
     }),
 });
 
-function ensureCourseNeedsAreMet(
-  assignments: AllocationWithAssignment[],
-): ValidationResult {
+function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -112,7 +101,7 @@ function ensureCourseNeedsAreMet(
 }
 
 function ensureAssignedAssistantsAreQualified(
-  assignments: AllocationWithAssignment[],
+  assignments: Allocation[],
   courseToAssistantsPla: Record<string, Set<string>>,
   courseToAssistantsTa: Record<string, Set<string>>,
 ): ValidationResult {
@@ -159,7 +148,7 @@ function ensureAssignedAssistantsAreQualified(
 }
 
 function ensureAssignedTAsAndPLAsAreAvailable(
-  assignments: AllocationWithAssignment[],
+  assignments: Allocation[],
   plaAvailableSet: Set<string>,
   taAvailableSet: Set<string>,
 ): ValidationResult {
@@ -200,7 +189,7 @@ function ensureAssignedTAsAndPLAsAreAvailable(
 }
 
 function ensureAssistantsAreAssignedToOnlyOneClass(
-  assignments: AllocationWithAssignment[],
+  assignments: Allocation[],
 ): ValidationResult {
   const t0 = performance.now();
   const plaSet = new Set();

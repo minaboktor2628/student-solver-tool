@@ -1,14 +1,14 @@
 import type {
   Allocation,
+  AllocationWithoutAssistants,
   Assignment,
   AssistantPreferences,
 } from "@/types/excel";
-import type { AllocationWithAssignment } from "@/types/validation";
 
 export function mergeAllocationsAndAssignments(
-  allocations: Allocation[],
+  allocations: AllocationWithoutAssistants[],
   assignments: Assignment[],
-): AllocationWithAssignment[] {
+): Allocation[] {
   // index assignments by Section string key
   const assignmentMap = new Map(
     assignments.map((a) => [sectionKey(a.Section), a]),
@@ -37,8 +37,7 @@ export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
     for (const [key, value] of Object.entries(student)) {
       if (courseRegex.test(key) && value === true) {
         courseMap[key] ??= new Set();
-        const id = `${student.First} ${student.Last}`;
-        courseMap[key].add(id);
+        courseMap[key].add(personKey(student));
       }
     }
   }

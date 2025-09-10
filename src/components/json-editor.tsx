@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import type { OnMount } from "@monaco-editor/react";
 import type { EditorFile } from "@/types/editor";
@@ -11,14 +11,12 @@ import {
 } from "@/components/ui/resizable";
 import { useTheme } from "next-themes";
 import { LoadingSpinner } from "./loading-spinner";
-import {
-  ExcelSheetNames,
-  ValidationArraySchemasBySheetName,
-} from "@/types/excel";
+import { ValidationInputSchema } from "@/types/excel";
 import zodToJsonSchema from "zod-to-json-schema";
 import React from "react";
 import { useRef } from "react";
 import { Braces } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
 type ErrorCountMap = Record<string, number>;
 type Monaco = Parameters<OnMount>[1];
@@ -28,17 +26,16 @@ interface Props {
   onValidityChange: (allValid: boolean) => void;
 }
 
+type Shape = typeof ValidationInputSchema.shape;
+type ShapeKey = keyof Shape;
 const toSchemaEntries = () =>
-  ExcelSheetNames.map((sheetName) => {
-    const zodSchema = ValidationArraySchemasBySheetName[sheetName];
-    const jsonSchema = zodToJsonSchema(zodSchema, { name: sheetName });
-
-    return {
-      fileMatch: [sheetName],
-      uri: `inmemory://schemas/${sheetName}.schema.json`,
-      schema: jsonSchema,
-    };
-  });
+  (
+    Object.entries(ValidationInputSchema.shape) as [ShapeKey, Shape[ShapeKey]][]
+  ).map(([name, schema]) => ({
+    fileMatch: [name],
+    uri: `inmemory://schemas/${name}.schema.json`,
+    schema: zodToJsonSchema(schema, { name }),
+  }));
 
 export default function JsonEditor({
   files,
@@ -46,8 +43,14 @@ export default function JsonEditor({
   onValidityChange,
 }: Props) {
   const { resolvedTheme } = useTheme();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const activeFile = files[activeIndex];
+
+  // active file is keyed by filename (tabs value)
+  const initial = files[0]?.filename ?? "";
+  const [activeFilename, setActiveFilename] = useState(initial);
+  const activeFile = useMemo(
+    () => files.find((f) => f.filename === activeFilename) ?? files[0],
+    [files, activeFilename],
+  );
 
   // keep Monaco instance so we can convert filenames -> URIs in render
   const monacoRef = useRef<Monaco | null>(null);
@@ -55,8 +58,8 @@ export default function JsonEditor({
   const [errorCounts, setErrorCounts] = useState<ErrorCountMap>({});
 
   const handleChange = (value?: string) => {
-    const next = files.map((f, i) =>
-      i === activeIndex ? { ...f, code: value ?? "" } : f,
+    const next = files.map((f) =>
+      f.filename === activeFile?.filename ? { ...f, code: value ?? "" } : f,
     );
     onChange(next);
   };
@@ -143,63 +146,66 @@ export default function JsonEditor({
     monacoRef.current?.Uri.parse(filename).toString() ?? filename;
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="w-full">
-      <ResizablePanel
-        className="overflow-y-auto border-r"
-        defaultSize={10}
-        minSize={8}
-        maxSize={40}
+    <div className="flex h-full w-full flex-col">
+      <Tabs
+        value={activeFile?.filename ?? ""}
+        onValueChange={setActiveFilename}
+        className="mr-1 flex h-full flex-col"
       >
-        <ul className="text-sm">
-          {files.map((f, i) => {
+        {/* className="bg-background sticky top-0 z-10 flex w-full justify-start overflow-x-auto rounded-none border-b whitespace-nowrap" */}
+        <TabsList className="w-full">
+          {files.map((f) => {
             const key = uriKeyFor(f.filename);
             const errCount = errorCounts[key] ?? 0;
             const hasErrors = errCount > 0;
+
             return (
-              <li
+              <TabsTrigger
                 key={f.filename}
-                className={`group flex cursor-pointer items-center gap-2 truncate px-2 py-1 ${i === activeIndex ? "bg-accent" : ""}`}
-                onClick={() => setActiveIndex(i)}
+                value={f.filename}
                 title={f.filename}
+                className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex cursor-pointer items-center gap-2 px-3 py-1.5"
               >
+                <Braces className="inline size-4" />
                 <span
                   className={`${hasErrors ? "underline decoration-red-600 decoration-wavy underline-offset-2" : ""} truncate`}
                 >
-                  <Braces className="mr-2 inline size-4" /> {f.filename}.json
+                  {f.filename}.json
                 </span>
                 {hasErrors && (
-                  <span className="ml-auto rounded bg-red-600/15 px-1.5 py-0.5 text-[10px] leading-none text-red-700">
+                  <span className="text-destructive ml-1 rounded bg-red-600/30 px-1.5 py-0.5 text-[10px] leading-none">
                     {errCount}
                   </span>
                 )}
-              </li>
+              </TabsTrigger>
             );
           })}
-        </ul>
-      </ResizablePanel>
-      <ResizableHandle withHandle />
-      <ResizablePanel>
-        <Editor
-          path={activeFile?.filename}
-          height="100%"
-          loading={<LoadingSpinner />}
-          theme={resolvedTheme === "dark" ? "vs-dark" : resolvedTheme}
-          language={activeFile?.language ?? "json"}
-          value={activeFile?.code ?? ""}
-          onChange={handleChange}
-          onMount={onMount}
-          className="h-full"
-          options={{
-            minimap: { enabled: true },
-            lineNumbers: "on",
-            wordWrap: "on",
-            automaticLayout: true,
-            fixedOverflowWidgets: true,
-            padding: { top: 10, bottom: 10 },
-            glyphMargin: true,
-          }}
-        />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+        </TabsList>
+
+        {/* Single editor, bound to the active tab */}
+        <div className="min-h-0 flex-1">
+          <Editor
+            path={activeFile?.filename}
+            height="100%"
+            loading={<LoadingSpinner />}
+            theme={resolvedTheme === "dark" ? "vs-dark" : resolvedTheme}
+            language={activeFile?.language ?? "json"}
+            value={activeFile?.code ?? ""}
+            onChange={handleChange}
+            onMount={onMount}
+            className="h-full"
+            options={{
+              minimap: { enabled: true },
+              lineNumbers: "on",
+              wordWrap: "on",
+              automaticLayout: true,
+              fixedOverflowWidgets: true,
+              padding: { top: 10, bottom: 10 },
+              glyphMargin: true,
+            }}
+          />
+        </div>
+      </Tabs>
+    </div>
   );
 }

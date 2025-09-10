@@ -15,7 +15,7 @@ export function ValidationResultsDisplay({
 }: ValidationResultsCardProps) {
   if (!result || result.length === 0) {
     return (
-      <Card className="max-w-4xl rounded-none">
+      <Card className="rounded-none">
         <CardHeader>
           <CardTitle>Validation Results</CardTitle>
         </CardHeader>
@@ -33,7 +33,7 @@ export function ValidationResultsDisplay({
 
   return (
     <ScrollArea className="h-full">
-      <Card className="max-w-4xl rounded-none">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             {result.every((r) => r.ok) ? (
