@@ -48,8 +48,11 @@ function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
 
   for (const assignment of assignments) {
     const course = sectionKey(assignment.Section);
-    const { Calculated: hoursNeeded, MOE } =
-      assignment["Student Hour Allocation"];
+    const {
+      Calculated: hoursNeeded,
+      MOEOver,
+      MOEShort,
+    } = assignment["Student Hour Allocation"];
 
     const assistantHoursAssigned =
       sumHours(assignment.PLAs) +
@@ -60,13 +63,13 @@ function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
 
     // Too few hours
     if (diff < 0) {
-      if (Math.abs(diff) > MOE) {
+      if (Math.abs(diff) > MOEShort) {
         errors.push(
-          `${course}: short by ${Math.abs(diff)}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOE}h).`,
+          `${course}: short by ${Math.abs(diff)}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOEShort}h).`,
         );
       } else {
         warnings.push(
-          `${course}: short by ${Math.abs(diff)}h but within MOE ${MOE}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
+          `${course}: short by ${Math.abs(diff)}h but within MOE ${MOEShort}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
         );
       }
       continue; // no need to also check the overage branch
@@ -74,14 +77,14 @@ function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
 
     // Too many hours
     if (diff > 0) {
-      if (diff > MOE) {
+      if (diff > MOEOver) {
         warnings.push(
-          `${course}: over by ${diff}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOE}h).`,
+          `${course}: over by ${diff}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOEOver}h).`,
         );
       } else {
         // within MOE
         warnings.push(
-          `${course}: over by ${diff}h but within MOE ${MOE}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
+          `${course}: over by ${diff}h but within MOE ${MOEOver}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
         );
       }
     }

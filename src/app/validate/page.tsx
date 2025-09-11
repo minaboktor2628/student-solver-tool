@@ -119,11 +119,6 @@ export default function ValidationPage() {
     validationApi.mutate(result.data);
   }
 
-  const isValidateButtonDisabled = validationApi.isPending || !areAllFilesValid;
-
-  const isUploadButtonDisabled =
-    ExcelInputFiles.length !== pickedCount || parserApi.isPending;
-
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <Collapsible
@@ -136,12 +131,14 @@ export default function ValidationPage() {
           <div className="flex flex-row gap-2">
             <UploadExcelFilesButton
               handleClick={() => handleUploadAndParse()}
-              disabled={isUploadButtonDisabled}
+              disabled={
+                ExcelInputFiles.length !== pickedCount || parserApi.isPending
+              }
               api={{ ...parserApi }}
             />
             <ValidateButton
               handleClick={() => handleValidate()}
-              disabled={isValidateButtonDisabled}
+              disabled={validationApi.isPending || !areAllFilesValid}
               api={{ ...validationApi }}
             />
           </div>

@@ -76,7 +76,8 @@ const normalizeAvailableKeys = (input: unknown) => {
 // For course alloc number
 export const NumberWithMOESchema = z.object({
   Calculated: z.number(),
-  MOE: z.number(),
+  MOEOver: z.number(),
+  MOEShort: z.number(),
 });
 export type NumberWithMOE = z.infer<typeof NumberWithMOESchema>;
 
@@ -98,10 +99,15 @@ export const numberWithMOE = z.preprocess((val) => {
     const o = val as Record<string, unknown>;
     return {
       Calculated: toNumber(o.Calculated),
-      MOE: toNumber(o.MOE ?? defaultMarginOfError),
+      MOEOver: toNumber(o.MOEOver ?? defaultMarginOfError),
+      MOEShort: toNumber(o.MOEShort ?? defaultMarginOfError),
     };
   }
-  return { Calculated: toNumber(val), MOE: defaultMarginOfError };
+  return {
+    Calculated: toNumber(val),
+    MOEOver: defaultMarginOfError,
+    MOEShort: defaultMarginOfError,
+  };
 }, NumberWithMOESchema);
 
 // Regex to capture "CS ####-XXX"
