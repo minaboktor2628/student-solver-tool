@@ -15,7 +15,7 @@ export function ValidationResultsDisplay({
 }: ValidationResultsCardProps) {
   if (!result || result.length === 0) {
     return (
-      <Card className="rounded-none">
+      <Card>
         <CardHeader>
           <CardTitle>Validation Results</CardTitle>
         </CardHeader>
