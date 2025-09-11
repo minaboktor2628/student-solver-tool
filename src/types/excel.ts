@@ -1,3 +1,10 @@
+import {
+  defaultGLAHours,
+  defaultMarginOfErrorOverAllocationHours,
+  defaultMarginOfErrorShortAllocationHours,
+  defaultPLAHours,
+  defaultTAHours,
+} from "@/lib/constants";
 import { isExcelName, isExcelType } from "@/lib/utils";
 import z from "zod";
 
@@ -94,19 +101,20 @@ const toNumber = (v: unknown): number => {
 };
 
 export const numberWithMOE = z.preprocess((val) => {
-  const defaultMarginOfError = 10;
+  const defaultMarginOfErrorOver = defaultMarginOfErrorOverAllocationHours();
+  const defaultMarginOfErrorShort = defaultMarginOfErrorShortAllocationHours();
   if (val && typeof val === "object" && !Array.isArray(val)) {
     const o = val as Record<string, unknown>;
     return {
       Calculated: toNumber(o.Calculated),
-      MOEOver: toNumber(o.MOEOver ?? defaultMarginOfError),
-      MOEShort: toNumber(o.MOEShort ?? defaultMarginOfError),
+      MOEOver: toNumber(o.MOEOver ?? defaultMarginOfErrorOver),
+      MOEShort: toNumber(o.MOEShort ?? defaultMarginOfErrorShort),
     };
   }
   return {
     Calculated: toNumber(val),
-    MOEOver: defaultMarginOfError,
-    MOEShort: defaultMarginOfError,
+    MOEOver: defaultMarginOfErrorOver,
+    MOEShort: defaultMarginOfErrorShort,
   };
 }, NumberWithMOESchema);
 
@@ -189,12 +197,14 @@ const makePeoplePreprocessor = (defaultHours: number) =>
     return z.NEVER;
   }, PeopleArraySchema);
 
+export const AssistantEnumTypeSchema = z.enum(["PLA", "GLA", "TA"]);
+export type AssistantEnumType = z.infer<typeof AssistantEnumTypeSchema>;
 export const AssignmentSchema = AllocationWithoutAssistantsSchema.omit({
   "Student Hour Allocation": true,
 }).extend({
-  TAs: makePeoplePreprocessor(20),
-  PLAs: makePeoplePreprocessor(10),
-  GLAs: makePeoplePreprocessor(10),
+  TAs: makePeoplePreprocessor(defaultTAHours()),
+  PLAs: makePeoplePreprocessor(defaultPLAHours()),
+  GLAs: makePeoplePreprocessor(defaultGLAHours()),
 });
 
 export type AllocationWithoutAssistants = z.infer<
