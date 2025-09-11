@@ -35,6 +35,29 @@ export default tseslint.config(
       ],
     },
   },
+
+  // Vitest tests
+  {
+    files: ["**/*.{test,spec}.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        project: ["./tsconfig.vitest.json"],
+      },
+    },
+  },
+
+  // Cypress files
+  {
+    files: ["cypress/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        project: ["./tsconfig.cypress.json"],
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-namespace": "off",
+    },
+  },
   {
     linterOptions: {
       reportUnusedDisableDirectives: true,
