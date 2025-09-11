@@ -158,7 +158,7 @@ export default function JsonEditor({
                 key={f.filename}
                 value={f.filename}
                 title={f.filename}
-                className="data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex cursor-pointer items-center gap-2 px-3 py-1.5"
+                className="cursor-pointer"
               >
                 <Braces className="inline size-4" />
                 <span
@@ -176,7 +176,6 @@ export default function JsonEditor({
           })}
         </TabsList>
 
-        {/* Single editor, bound to the active tab */}
         <div className="border-input min-h-0 flex-1 overflow-hidden rounded-md border">
           <Editor
             path={activeFile?.filename}
