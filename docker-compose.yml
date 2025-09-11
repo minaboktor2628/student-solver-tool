@@ -13,5 +13,4 @@ services:
     env_file:
       - .env
     image: t3-app
-    environment:
-      - DATABASE_URL=$DATABASE_URL
+

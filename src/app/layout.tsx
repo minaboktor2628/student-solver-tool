@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Navbar, type NavbarNavItem } from "@/components/ui/shadcn-io/navbar";
 import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthButton } from "@/components/auth-button";
 
 export const metadata: Metadata = {
   title: "SST",
@@ -37,7 +38,11 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Toaster richColors toastOptions={{ duration: 5000 }} />
           <TRPCReactProvider>
-            <Navbar logo={<Calculator />} navigationLinks={links} />
+            <Navbar
+              logo={<Calculator />}
+              navigationLinks={links}
+              authSlot={<AuthButton />}
+            />
             {children}
           </TRPCReactProvider>
         </ThemeProvider>
