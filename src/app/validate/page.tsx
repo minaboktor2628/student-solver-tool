@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/resizable";
 import { ValidationResultsDisplay } from "@/components/validation-results-display";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useHotkeys } from "react-hotkeys-hook";
+import { Kbd, KbdKey } from "@/components/ui/shadcn-io/kbd";
 
 export default function ValidationPage() {
   const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true);
@@ -132,54 +134,16 @@ export default function ValidationPage() {
         <div className="flex items-center justify-between border-b p-2">
           <h3 className="text-sm font-medium">Input & Validate</h3>
           <div className="flex flex-row gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1">
-                    <Button
-                      className="w-full"
-                      onClick={handleUploadAndParse}
-                      disabled={isUploadButtonDisabled}
-                    >
-                      {parserApi.isPending ? <LoadingSpinner /> : "Upload"}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    {isUploadButtonDisabled
-                      ? "Select all required Excel files before uploading"
-                      : "Upload the Excel workbooks"}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1">
-                    <Button
-                      className="w-full"
-                      onClick={handleValidate}
-                      disabled={isValidateButtonDisabled}
-                    >
-                      {validationApi.isPending ? (
-                        <LoadingSpinner />
-                      ) : (
-                        "Validate"
-                      )}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    {isValidateButtonDisabled
-                      ? "Upload Excel files and fix all thier errors before validating. You can check each file's sidebar to see the errors."
-                      : "Run validation"}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <UploadExcelFilesButton
+              handleClick={() => handleUploadAndParse()}
+              disabled={isUploadButtonDisabled}
+              api={{ ...parserApi }}
+            />
+            <ValidateButton
+              handleClick={() => handleValidate()}
+              disabled={isValidateButtonDisabled}
+              api={{ ...validationApi }}
+            />
           </div>
           <CollapsibleTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 px-2">
@@ -221,6 +185,98 @@ export default function ValidationPage() {
         </ResizablePanelGroup>
       </div>
     </div>
+  );
+}
+
+type ValidationPageButtonProps = {
+  handleClick: () => void;
+  disabled: boolean;
+  api: { isPending: boolean };
+};
+
+function UploadExcelFilesButton({
+  handleClick,
+  disabled,
+  api,
+}: ValidationPageButtonProps) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="flex-1">
+            <Button
+              className="w-full"
+              onClick={handleClick}
+              disabled={disabled}
+            >
+              {api.isPending ? <LoadingSpinner /> : "Upload"}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>
+            {disabled
+              ? "Select all required Excel files before uploading"
+              : "Upload the Excel workbooks"}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function ValidateButton({
+  handleClick,
+  disabled,
+  api,
+}: ValidationPageButtonProps) {
+  useHotkeys(
+    "ctrl+shift+v",
+    (event) => {
+      event.preventDefault();
+      if (!disabled) handleClick();
+    },
+    {
+      enableOnFormTags: true,
+      enableOnContentEditable: true,
+    },
+    [disabled, handleClick],
+  );
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="flex-1">
+            <Button
+              className="w-full"
+              onClick={handleClick}
+              disabled={disabled}
+            >
+              {api.isPending ? <LoadingSpinner /> : "Validate"}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {disabled ? (
+            <p>
+              Upload Excel files and fix all their errors before validating. You
+              can check each file&apos;s sidebar to see the errors.
+            </p>
+          ) : (
+            <p className="max-w-sm">
+              Press{" "}
+              <Kbd>
+                <KbdKey aria-label="Meta">⌘</KbdKey>
+                <KbdKey>Shift</KbdKey>
+                <KbdKey>V</KbdKey>
+              </Kbd>{" "}
+              to run validation.
+            </p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

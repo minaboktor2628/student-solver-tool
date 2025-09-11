@@ -32,8 +32,8 @@ export function ValidationResultsDisplay({
   }
 
   return (
-    <ScrollArea className="h-full">
-      <Card>
+    <div className="flex h-full min-h-0 flex-col">
+      <Card className="flex h-full min-h-0 flex-col overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             {result.every((r) => r.ok) ? (
@@ -44,68 +44,72 @@ export function ValidationResultsDisplay({
             Validation Results
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {result.map((r, i) => (
-            <div
-              key={i}
-              className="space-y-4 border-t pt-4 first:border-t-0 first:pt-0"
-            >
-              <h3 className="text-lg font-semibold">
-                Rule: <span className="font-mono">{r.meta.rule}</span> (
-                {r.meta.ms}ms)
-              </h3>
+        <div className="min-h-0 flex-1">
+          <ScrollArea className="h-full">
+            <CardContent className="space-y-6">
+              {result.map((r, i) => (
+                <div
+                  key={i}
+                  className="space-y-4 border-t pt-4 first:border-t-0 first:pt-0"
+                >
+                  <h3 className="text-lg font-semibold">
+                    Rule: <span className="font-mono">{r.meta.rule}</span> (
+                    {r.meta.ms}ms)
+                  </h3>
 
-              {r.errors.length > 0 && (
-                <Alert variant="destructive">
-                  <AlertTitle className="flex items-center gap-2">
-                    <XCircle className="h-5 w-5" />
-                    Errors ({r.errors.length})
-                  </AlertTitle>
-                  <AlertDescription>
-                    <ul className="list-inside list-disc space-y-2 text-sm">
-                      {r.errors.map((error, idx) => (
-                        <li key={idx} className="py-1 break-words">
-                          {error}
-                        </li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
+                  {r.errors.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertTitle className="flex items-center gap-2">
+                        <XCircle className="h-5 w-5" />
+                        Errors ({r.errors.length})
+                      </AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-inside list-disc space-y-2 text-sm">
+                          {r.errors.map((error, idx) => (
+                            <li key={idx} className="py-1 break-words">
+                              {error}
+                            </li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
-              {r.warnings.length > 0 && (
-                <Alert variant="warning">
-                  <AlertTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Warnings ({r.warnings.length})
-                  </AlertTitle>
-                  <AlertDescription>
-                    <ul className="list-inside list-disc space-y-2 text-sm">
-                      {r.warnings.map((warning, idx) => (
-                        <li key={idx} className="py-1 break-words">
-                          {warning}
-                        </li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
+                  {r.warnings.length > 0 && (
+                    <Alert variant="warning">
+                      <AlertTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" />
+                        Warnings ({r.warnings.length})
+                      </AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-inside list-disc space-y-2 text-sm">
+                          {r.warnings.map((warning, idx) => (
+                            <li key={idx} className="py-1 break-words">
+                              {warning}
+                            </li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
-              {r.ok && r.warnings.length === 0 && (
-                <Alert variant="success">
-                  <AlertTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    Success!
-                  </AlertTitle>
-                  <AlertDescription>
-                    All validation checks passed successfully.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          ))}
-        </CardContent>
+                  {r.ok && r.warnings.length === 0 && (
+                    <Alert variant="success">
+                      <AlertTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Success!
+                      </AlertTitle>
+                      <AlertDescription>
+                        All validation checks passed successfully.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </ScrollArea>
+        </div>
       </Card>
-    </ScrollArea>
+    </div>
   );
 }
