@@ -4,11 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import type { OnMount } from "@monaco-editor/react";
 import type { EditorFile } from "@/types/editor";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 import { useTheme } from "next-themes";
 import { LoadingSpinner } from "./loading-spinner";
 import { ValidationInputSchema } from "@/types/excel";
@@ -152,7 +147,6 @@ export default function JsonEditor({
         onValueChange={setActiveFilename}
         className="mr-1 flex h-full flex-col"
       >
-        {/* className="bg-background sticky top-0 z-10 flex w-full justify-start overflow-x-auto rounded-none border-b whitespace-nowrap" */}
         <TabsList className="w-full">
           {files.map((f) => {
             const key = uriKeyFor(f.filename);
@@ -183,7 +177,7 @@ export default function JsonEditor({
         </TabsList>
 
         {/* Single editor, bound to the active tab */}
-        <div className="min-h-0 flex-1">
+        <div className="border-input min-h-0 flex-1 overflow-hidden rounded-md border">
           <Editor
             path={activeFile?.filename}
             height="100%"
