@@ -2,6 +2,7 @@ import type {
   Allocation,
   AllocationWithoutAssistants,
   Assignment,
+  Assistant,
   AssistantPreferences,
 } from "@/types/excel";
 
@@ -52,6 +53,11 @@ export function sectionKey(section: {
   return `${section.Course}-${section.Subsection}`;
 }
 
-export function personKey<T extends { First: string; Last: string }>(s: T) {
-  return `${s.First} ${s.Last}`;
+export function personKey(s: Partial<Assistant>) {
+  return `${s.First}, ${s.Last}`;
 }
+
+export const parsePersonFromKey = (full: string): Partial<Assistant> => {
+  const [First, Last] = full.split(", ").map((s) => s.trim());
+  return { First, Last };
+};

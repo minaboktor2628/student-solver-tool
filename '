@@ -16,7 +16,12 @@ import React from "react";
 import { useRef } from "react";
 import { Braces } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
-import { parse, getLocation } from "jsonc-parser";
+import {
+  parse,
+  getLocation,
+  parseTree,
+  findNodeAtLocation,
+} from "jsonc-parser";
 import type * as monacoT from "monaco-editor";
 import { defaultPLAHours, defaultTAHours } from "@/lib/constants";
 import {
@@ -125,6 +130,132 @@ function registerAllocationSnippets(monaco: typeof monacoT) {
       return { suggestions };
     },
   });
+}
+
+const VALIDATOR_OWNER = "alloc-validator";
+
+function validateAllocationsModel(
+  allocModel: monacoT.editor.ITextModel,
+  monaco: typeof monacoT,
+) {
+  const text = allocModel.getValue();
+  const tree = parseTree(text);
+  if (!tree) {
+    monaco.editor.setModelMarkers(allocModel, VALIDATOR_OWNER, []);
+    return;
+  }
+
+  const doc = parse(text, [], {
+    allowTrailingComma: true,
+    disallowComments: false,
+  }) as Allocation[];
+
+  // Load preference models
+  const taUri = monaco.Uri.parse("TAs Preferences");
+  const plaUri = monaco.Uri.parse("PLAs Preferences");
+  const taPrefModel = monaco.editor.getModel(taUri);
+  const plaPrefModel = monaco.editor.getModel(plaUri);
+
+  // If we’re missing a preferences model, clear markers and bail gracefully
+  if (!taPrefModel || !plaPrefModel) {
+    monaco.editor.setModelMarkers(allocModel, VALIDATOR_OWNER, []);
+    return;
+  }
+
+  const taMap = makeCourseToAssistantMap(
+    parse(taPrefModel.getValue(), [], {
+      allowTrailingComma: true,
+      disallowComments: false,
+    }) as AssistantPreferences[],
+  );
+  const plaMap = makeCourseToAssistantMap(
+    parse(plaPrefModel.getValue(), [], {
+      allowTrailingComma: true,
+      disallowComments: false,
+    }) as AssistantPreferences[],
+  );
+
+  const markers: monacoT.editor.IMarkerData[] = [];
+
+  const rowNode = (idx: number) => findNodeAtLocation(tree, [idx]);
+
+  const pos = (offset: number) => allocModel.getPositionAt(offset);
+
+  const pushErr = (node: any, message: string) => {
+    if (!node) return;
+    const start = pos(node.offset);
+    const end = pos(node.offset + node.length);
+    markers.push({
+      severity: monaco.MarkerSeverity.Error,
+      message,
+      startLineNumber: start.lineNumber,
+      startColumn: start.column,
+      endLineNumber: end.lineNumber,
+      endColumn: end.column,
+      source: "Allocation rules",
+      code: "alloc/not-in-suggestions",
+    });
+  };
+
+  doc.forEach((alloc, idx) => {
+    const course = alloc?.Section?.Course;
+    if (!course) return;
+
+    const allowedTAs = new Set(
+      (taMap[course] ?? []).map((k) => personKey(parsePersonFromKey(k))),
+    );
+    const allowedPLAs = new Set(
+      (plaMap[course] ?? []).map((k) => personKey(parsePersonFromKey(k))),
+    );
+
+    const row = rowNode(idx);
+    const tasN = row && findNodeAtLocation(row, ["TAs"]);
+    const plasN = row && findNodeAtLocation(row, ["PLAs"]);
+
+    const check = (
+      arr: { First: string; Last: string }[] | undefined,
+      arrNode: any,
+      label: "TA" | "PLA",
+      allowed: Set<string>,
+    ) => {
+      if (!arr || !arrNode?.children) return;
+      arr.forEach((p, i) => {
+        const ok = allowed.has(personKey({ First: p.First, Last: p.Last }));
+        if (!ok)
+          pushErr(
+            arrNode.children?.[i],
+            `${label} must be one of the suggested assistants for course ${course}.`,
+          );
+      });
+    };
+
+    check(alloc.TAs, tasN, "TA", allowedTAs);
+    check(alloc.PLAs, plasN, "PLA", allowedPLAs);
+  });
+
+  monaco.editor.setModelMarkers(allocModel, VALIDATOR_OWNER, markers);
+}
+
+// Re-run validation whenever allocations or preference models change
+function wireAllocationValidation(monaco: typeof monacoT) {
+  const allocUri = monaco.Uri.parse("Allocations");
+  const allocModel = monaco.editor.getModel(allocUri);
+  if (!allocModel) return () => {};
+
+  const rerun = () => validateAllocationsModel(allocModel, monaco);
+
+  const disposers: monacoT.IDisposable[] = [];
+  disposers.push(allocModel.onDidChangeContent(rerun));
+
+  const taModel = monaco.editor.getModel(monaco.Uri.parse("TAs Preferences"));
+  const plaModel = monaco.editor.getModel(monaco.Uri.parse("PLAs Preferences"));
+  taModel && disposers.push(taModel.onDidChangeContent(rerun));
+  plaModel && disposers.push(plaModel.onDidChangeContent(rerun));
+
+  // initial run
+  rerun();
+
+  return () => disposers.forEach((d) => d.dispose());
 }
 
 type ErrorCountMap = Record<string, number>;

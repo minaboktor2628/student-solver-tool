@@ -44,8 +44,8 @@ export const excelRoute = createTRPCRouter({
 
           const baseName = z
             .enum([
-              "TA Preferences",
-              "PLA Preferences",
+              "TAs Preferences",
+              "PLAs Preferences",
               "Assignments",
               "Allocations",
             ])

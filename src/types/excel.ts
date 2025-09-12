@@ -19,8 +19,8 @@ export const ExcelFileSchema = z
 
 export const ExcelInputFiles = [
   "Assignments",
-  "PLA Preferences",
-  "TA Preferences",
+  "PLAs Preferences",
+  "TAs Preferences",
 ] as const;
 export type ExcelInputFileEnum = (typeof ExcelInputFiles)[number];
 
@@ -197,7 +197,7 @@ const makePeoplePreprocessor = (defaultHours: number) =>
     return z.NEVER;
   }, PeopleArraySchema);
 
-export const AssistantEnumTypeSchema = z.enum(["PLA", "GLA", "TA"]);
+export const AssistantEnumTypeSchema = z.enum(["PLAs", "GLAs", "TAs"]);
 export type AssistantEnumType = z.infer<typeof AssistantEnumTypeSchema>;
 export const AssignmentSchema = AllocationWithoutAssistantsSchema.omit({
   "Student Hour Allocation": true,
@@ -234,14 +234,14 @@ export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 export const ExcelSheetSchema = {
   Allocations: AllocationWithoutAssistantsSchema,
   Assignments: AssignmentSchema,
-  "PLA Preferences": AssistantPreferencesSchema,
-  "TA Preferences": AssistantPreferencesSchema,
+  "PLAs Preferences": AssistantPreferencesSchema,
+  "TAs Preferences": AssistantPreferencesSchema,
 } as const;
 
 export const ValidationInputSchema = z.object({
   Allocations: z.array(AllocationSchema).min(1),
-  "PLA Preferences": z.array(AssistantPreferencesSchema).min(1),
-  "TA Preferences": z.array(AssistantPreferencesSchema).min(1),
+  "PLAs Preferences": z.array(AssistantPreferencesSchema).min(1),
+  "TAs Preferences": z.array(AssistantPreferencesSchema).min(1),
 });
 
 export type ValidationInput = z.infer<typeof ValidationInputSchema>;

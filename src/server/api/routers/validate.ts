@@ -12,11 +12,11 @@ export const validateRoute = createTRPCRouter({
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
       const plaAvailableSet = new Set(
-        input["PLA Preferences"].filter((a) => a.Available).map(personKey),
+        input["PLAs Preferences"].filter((a) => a.Available).map(personKey),
       );
 
       const taAvailableSet = new Set(
-        input["TA Preferences"].filter((a) => a.Available).map(personKey),
+        input["TAs Preferences"].filter((a) => a.Available).map(personKey),
       );
 
       return {
@@ -29,8 +29,8 @@ export const validateRoute = createTRPCRouter({
           ),
           ensureAssignedAssistantsAreQualified(
             input.Allocations,
-            makeCourseToAssistantMap(input["PLA Preferences"]),
-            makeCourseToAssistantMap(input["TA Preferences"]),
+            makeCourseToAssistantMap(input["PLAs Preferences"]),
+            makeCourseToAssistantMap(input["TAs Preferences"]),
           ),
           ensureCourseNeedsAreMet(input.Allocations),
         ],
