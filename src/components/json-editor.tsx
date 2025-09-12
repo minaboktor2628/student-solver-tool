@@ -25,108 +25,6 @@ import {
   personKey,
 } from "@/lib/validation";
 
-const objectSnippet = (obj: unknown) => JSON.stringify(obj, null, 2);
-
-function registerAllocationSnippets(monaco: typeof monacoT) {
-  return monaco.languages.registerCompletionItemProvider("json", {
-    triggerCharacters: [" ", "\n"],
-    provideCompletionItems(model, position) {
-      // only run auto complete for allocation tab
-      if (!model.uri.path.endsWith("Allocations")) return { suggestions: [] };
-
-      const word = model.getWordUntilPosition(position);
-      const range = new monaco.Range(
-        position.lineNumber,
-        word.startColumn,
-        position.lineNumber,
-        word.endColumn,
-      );
-
-      // the raw json of the current file
-      const text = model.getValue();
-      const doc = parse(text, [], {
-        allowTrailingComma: true,
-        disallowComments: false,
-      }) as Allocation[];
-
-      const offset = model.getOffsetAt(position);
-      const loc = getLocation(text, offset);
-      const [allocationObjectIndex, currentKeyNameInObject] = loc.path;
-      const idx = Number(allocationObjectIndex);
-      const currentAllocation = Number.isFinite(idx) ? doc[idx] : undefined;
-
-      const suggestions: monacoT.languages.CompletionItem[] = [];
-      const course = currentAllocation?.Section?.Course;
-
-      if (
-        (currentKeyNameInObject === "TAs" ||
-          currentKeyNameInObject === "PLAs") &&
-        course
-      ) {
-        const assignedAssistantSet = new Set(
-          doc.flatMap((a) => a[currentKeyNameInObject]).map(personKey),
-        );
-
-        const uri = monaco.Uri.parse(`${currentKeyNameInObject} Preferences`);
-        const model = monaco.editor.getModel(uri);
-        if (!model) return { suggestions: [] };
-
-        const courseMap = makeCourseToAssistantMap(
-          parse(model.getValue(), [], {
-            allowTrailingComma: true,
-            disallowComments: false,
-          }) as AssistantPreferences[],
-        );
-
-        const availableAssitants = courseMap[course] ?? [];
-
-        const unassignedAssistants = [...availableAssitants]
-          .map(parsePersonFromKey)
-          .filter((p) => !assignedAssistantSet.has(personKey(p)));
-
-        for (const { First, Last } of unassignedAssistants) {
-          const roleSingular = currentKeyNameInObject.slice(0, -1); // "TA" or "PLA"
-          suggestions.push({
-            label: `${roleSingular}: ${First} ${Last}`,
-            kind: monaco.languages.CompletionItemKind.Snippet,
-            insertTextRules:
-              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            insertText: objectSnippet({
-              First,
-              Last,
-              Hours:
-                currentKeyNameInObject === "TAs"
-                  ? defaultTAHours()
-                  : defaultPLAHours(),
-              Locked: false,
-            }),
-            documentation: `Insert ${roleSingular} ${First} ${Last} for ${course}`,
-            range,
-            sortText: "0", // show above the generic snippet
-          });
-        }
-      }
-
-      suggestions.push({
-        label: `Add a custom assistant`,
-        kind: monaco.languages.CompletionItemKind.Snippet,
-        insertTextRules:
-          monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        insertText: objectSnippet({
-          First: "${1:First}",
-          Last: "${2:Last}",
-          Hours: defaultPLAHours(),
-          Locked: false,
-        }),
-        documentation: `Insert a custom assistant object with placeholders`,
-        range,
-      });
-
-      return { suggestions };
-    },
-  });
-}
-
 type ErrorCountMap = Record<string, number>;
 type Monaco = Parameters<OnMount>[1];
 interface Props {
@@ -319,4 +217,106 @@ export default function JsonEditor({
       </Tabs>
     </div>
   );
+}
+
+const objectSnippet = (obj: unknown) => JSON.stringify(obj, null, 2);
+
+function registerAllocationSnippets(monaco: typeof monacoT) {
+  return monaco.languages.registerCompletionItemProvider("json", {
+    triggerCharacters: [" ", "\n"],
+    provideCompletionItems(model, position) {
+      // only run auto complete for allocation tab
+      if (!model.uri.path.endsWith("Allocations")) return { suggestions: [] };
+
+      const word = model.getWordUntilPosition(position);
+      const range = new monaco.Range(
+        position.lineNumber,
+        word.startColumn,
+        position.lineNumber,
+        word.endColumn,
+      );
+
+      // the raw json of the current file
+      const text = model.getValue();
+      const doc = parse(text, [], {
+        allowTrailingComma: true,
+        disallowComments: false,
+      }) as Allocation[];
+
+      const offset = model.getOffsetAt(position);
+      const loc = getLocation(text, offset);
+      const [allocationObjectIndex, currentKeyNameInObject] = loc.path;
+      const idx = Number(allocationObjectIndex);
+      const currentAllocation = Number.isFinite(idx) ? doc[idx] : undefined;
+
+      const suggestions: monacoT.languages.CompletionItem[] = [];
+      const course = currentAllocation?.Section?.Course;
+
+      if (
+        (currentKeyNameInObject === "TAs" ||
+          currentKeyNameInObject === "PLAs") &&
+        course
+      ) {
+        const roleSingular = currentKeyNameInObject.slice(0, -1); // "TA" or "PLA"
+        const assignedAssistantSet = new Set(
+          doc.flatMap((a) => a[currentKeyNameInObject]).map(personKey),
+        );
+
+        const uri = monaco.Uri.parse(`${roleSingular} Preferences`);
+        const model = monaco.editor.getModel(uri);
+        if (!model) return { suggestions: [] };
+
+        const courseMap = makeCourseToAssistantMap(
+          parse(model.getValue(), [], {
+            allowTrailingComma: true,
+            disallowComments: false,
+          }) as AssistantPreferences[],
+        );
+
+        const availableAssitants = courseMap[course] ?? [];
+
+        const unassignedAssistants = [...availableAssitants]
+          .map(parsePersonFromKey)
+          .filter((p) => !assignedAssistantSet.has(personKey(p)));
+
+        for (const { First, Last } of unassignedAssistants) {
+          suggestions.push({
+            label: `${roleSingular}: ${First} ${Last}`,
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertTextRules:
+              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            insertText: objectSnippet({
+              First,
+              Last,
+              Hours:
+                currentKeyNameInObject === "TAs"
+                  ? defaultTAHours()
+                  : defaultPLAHours(),
+              Locked: false,
+            }),
+            documentation: `Insert ${roleSingular} ${First} ${Last} for ${course}`,
+            range,
+            sortText: "0", // show above the generic snippet
+          });
+        }
+      }
+
+      suggestions.push({
+        label: `Add a custom assistant`,
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertTextRules:
+          monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+        insertText: objectSnippet({
+          First: "${1:First}",
+          Last: "${2:Last}",
+          Hours: defaultPLAHours(),
+          Locked: false,
+        }),
+        documentation: `Insert a custom assistant object with placeholders`,
+        range,
+      });
+
+      return { suggestions };
+    },
+  });
 }

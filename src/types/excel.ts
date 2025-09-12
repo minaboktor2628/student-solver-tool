@@ -19,8 +19,8 @@ export const ExcelFileSchema = z
 
 export const ExcelInputFiles = [
   "Assignments",
-  "PLAs Preferences",
-  "TAs Preferences",
+  "PLA Preferences",
+  "TA Preferences",
 ] as const;
 export type ExcelInputFileEnum = (typeof ExcelInputFiles)[number];
 
@@ -234,14 +234,14 @@ export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 export const ExcelSheetSchema = {
   Allocations: AllocationWithoutAssistantsSchema,
   Assignments: AssignmentSchema,
-  "PLAs Preferences": AssistantPreferencesSchema,
-  "TAs Preferences": AssistantPreferencesSchema,
+  "PLA Preferences": AssistantPreferencesSchema,
+  "TA Preferences": AssistantPreferencesSchema,
 } as const;
 
 export const ValidationInputSchema = z.object({
   Allocations: z.array(AllocationSchema).min(1),
-  "PLAs Preferences": z.array(AssistantPreferencesSchema).min(1),
-  "TAs Preferences": z.array(AssistantPreferencesSchema).min(1),
+  "PLA Preferences": z.array(AssistantPreferencesSchema).min(1),
+  "TA Preferences": z.array(AssistantPreferencesSchema).min(1),
 });
 
 export type ValidationInput = z.infer<typeof ValidationInputSchema>;
