@@ -209,7 +209,7 @@ function UploadExcelFilesButton({
               onClick={handleClick}
               disabled={disabled}
             >
-              {api.isPending ? <LoadingSpinner /> : "Upload"}
+              {api.isPending ? <LoadingSpinner size="sm" /> : "Upload"}
             </Button>
           </span>
         </TooltipTrigger>
@@ -253,7 +253,7 @@ function ValidateButton({
               onClick={handleClick}
               disabled={disabled}
             >
-              {api.isPending ? <LoadingSpinner /> : "Validate"}
+              {api.isPending ? <LoadingSpinner size="sm" /> : "Validate"}
             </Button>
           </span>
         </TooltipTrigger>

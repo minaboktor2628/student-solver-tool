@@ -318,7 +318,13 @@ function registerAllocationSnippets(monaco: Monaco) {
           Hours: defaultPLAHours(),
           Locked: false,
         }),
-        documentation: `**Insert** a custom assistant object with placeholders`,
+        documentation: {
+          value:
+            `**Insert** a custom assistant object with placeholders.\n\n` +
+            (suggestions.length === 0
+              ? "> There are ***no*** available or qualified assistants for this course."
+              : ""),
+        },
         range,
       });
 
