@@ -219,9 +219,9 @@ export default function JsonEditor({
   );
 }
 
-const objectSnippet = (obj: unknown) => JSON.stringify(obj, null, 2);
+function registerAllocationSnippets(monaco: Monaco) {
+  const objectSnippet = (obj: unknown) => JSON.stringify(obj, null, 2);
 
-function registerAllocationSnippets(monaco: typeof monacoT) {
   return monaco.languages.registerCompletionItemProvider("json", {
     triggerCharacters: [" ", "\n"],
     provideCompletionItems(model, position) {
@@ -274,14 +274,17 @@ function registerAllocationSnippets(monaco: typeof monacoT) {
         );
 
         const availableAssitants = courseMap[course] ?? [];
-
         const unassignedAssistants = [...availableAssitants]
           .map(parsePersonFromKey)
           .filter((p) => !assignedAssistantSet.has(personKey(p)));
 
         for (const { First, Last } of unassignedAssistants) {
           suggestions.push({
-            label: `${roleSingular}: ${First} ${Last}`,
+            label: {
+              label: `${First} ${Last}`,
+              detail: ` ${course}`,
+              description: roleSingular,
+            },
             kind: monaco.languages.CompletionItemKind.Snippet,
             insertTextRules:
               monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
@@ -294,9 +297,12 @@ function registerAllocationSnippets(monaco: typeof monacoT) {
                   : defaultPLAHours(),
               Locked: false,
             }),
-            documentation: `Insert ${roleSingular} ${First} ${Last} for ${course}`,
-            range,
+            documentation: {
+              value: `**Insert** ${roleSingular} ***${First} ${Last}*** for ${course}`,
+            },
+            filterText: `${First} ${Last}`,
             sortText: "0", // show above the generic snippet
+            range,
           });
         }
       }
@@ -312,7 +318,7 @@ function registerAllocationSnippets(monaco: typeof monacoT) {
           Hours: defaultPLAHours(),
           Locked: false,
         }),
-        documentation: `Insert a custom assistant object with placeholders`,
+        documentation: `**Insert** a custom assistant object with placeholders`,
         range,
       });
 
