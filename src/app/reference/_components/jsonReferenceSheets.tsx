@@ -11,11 +11,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-
 const allocationsRefInfo = [
   {
     jsonKey: "Academic Period",
-    description: "The year and academic term during which the course takes place.",
+    description:
+      "The year and academic term during which the course takes place.",
     format: "Year + Season + Term",
     example: "2025 Fall A Term",
     type: "String",

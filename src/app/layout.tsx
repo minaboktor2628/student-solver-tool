@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Navbar, type NavbarNavItem } from "@/components/ui/shadcn-io/navbar";
 import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthButton } from "@/components/auth-button";
 
 export const metadata: Metadata = {
   title: "SST",
@@ -34,12 +35,17 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
-      <body>
+      <body className="flex h-dvh flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Toaster richColors toastOptions={{ duration: 5000 }} />
           <TRPCReactProvider>
-            <Navbar logo={<Calculator />} navigationLinks={links} />
-            {children}
+            <Navbar
+              logo={<Calculator />}
+              navigationLinks={links}
+              authSlot={<AuthButton />}
+              className="shrink-0"
+            />
+            <main className="min-h-0 flex-1">{children}</main>
           </TRPCReactProvider>
         </ThemeProvider>
       </body>

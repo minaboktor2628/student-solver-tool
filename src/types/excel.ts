@@ -1,3 +1,10 @@
+import {
+  defaultGLAHours,
+  defaultMarginOfErrorOverAllocationHours,
+  defaultMarginOfErrorShortAllocationHours,
+  defaultPLAHours,
+  defaultTAHours,
+} from "@/lib/constants";
 import { isExcelName, isExcelType } from "@/lib/utils";
 import z from "zod";
 
@@ -48,32 +55,68 @@ const yesNoBoolean = z.preprocess((val) => {
   return false;
 }, z.boolean());
 
-// For course alloc number
-const numberWithMOE = z.preprocess(
-  (val) => {
-    let num = 0;
+// Collapse any "Available ..." keys into one "Available" boolean
+const normalizeAvailableKeys = (input: unknown) => {
+  if (typeof input !== "object" || input === null) return input;
 
-    if (val === null || val === undefined) {
-      num = 0;
-    } else if (typeof val === "string") {
-      const trimmed = val.trim().toLowerCase();
-      if (trimmed === "" || trimmed === "tbd" || trimmed === "n/a") {
-        num = 0;
-      } else {
-        const parsed = Number(val);
-        num = Number.isNaN(parsed) ? 0 : parsed;
-      }
-    } else if (typeof val === "number") {
-      num = val;
+  const src = input as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  let availableAgg: boolean | undefined;
+
+  for (const [key, value] of Object.entries(src)) {
+    if (/^\s*available\b/i.test(key)) {
+      const b = yesNoBoolean.safeParse(value).success
+        ? yesNoBoolean.parse(value)
+        : !!value;
+      availableAgg = (availableAgg ?? false) || b;
+    } else {
+      out[key] = value;
     }
+  }
 
-    return { Calculated: num, MOE: 10 };
-  },
-  z.object({
-    Calculated: z.number(),
-    MOE: z.number(),
-  }),
-);
+  // Always ensure Available exists, default true if none present
+  out.Available = availableAgg ?? true;
+
+  return out;
+};
+
+// For course alloc number
+export const NumberWithMOESchema = z.object({
+  Calculated: z.number(),
+  MOEOver: z.number(),
+  MOEShort: z.number(),
+});
+export type NumberWithMOE = z.infer<typeof NumberWithMOESchema>;
+
+const toNumber = (v: unknown): number => {
+  if (v == null) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    const t = v.trim().toLowerCase();
+    if (t === "" || t === "tbd" || t === "n/a") return 0;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+export const numberWithMOE = z.preprocess((val) => {
+  const defaultMarginOfErrorOver = defaultMarginOfErrorOverAllocationHours();
+  const defaultMarginOfErrorShort = defaultMarginOfErrorShortAllocationHours();
+  if (val && typeof val === "object" && !Array.isArray(val)) {
+    const o = val as Record<string, unknown>;
+    return {
+      Calculated: toNumber(o.Calculated),
+      MOEOver: toNumber(o.MOEOver ?? defaultMarginOfErrorOver),
+      MOEShort: toNumber(o.MOEShort ?? defaultMarginOfErrorShort),
+    };
+  }
+  return {
+    Calculated: toNumber(val),
+    MOEOver: defaultMarginOfErrorOver,
+    MOEShort: defaultMarginOfErrorShort,
+  };
+}, NumberWithMOESchema);
 
 // Regex to capture "CS ####-XXX"
 const CS_SECTION_RE = /CS\s*([0-9]{3,4})\s*[-–—]\s*([A-Z]{1,3}\d{2,3})/i;
@@ -99,7 +142,7 @@ const SectionSchema = z.preprocess(
   }),
 );
 
-export const AllocationSchema = z.object({
+export const AllocationWithoutAssistantsSchema = z.object({
   "Academic Period": z.string(),
   Section: SectionSchema,
   CrossListed: yesNoBoolean,
@@ -121,19 +164,23 @@ export const AssistantSchema = z.object({
 
 export type Assistant = z.infer<typeof AssistantSchema>;
 
+const PeopleSchema = AssistantSchema.omit({ Email: true }).extend({
+  Locked: z.boolean(),
+  Hours: z.number(),
+});
+const PeopleArraySchema = z.array(PeopleSchema);
 const makePeoplePreprocessor = (defaultHours: number) =>
-  z.preprocess(
-    (val) => {
-      if (val === null) return [];
-      if (typeof val !== "string") return [];
+  z.preprocess((val) => {
+    if (val == null) return [];
+    if (Array.isArray(val)) return PeopleArraySchema.parse(val); // already parsed -> pass through
 
+    if (typeof val === "string") {
       // normalize whitespace (replace newlines/tabs/periods with comma)
       // TODO: Should we replace periods or make it an error?
       const normalized = val.replace(/[\n\t.]/g, ",");
-
       return normalized
         .split(";")
-        .map((entry) => entry.trim())
+        .map((s) => s.trim())
         .filter(Boolean)
         .map((entry) => {
           const [last, first] = entry.split(",").map((s) => s.trim());
@@ -144,69 +191,57 @@ const makePeoplePreprocessor = (defaultHours: number) =>
             Hours: defaultHours,
           };
         });
-    },
-    z.array(
-      AssistantSchema.omit({ Email: true })
-        .extend({ Locked: z.boolean(), Hours: z.number() })
-        .nullable(),
-    ),
-  );
+    }
 
-export const AssignmentSchema = AllocationSchema.omit({
+    // Not string/array/null -> let schema fail instead of silently erasing data
+    return z.NEVER;
+  }, PeopleArraySchema);
+
+export const AssistantEnumTypeSchema = z.enum(["PLA", "GLA", "TA"]);
+export type AssistantEnumType = z.infer<typeof AssistantEnumTypeSchema>;
+export const AssignmentSchema = AllocationWithoutAssistantsSchema.omit({
   "Student Hour Allocation": true,
 }).extend({
-  TAs: makePeoplePreprocessor(20),
-  PLAs: makePeoplePreprocessor(10),
-  GLAs: makePeoplePreprocessor(20),
+  TAs: makePeoplePreprocessor(defaultTAHours()),
+  PLAs: makePeoplePreprocessor(defaultPLAHours()),
+  GLAs: makePeoplePreprocessor(defaultGLAHours()),
 });
 
-export type Allocation = z.infer<typeof AllocationSchema>;
+export type AllocationWithoutAssistants = z.infer<
+  typeof AllocationWithoutAssistantsSchema
+>;
 export type Assignment = z.infer<typeof AssignmentSchema>;
 
-export const AssistantPreferencesSchema = AssistantSchema.extend({
-  Comments: z.string().nullable(),
-  // Everything else (courses, "Available X Term?", time slots, etc.) becomes boolean
-}).catchall(yesNoBoolean);
+export const AllocationSchema = AllocationWithoutAssistantsSchema.extend({
+  TAs: PeopleArraySchema,
+  PLAs: PeopleArraySchema,
+  GLAs: PeopleArraySchema,
+});
+export type Allocation = z.infer<typeof AllocationSchema>;
+
+export const AssistantPreferencesSchema = z.preprocess(
+  normalizeAvailableKeys,
+  AssistantSchema.extend({
+    Comments: z.string().nullable(),
+    // ensure "Available" exists after preprocessing
+    Available: yesNoBoolean,
+  })
+    // every other key (courses, timeslots, etc.) -> boolean
+    .catchall(yesNoBoolean),
+);
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 
-export const ExcelSheetNames = [
-  "Allocations",
-  "Assignments",
-  "TAs",
-  "PLAs",
-  "GLAs",
-  "PLA Preferences",
-  "TA Preferences",
-] as const;
-export type ExcelSheetNameEnum = (typeof ExcelSheetNames)[number];
-
 export const ExcelSheetSchema = {
-  Allocations: AllocationSchema,
+  Allocations: AllocationWithoutAssistantsSchema,
   Assignments: AssignmentSchema,
-  TAs: AssistantSchema,
-  PLAs: AssistantSchema,
-  GLAs: AssistantSchema,
   "PLA Preferences": AssistantPreferencesSchema,
   "TA Preferences": AssistantPreferencesSchema,
-} as const satisfies Record<ExcelSheetNameEnum, z.ZodTypeAny>;
+} as const;
 
-type ArraySchemaMap<M extends Record<string, z.ZodTypeAny>> = {
-  [K in keyof M]: z.ZodArray<M[K]>;
-};
-
-function toArraySchemas<M extends Record<string, z.ZodTypeAny>>(
-  m: M,
-  min = 1,
-): ArraySchemaMap<M> {
-  const entries = Object.entries(m).map(([k, v]) => [k, z.array(v).min(min)]);
-  return Object.fromEntries(entries) as ArraySchemaMap<M>;
-}
-
-export const ValidationArraySchemasBySheetName =
-  toArraySchemas(ExcelSheetSchema);
-
-export const ValidationInputSchema = z.object(
-  ValidationArraySchemasBySheetName,
-);
+export const ValidationInputSchema = z.object({
+  Allocations: z.array(AllocationSchema).min(1),
+  "PLA Preferences": z.array(AssistantPreferencesSchema).min(1),
+  "TA Preferences": z.array(AssistantPreferencesSchema).min(1),
+});
 
 export type ValidationInput = z.infer<typeof ValidationInputSchema>;

@@ -15,7 +15,6 @@ import { ChevronsUpDown, UploadIcon } from "lucide-react";
 import {
   ACCEPT_MAP,
   ExcelInputFiles,
-  ExcelSheetNames,
   ValidationInputSchema,
   type ExcelInputFileEnum,
 } from "@/types/excel";
@@ -31,15 +30,49 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { ValidationResult } from "@/types/validation";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { ValidationResultsDisplay } from "@/components/validation-results-display";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useHotkeys } from "react-hotkeys-hook";
+import { Kbd, KbdKey } from "@/components/ui/shadcn-io/kbd";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import Link from "next/link";
 
 export default function ValidationPage() {
-  const [isOpen, setIsOpen] = useState(true);
-  const [areAllFilesValid, setAreAllFilesValid] = useState(false);
-  const [editorFiles, setEditorFiles] = useState<EditorFile[]>(
-    ExcelSheetNames.map((name) => ({
+  const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true);
+  const [areAllFilesValid, setAreAllFilesValid] = useLocalStorage(
+    "validation:allValid",
+    false,
+  );
+
+  const [validationResults, setValidationResults] = useLocalStorage<
+    ValidationResult[]
+  >("validation:results", []);
+
+  const [editorFiles, setEditorFiles] = useLocalStorage<EditorFile[]>(
+    "validation:editorFiles",
+    Object.keys(ValidationInputSchema.shape).map((name) => ({
       filename: name,
-      code: "[]",
       language: "json",
+      code: "[]",
     })),
   );
 
@@ -54,12 +87,9 @@ export default function ValidationPage() {
     onSuccess: ({ files }) => setEditorFiles(files),
   });
 
-  const validationApi = api.excel.validate.useMutation({
+  const validationApi = api.validate.validateFullSolution.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: (data) => {
-      console.log(data);
-      toast("Success!");
-    },
+    onSuccess: ({ issues }) => setValidationResults(issues),
   });
 
   function handleDrop(key: ExcelInputFileEnum, files: File[]) {
@@ -104,16 +134,8 @@ export default function ValidationPage() {
     validationApi.mutate(result.data);
   }
 
-  const isValidateButtonDisabled =
-    ExcelSheetNames.length !== editorFiles.length ||
-    validationApi.isPending ||
-    !areAllFilesValid;
-
-  const isUploadButtonDisabled =
-    ExcelInputFiles.length !== pickedCount || parserApi.isPending;
-
   return (
-    <div className="flex h-screen min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
@@ -122,63 +144,45 @@ export default function ValidationPage() {
         <div className="flex items-center justify-between border-b p-2">
           <h3 className="text-sm font-medium">Input & Validate</h3>
           <div className="flex flex-row gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1">
-                    <Button
-                      className="w-full"
-                      onClick={handleUploadAndParse}
-                      disabled={isUploadButtonDisabled}
-                    >
-                      {parserApi.isPending ? <LoadingSpinner /> : "Upload"}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    {isUploadButtonDisabled
-                      ? "Select all required Excel files before uploading"
-                      : "Upload the Excel workbooks"}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1">
-                    <Button
-                      className="w-full"
-                      onClick={handleValidate}
-                      disabled={isValidateButtonDisabled}
-                    >
-                      {validationApi.isPending ? (
-                        <LoadingSpinner />
-                      ) : (
-                        "Validate"
-                      )}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    {isValidateButtonDisabled
-                      ? "Upload Excel files and fix all thier errors before validating. You can check each file's sidebar to see the errors."
-                      : "Run validation"}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <UploadExcelFilesButton
+              handleClick={() => handleUploadAndParse()}
+              disabled={
+                ExcelInputFiles.length !== pickedCount || parserApi.isPending
+              }
+              api={{ ...parserApi }}
+            />
+            <ValidateButton
+              handleClick={() => handleValidate()}
+              disabled={validationApi.isPending || !areAllFilesValid}
+              api={{ ...validationApi }}
+            />
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <ChevronsUpDown className="mr-1 size-4" />
-              <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
-            </Button>
-          </CollapsibleTrigger>
+          <div className=" flex flex-row justify-center gap-2 h-8 px-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm"> Info </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
+                  <Link href="/reference?reference=allocations"> Allocations </Link>
+                </DropdownMenuLabel>
+                <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
+                  <Link href="/reference?reference=taPref"> TA Preferences </Link>
+                </DropdownMenuLabel>
+                <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
+                  <Link href="/reference?reference=plaPref"> PLA Preferences </Link>
+                </DropdownMenuLabel>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-2">
+                <ChevronsUpDown className="mr-1 size-4" />
+                <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
+              </Button>
+            </CollapsibleTrigger>
+          </div>
         </div>
-        <CollapsibleContent className="px-2 py-2">
+        <CollapsibleContent className="border-b px-2 py-2">
           <div className="flex flex-col space-y-2">
             <div className="flex flex-col gap-2 sm:flex-row">
               {ExcelInputFiles.map((name) => (
@@ -193,14 +197,116 @@ export default function ValidationPage() {
           </div>
         </CollapsibleContent>
       </Collapsible>
-      <div className="flex-1 px-2">
-        <JsonEditor
-          files={editorFiles}
-          onChange={setEditorFiles}
-          onValidityChange={setAreAllFilesValid}
-        />
+      <div className="min-h-0 flex-1 p-2">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel>
+            <div className="h-full">
+              <JsonEditor
+                files={editorFiles}
+                onChange={setEditorFiles}
+                onValidityChange={setAreAllFilesValid}
+              />
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle className="bg-background" />
+          <ResizablePanel minSize={20} defaultSize={30} maxSize={60}>
+            <ValidationResultsDisplay result={validationResults} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
+  );
+}
+
+type ValidationPageButtonProps = {
+  handleClick: () => void;
+  disabled: boolean;
+  api: { isPending: boolean };
+};
+
+function UploadExcelFilesButton({
+  handleClick,
+  disabled,
+  api,
+}: ValidationPageButtonProps) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="flex-1">
+            <Button
+              className="w-full"
+              onClick={handleClick}
+              disabled={disabled}
+            >
+              {api.isPending ? <LoadingSpinner /> : "Upload"}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>
+            {disabled
+              ? "Select all required Excel files before uploading"
+              : "Upload the Excel workbooks"}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function ValidateButton({
+  handleClick,
+  disabled,
+  api,
+}: ValidationPageButtonProps) {
+  useHotkeys(
+    "ctrl+shift+v",
+    (event) => {
+      event.preventDefault();
+      if (!disabled) handleClick();
+    },
+    {
+      enableOnFormTags: true,
+      enableOnContentEditable: true,
+    },
+    [disabled, handleClick],
+  );
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="flex-1">
+            <Button
+              className="w-full"
+              onClick={handleClick}
+              disabled={disabled}
+            >
+              {api.isPending ? <LoadingSpinner /> : "Validate"}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {disabled ? (
+            <p>
+              Upload Excel files and fix all their errors before validating. You
+              can check each file&apos;s sidebar to see the errors.
+            </p>
+          ) : (
+            <p className="max-w-sm">
+              Press{" "}
+              <Kbd>
+                <KbdKey aria-label="Meta">⌘</KbdKey>
+                <KbdKey>Shift</KbdKey>
+                <KbdKey>V</KbdKey>
+              </Kbd>{" "}
+              to run validation.
+            </p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
