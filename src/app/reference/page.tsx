@@ -1,6 +1,5 @@
 "use client";
 
-import { z } from "zod";
 import { useState } from "react";
 
 import {
@@ -14,9 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import React from "react";
 
 export default function ReferencePage() {
-  const [ActiveTab, setActiveTab] = useState("allocations");
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  //Checks URL for tab names, if url = to tab name, set that tab to activeTab
+  const TAB_NAMES = ["allocations", "taPref", "plaPref"];
+  const referenceParam = searchParams.get("reference");
+  const initialTab = TAB_NAMES.includes(referenceParam ?? "") ? referenceParam! : "allocations";
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   function handleTabChange(value: string) {
     setActiveTab(value);
@@ -33,7 +37,7 @@ export default function ReferencePage() {
       <div>
         <div className="flex w-screen justify-center">
           <Tabs
-            value={ActiveTab}
+            value={activeTab}
             onValueChange={handleTabChange}
             defaultValue="allocations"
             className="flex items-center gap-6 border-b p-2"
