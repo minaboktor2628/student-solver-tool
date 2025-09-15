@@ -19,7 +19,9 @@ export default function ReferencePage() {
   //Checks URL for tab names, if url = to tab name, set that tab to activeTab
   const TAB_NAMES = ["allocations", "taPref", "plaPref"];
   const referenceParam = searchParams.get("reference");
-  const initialTab = TAB_NAMES.includes(referenceParam ?? "") ? referenceParam! : "allocations";
+  const initialTab = TAB_NAMES.includes(referenceParam ?? "")
+    ? referenceParam!
+    : "allocations";
   const [activeTab, setActiveTab] = useState(initialTab);
 
   function handleTabChange(value: string) {
