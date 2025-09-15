@@ -45,6 +45,21 @@ export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
   return courseMap;
 }
 
+export function makeCourseToFullAssistantMap(data: AssistantPreferences[]) {
+  const courseMap: Record<string, AssistantPreferences[]> = {};
+
+  const courseRegex = /^[A-Z]{2,4} \d{3,4}$/;
+
+  for (const student of data) {
+    for (const [key, value] of Object.entries(student)) {
+      if (courseRegex.test(key) && value === true) {
+        (courseMap[key] ??= []).push(student);
+      }
+    }
+  }
+  return courseMap;
+}
+
 // Helper: stringify Section as a stable key
 export function sectionKey(section: {
   Course: string;

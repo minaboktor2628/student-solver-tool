@@ -20,7 +20,7 @@ import { parse, getLocation } from "jsonc-parser";
 import type * as monacoT from "monaco-editor";
 import { defaultPLAHours, defaultTAHours } from "@/lib/constants";
 import {
-  makeCourseToAssistantMap,
+  makeCourseToFullAssistantMap,
   parsePersonFromKey,
   personKey,
 } from "@/lib/validation";
@@ -222,6 +222,17 @@ export default function JsonEditor({
 function registerAllocationSnippets(monaco: Monaco) {
   const objectSnippet = (obj: unknown) => JSON.stringify(obj, null, 2);
 
+  function buildDoc(first: string, last: string, comments: string | null) {
+    const header = `**Insert** ${first && last && `***${first} ${last}***`}`;
+    if (!comments) return header;
+    const quoted = comments
+      .trim()
+      .split(/\r?\n/)
+      .map((l) => `> ${l}`)
+      .join("\n");
+    return `${header}\n\n---\n**Comments:**\n\n${quoted}`;
+  }
+
   return monaco.languages.registerCompletionItemProvider("json", {
     triggerCharacters: [" ", "\n"],
     provideCompletionItems(model, position) {
@@ -266,7 +277,7 @@ function registerAllocationSnippets(monaco: Monaco) {
         const model = monaco.editor.getModel(uri);
         if (!model) return { suggestions: [] };
 
-        const courseMap = makeCourseToAssistantMap(
+        const courseMap = makeCourseToFullAssistantMap(
           parse(model.getValue(), [], {
             allowTrailingComma: true,
             disallowComments: false,
@@ -274,11 +285,11 @@ function registerAllocationSnippets(monaco: Monaco) {
         );
 
         const availableAssitants = courseMap[course] ?? [];
-        const unassignedAssistants = [...availableAssitants]
-          .map(parsePersonFromKey)
-          .filter((p) => !assignedAssistantSet.has(personKey(p)));
+        const unassignedAssistants = availableAssitants.filter(
+          (p) => !assignedAssistantSet.has(personKey(p)),
+        );
 
-        for (const { First, Last } of unassignedAssistants) {
+        for (const { First, Last, Comments } of unassignedAssistants) {
           suggestions.push({
             label: {
               label: `${First} ${Last}`,
@@ -298,7 +309,7 @@ function registerAllocationSnippets(monaco: Monaco) {
               Locked: false,
             }),
             documentation: {
-              value: `**Insert** ${roleSingular} ***${First} ${Last}*** for ${course}`,
+              value: buildDoc(First, Last, Comments),
             },
             filterText: `${First} ${Last}`,
             sortText: "0", // show above the generic snippet
