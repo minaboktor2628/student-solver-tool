@@ -53,7 +53,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 
 export default function ValidationPage() {
@@ -157,20 +157,32 @@ export default function ValidationPage() {
               api={{ ...validationApi }}
             />
           </div>
-          <div className=" flex flex-row justify-center gap-2 h-8 px-2">
+          <div className="flex h-8 flex-row justify-center gap-2 px-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm"> Info </Button>
+                <Button variant="outline" size="sm">
+                  {" "}
+                  Info{" "}
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
-                  <Link href="/reference?reference=allocations"> Allocations </Link>
+                  <Link href="/reference?reference=allocations">
+                    {" "}
+                    Allocations{" "}
+                  </Link>
                 </DropdownMenuLabel>
                 <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
-                  <Link href="/reference?reference=taPref"> TA Preferences </Link>
+                  <Link href="/reference?reference=taPref">
+                    {" "}
+                    TA Preferences{" "}
+                  </Link>
                 </DropdownMenuLabel>
                 <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
-                  <Link href="/reference?reference=plaPref"> PLA Preferences </Link>
+                  <Link href="/reference?reference=plaPref">
+                    {" "}
+                    PLA Preferences{" "}
+                  </Link>
                 </DropdownMenuLabel>
               </DropdownMenuContent>
             </DropdownMenu>
