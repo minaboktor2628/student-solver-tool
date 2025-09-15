@@ -19,11 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { parse, getLocation } from "jsonc-parser";
 import type * as monacoT from "monaco-editor";
 import { defaultPLAHours, defaultTAHours } from "@/lib/constants";
-import {
-  makeCourseToFullAssistantMap,
-  parsePersonFromKey,
-  personKey,
-} from "@/lib/validation";
+import { makeCourseToAssistantMap, personKey } from "@/lib/validation";
 
 type ErrorCountMap = Record<string, number>;
 type Monaco = Parameters<OnMount>[1];
@@ -52,7 +48,7 @@ export default function JsonEditor({
   const { resolvedTheme } = useTheme();
 
   // active file is keyed by filename (tabs value)
-  const initial = files[files.length - 1]?.filename ?? "";
+  const initial = files[0]?.filename ?? "";
   const [activeFilename, setActiveFilename] = useState(initial);
   const activeFile = useMemo(
     () => files.find((f) => f.filename === activeFilename) ?? files[0],
@@ -277,7 +273,7 @@ function registerAllocationSnippets(monaco: Monaco) {
         const model = monaco.editor.getModel(uri);
         if (!model) return { suggestions: [] };
 
-        const courseMap = makeCourseToFullAssistantMap(
+        const courseMap = makeCourseToAssistantMap(
           parse(model.getValue(), [], {
             allowTrailingComma: true,
             disallowComments: false,

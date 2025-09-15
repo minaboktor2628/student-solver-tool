@@ -30,22 +30,6 @@ export function mergeAllocationsAndAssignments(
 }
 
 export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
-  const courseMap: Record<string, Set<string>> = {};
-
-  const courseRegex = /^CS \d{3,4}$/;
-
-  for (const student of data) {
-    for (const [key, value] of Object.entries(student)) {
-      if (courseRegex.test(key) && value === true) {
-        courseMap[key] ??= new Set();
-        courseMap[key].add(personKey(student));
-      }
-    }
-  }
-  return courseMap;
-}
-
-export function makeCourseToFullAssistantMap(data: AssistantPreferences[]) {
   const courseMap: Record<string, AssistantPreferences[]> = {};
 
   const courseRegex = /^[A-Z]{2,4} \d{3,4}$/;
@@ -69,10 +53,5 @@ export function sectionKey(section: {
 }
 
 export function personKey(s: Partial<Assistant>) {
-  return `${s.First}, ${s.Last}`;
+  return `${s.First} ${s.Last}`;
 }
-
-export const parsePersonFromKey = (full: string): Partial<Assistant> => {
-  const [First, Last] = full.split(", ").map((s) => s.trim());
-  return { First, Last };
-};
