@@ -21,7 +21,7 @@ export default function ReferencePage() {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const referenceParam = searchParams.get("reference");
     return TAB_NAMES.includes(referenceParam ?? "")
-      ? (referenceParam!)
+      ? referenceParam!
       : "allocations";
   });
 
