@@ -20,7 +20,9 @@ export default function ReferencePage() {
   const TAB_NAMES = ["allocations", "taPref", "plaPref"];
   const [activeTab, setActiveTab] = useState<string>(() => {
     const referenceParam = searchParams.get("reference");
-    return TAB_NAMES.includes(referenceParam ?? "") ? (referenceParam as string) : "allocations";
+    return TAB_NAMES.includes(referenceParam ?? "")
+      ? (referenceParam!)
+      : "allocations";
   });
 
   function handleTabChange(value: string) {
