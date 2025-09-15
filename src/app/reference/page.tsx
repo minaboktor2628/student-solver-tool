@@ -16,13 +16,12 @@ export default function ReferencePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  //Checks URL for tab names, if url = to tab name, set that tab to activeTab
+  //Checks URL for tab names, if url = to tab name, set that tab to activeTab, if not default to allocations
   const TAB_NAMES = ["allocations", "taPref", "plaPref"];
-  const referenceParam = searchParams.get("reference");
-  const initialTab = TAB_NAMES.includes(referenceParam ?? "")
-    ? referenceParam!
-    : "allocations";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const referenceParam = searchParams.get("reference");
+    return TAB_NAMES.includes(referenceParam ?? "") ? (referenceParam as string) : "allocations";
+  });
 
   function handleTabChange(value: string) {
     setActiveTab(value);
@@ -41,7 +40,6 @@ export default function ReferencePage() {
           <Tabs
             value={activeTab}
             onValueChange={handleTabChange}
-            defaultValue="allocations"
             className="flex items-center gap-6 border-b p-2"
           >
             <TabsList>
