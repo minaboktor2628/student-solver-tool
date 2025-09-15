@@ -34,7 +34,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
-      <body>
+      <body className="flex h-dvh flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Toaster richColors toastOptions={{ duration: 5000 }} />
           <TRPCReactProvider>
@@ -42,8 +42,9 @@ export default function RootLayout({
               logo={<Calculator />}
               navigationLinks={links}
               authSlot={<AuthButton />}
+              className="shrink-0"
             />
-            {children}
+            <main className="min-h-0 flex-1">{children}</main>
           </TRPCReactProvider>
         </ThemeProvider>
       </body>

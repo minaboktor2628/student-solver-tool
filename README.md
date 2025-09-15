@@ -107,3 +107,5 @@ All the Github actions are under `./github/workflows`. They can type check, lint
 ## Deploying
 
 This project uses `Docker`. Here is the `t3` [guide](https://create.t3.gg/en/deployment/docker).
+
+There are more docs [here](./docs/ci-setup.md)

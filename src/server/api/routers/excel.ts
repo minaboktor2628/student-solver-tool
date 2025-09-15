@@ -4,13 +4,13 @@ import * as XLSX from "xlsx";
 import {
   ExcelFileToJsonInputSchema,
   ExcelInputFiles,
-  ExcelSheetNames,
   ExcelSheetSchema,
-  ValidationInputSchema,
+  type AllocationWithoutAssistants,
+  type Assignment,
 } from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
 import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
-import { TRPCError } from "@trpc/server";
+import { mergeAllocationsAndAssignments } from "@/lib/validation";
 
 export const excelRoute = createTRPCRouter({
   parseExcelWorkbooks: publicProcedure
@@ -30,6 +30,10 @@ export const excelRoute = createTRPCRouter({
 
       const files: EditorFile[] = [];
 
+      // hold these to merge later
+      let allocationsRows: AllocationWithoutAssistants[] | null = null;
+      let assignmentsRows: Assignment[] | null = null;
+
       for (const { workbook, originalName } of workbooks) {
         const sheetNames = workbook.SheetNames;
         const isSingleSheet = sheetNames.length === 1;
@@ -38,10 +42,14 @@ export const excelRoute = createTRPCRouter({
           const ws = workbook.Sheets[sheetName];
           if (!ws) continue;
 
-          // Use workbook filename if only one sheet, otherwise sheet name
           const baseName = z
-            .enum(ExcelSheetNames)
-            .safeParse(isSingleSheet ? originalName : sheetName);
+            .enum([
+              "TA Preferences",
+              "PLA Preferences",
+              "Assignments",
+              "Allocations",
+            ])
+            .safeParse(isSingleSheet ? originalName : sheetName); // Use workbook filename if only one sheet, otherwise sheet name
 
           if (!baseName.success) continue;
 
@@ -66,6 +74,17 @@ export const excelRoute = createTRPCRouter({
 
           const mergedRows = rowResults.map((r) => r.value);
 
+          // capture Allocations / Assignments and don't emit yet
+          if (baseName.data === "Allocations") {
+            allocationsRows = mergedRows as AllocationWithoutAssistants[];
+            continue;
+          }
+          if (baseName.data === "Assignments") {
+            assignmentsRows = mergedRows as Assignment[];
+            continue;
+          }
+
+          // only push preference files here
           files.push({
             filename: baseName.data,
             language: "json",
@@ -74,18 +93,18 @@ export const excelRoute = createTRPCRouter({
         }
       }
 
-      if (files.length !== ExcelSheetNames.length)
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Uploaded the wrong files, or in the wrong order.",
+      if (allocationsRows) {
+        const merged = mergeAllocationsAndAssignments(
+          allocationsRows,
+          assignmentsRows ?? [], // if no assignments passed in, default as empty array
+        );
+        files.push({
+          filename: "Allocations",
+          language: "json",
+          code: JSON.stringify(merged, null, 2),
         });
+      }
 
       return { files };
-    }),
-
-  validate: publicProcedure
-    .input(ValidationInputSchema)
-    .mutation(async ({ input }) => {
-      return input; // TODO:
     }),
 });
