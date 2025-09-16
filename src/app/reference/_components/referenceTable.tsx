@@ -7,33 +7,34 @@ import {
   TaPreferenceReference,
   PlaPreferenceReference,
 } from "@/app/reference/_components/jsonReferenceSheets";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ReferenceTable() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   const createQueryString = useCallback(
     (name: string, value: string) => {
       const params = new URLSearchParams(searchParams);
       params.set(name, value);
       return params.toString();
     },
-    [searchParams]
+    [searchParams],
   );
 
   const tabFromUrl = searchParams.get("tab");
   const validTabs = ["allocations", "taPref", "plaPref"];
-  const initialTab = validTabs.includes(tabFromUrl ?? "") ? tabFromUrl! : "allocations";
+  const initialTab = validTabs.includes(tabFromUrl ?? "")
+    ? tabFromUrl!
+    : "allocations";
   const [activeTab, setActiveTab] = React.useState(initialTab);
 
   useEffect(() => {
     const currentTab = searchParams.get("tab");
     if (activeTab !== currentTab) {
-      router.replace((`${pathname}?${createQueryString("tab", activeTab)}`) as any);
+      router.replace(`/reference?${createQueryString("tab", activeTab)}`);
     }
   }, [activeTab]);
 
@@ -59,17 +60,17 @@ export function ReferenceTable() {
                 <TabsTrigger value="taPref">TA Preferences</TabsTrigger>
                 <TabsTrigger value="plaPref">PLA Preferences</TabsTrigger>
               </TabsList>
-            <div className="border-p mx-16 my-4 overflow-hidden">
-              <TabsContent value="allocations">
-                <AllocationsReference />
-              </TabsContent>
-              <TabsContent value="taPref">
-                <TaPreferenceReference />
-              </TabsContent>
-              <TabsContent value="plaPref">
-                <PlaPreferenceReference />
-              </TabsContent>
-            </div>
+              <div className="border-p mx-16 my-4 overflow-hidden">
+                <TabsContent value="allocations">
+                  <AllocationsReference />
+                </TabsContent>
+                <TabsContent value="taPref">
+                  <TaPreferenceReference />
+                </TabsContent>
+                <TabsContent value="plaPref">
+                  <PlaPreferenceReference />
+                </TabsContent>
+              </div>
             </Tabs>
           </div>
         </div>
