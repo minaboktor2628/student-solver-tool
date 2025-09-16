@@ -323,7 +323,7 @@ function registerAllocationSnippets(monaco: Monaco) {
         suggestions.push({
           label: {
             label: `${First} ${Last}`,
-            detail: ` RANK`,
+            // detail: ` RANK`,
             description: `Qualified • available`,
           },
           kind: monaco.languages.CompletionItemKind.Snippet,
@@ -403,7 +403,7 @@ function registerAllocationSnippets(monaco: Monaco) {
         suggestions.push({
           label: {
             label: `${First} ${Last}`,
-            detail: ` RANK`,
+            // detail: ` RANK`,
             description: `Qualified • ${prevSummary}`,
           },
           kind: monaco.languages.CompletionItemKind.Snippet,
