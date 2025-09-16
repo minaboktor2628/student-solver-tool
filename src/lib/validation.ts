@@ -46,6 +46,20 @@ export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
   return courseMap;
 }
 
+export function makeMeetingToAssistantMap(data: AssistantPreferences[]) {
+  const courseMap: Record<string, Set<string>> = {};
+
+  for (const student of data) {
+    for (const [key, value] of Object.entries(student)) {
+      if (value === true) {
+        courseMap[key] ??= new Set();
+        courseMap[key].add(personKey(student));
+      }
+    }
+  }
+  return courseMap;
+}
+
 // Helper: stringify Section as a stable key
 export function sectionKey(section: {
   Course: string;
