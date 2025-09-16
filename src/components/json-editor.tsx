@@ -16,7 +16,7 @@ import React from "react";
 import { useRef } from "react";
 import { Braces } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
-import { parse, getLocation } from "jsonc-parser";
+import { parse, getLocation, modify } from "jsonc-parser";
 import type * as monacoT from "monaco-editor";
 import { defaultPLAHours, defaultTAHours } from "@/lib/constants";
 import { makeCourseToAssistantMap, personKey } from "@/lib/validation";
@@ -218,8 +218,13 @@ export default function JsonEditor({
 function registerAllocationSnippets(monaco: Monaco) {
   const objectSnippet = (obj: unknown) => JSON.stringify(obj, null, 2);
 
-  function buildDoc(first: string, last: string, comments: string | null) {
-    const header = `**Insert** ${first && last && `***${first} ${last}***`}`;
+  function buildDoc(
+    first: string,
+    last: string,
+    comments: string | null,
+    course: string,
+  ) {
+    const header = `**Insert** ***${first} ${last}*** into ${course}`;
     if (!comments) return header;
     const quoted = comments
       .trim()
@@ -260,80 +265,159 @@ function registerAllocationSnippets(monaco: Monaco) {
       const course = currentAllocation?.Section?.Course;
 
       if (
-        (currentKeyNameInObject === "TAs" ||
-          currentKeyNameInObject === "PLAs") &&
-        course
+        !course ||
+        !(currentKeyNameInObject === "TAs" || currentKeyNameInObject === "PLAs")
       ) {
-        const roleSingular = currentKeyNameInObject.slice(0, -1); // "TA" or "PLA"
-        const assignedAssistantSet = new Set(
-          doc.flatMap((a) => a[currentKeyNameInObject]).map(personKey),
-        );
-
-        const uri = monaco.Uri.parse(`${roleSingular} Preferences`);
-        const model = monaco.editor.getModel(uri);
-        if (!model) return { suggestions: [] };
-
-        const courseMap = makeCourseToAssistantMap(
-          parse(model.getValue(), [], {
-            allowTrailingComma: true,
-            disallowComments: false,
-          }) as AssistantPreferences[],
-        );
-
-        const availableAssitants = courseMap[course] ?? [];
-        const unassignedAssistants = availableAssitants.filter(
-          (p) => !assignedAssistantSet.has(personKey(p)),
-        );
-
-        for (const { First, Last, Comments } of unassignedAssistants) {
-          suggestions.push({
-            label: {
-              label: `${First} ${Last}`,
-              detail: ` ${course}`,
-              description: roleSingular,
-            },
-            kind: monaco.languages.CompletionItemKind.Snippet,
-            insertTextRules:
-              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            insertText: objectSnippet({
-              First,
-              Last,
-              Hours:
-                currentKeyNameInObject === "TAs"
-                  ? defaultTAHours()
-                  : defaultPLAHours(),
-              Locked: false,
-            }),
-            documentation: {
-              value: buildDoc(First, Last, Comments),
-            },
-            filterText: `${First} ${Last}`,
-            sortText: "0", // show above the generic snippet
-            range,
-          });
-        }
+        return { suggestions: [] };
       }
 
-      suggestions.push({
-        label: `Add a custom assistant`,
-        kind: monaco.languages.CompletionItemKind.Snippet,
-        insertTextRules:
-          monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-        insertText: objectSnippet({
-          First: "${1:First}",
-          Last: "${2:Last}",
-          Hours: defaultPLAHours(),
-          Locked: false,
-        }),
-        documentation: {
-          value:
-            `**Insert** a custom assistant object with placeholders.\n\n` +
-            (suggestions.length === 0
-              ? "> There are ***no*** available or qualified assistants for this course."
-              : ""),
-        },
-        range,
+      const roleSingular = currentKeyNameInObject.slice(0, -1); // "TA" or "PLA"
+
+      // Everyone assigned anywhere in this role (across allocations)
+      const assignedAssistantSet = new Set(
+        doc.flatMap((a) => a[currentKeyNameInObject] ?? []).map(personKey),
+      );
+
+      // People already in the current allocation (avoid double-inserting)
+      const currentPeopleSet = new Set(
+        (currentAllocation?.[currentKeyNameInObject] ?? []).map(personKey),
+      );
+
+      const uri = monaco.Uri.parse(`${roleSingular} Preferences`);
+      const prefModel = monaco.editor.getModel(uri);
+      if (!prefModel) return { suggestions: [] };
+
+      const courseMap = makeCourseToAssistantMap(
+        parse(prefModel.getValue(), [], {
+          allowTrailingComma: true,
+          disallowComments: false,
+        }) as AssistantPreferences[],
+      );
+
+      const availableAssistants = courseMap[course] ?? [];
+
+      // Split into "unassigned" and "allocated elsewhere"
+      const unassignedAssistants = availableAssistants.filter(
+        (p) => !assignedAssistantSet.has(personKey(p)),
+      );
+
+      const allocatedElsewhereAssistants = availableAssistants.filter(
+        (p) =>
+          assignedAssistantSet.has(personKey(p)) &&
+          !currentPeopleSet.has(personKey(p)),
+      );
+
+      // Helper to build the insert object
+      const buildInsert = (First: string, Last: string) => ({
+        First,
+        Last,
+        Hours:
+          currentKeyNameInObject === "TAs"
+            ? defaultTAHours()
+            : defaultPLAHours(),
+        Locked: false,
       });
+
+      // Unassigned assistants (top)
+      for (const { First, Last, Comments } of unassignedAssistants) {
+        suggestions.push({
+          label: {
+            label: `${First} ${Last}`,
+            detail: ` RANK`,
+            description: `Qualified • available`,
+          },
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertText: objectSnippet(buildInsert(First, Last)),
+          documentation: { value: buildDoc(First, Last, Comments, course) },
+          filterText: `${First} ${Last}`,
+          sortText: "0", // show above the generic snippet
+          range,
+        });
+      }
+
+      // Allocated elsewhere (below, and auto-remove from previous spot)
+      for (const target of allocatedElsewhereAssistants) {
+        const { First, Last, Comments } = target;
+        const key = personKey(target);
+
+        // Build one safe edit per allocation: set the array to a filtered copy
+        const formattingOptions = {
+          insertSpaces: true,
+          tabSize: 2,
+          eol: "\n" as const,
+        };
+
+        const toRange = (offset: number, length: number) => {
+          const start = model.getPositionAt(offset);
+          const end = model.getPositionAt(offset + length);
+          return new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column,
+          );
+        };
+
+        const additionalTextEdits: monacoT.languages.TextEdit[] = [];
+        const previousCourses = new Set<string>();
+        doc.forEach((a, aIdx) => {
+          if (aIdx === idx) return; // don't touch the allocation we're inserting into
+          const arr = a?.[currentKeyNameInObject] ?? [];
+          if (!Array.isArray(arr) || arr.length === 0) return;
+
+          const filtered = arr.filter((p) => personKey(p) !== key);
+          if (filtered.length === arr.length) return; // no occurrence here
+
+          // capture the course(s) this person was in
+          previousCourses.add(a?.Section?.Course);
+
+          // One edit per allocation: set [aIdx, "TAs"/"PLAs"] to the filtered array
+          const edits = modify(text, [aIdx, currentKeyNameInObject], filtered, {
+            formattingOptions,
+          });
+
+          for (const e of edits) {
+            additionalTextEdits.push({
+              range: toRange(e.offset, e.length),
+              text: e.content ?? "",
+            });
+          }
+        });
+
+        const prevList = Array.from(previousCourses);
+        const prevSummary =
+          prevList.length === 0
+            ? "—"
+            : prevList.length === 1
+              ? prevList[0]
+              : `${prevList.length} courses`;
+
+        const prevDetail =
+          prevList.length <= 3
+            ? prevList.join(", ")
+            : prevList.slice(0, 3).join(", ") +
+              `, +${prevList.length - 3} more`;
+
+        suggestions.push({
+          label: {
+            label: `${First} ${Last}`,
+            detail: ` RANK`,
+            description: `Qualified • ${prevSummary}`,
+          },
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertText: objectSnippet(buildInsert(First, Last)),
+          documentation: { value: buildDoc(First, Last, Comments, course) },
+          filterText: `${First} ${Last}`,
+          additionalTextEdits,
+          detail: `⚠️ This will remove "${First} ${Last}" from ${prevDetail}.`,
+          sortText: "1", // shown beneath unassigned
+          range,
+        });
+      }
 
       return { suggestions };
     },
