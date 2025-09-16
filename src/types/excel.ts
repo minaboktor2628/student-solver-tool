@@ -118,27 +118,33 @@ export const numberWithMOE = z.preprocess((val) => {
   };
 }, NumberWithMOESchema);
 
+// CS 2022-AL01/ MA 2201-AL01 - Discrete Mathematics
 // Regex to capture "CS ####-XXX"
-const CS_SECTION_RE = /CS\s*([0-9]{3,4})\s*[-–—]\s*([A-Z]{1,3}\d{2,3})/i;
+const CS_SECTION_RE =
+  /^(?<dep>[A-Z]{2,4})\s*(?<num>\d{3,4})\s*[-–—]\s*(?<sub>[A-Z]{1,3}\d{2,3})(?:\s*\/\s*[A-Z]{2,4}\s*\d{3,4}\s*[-–—]\s*[A-Z]{1,3}\d{2,3}\s*)*(?:-?\s*)*(?<title>.*)$/i;
+
+export const COURSE_RE = /^[A-Z]{2,4} \d{3,4}$/;
 
 const SectionSchema = z.preprocess(
   (val) => {
     if (typeof val !== "string") return val;
 
     const m = CS_SECTION_RE.exec(val);
-    if (!m) return val;
+    if (!m?.groups) return val;
 
-    const [, courseNum, subsection] = m;
+    const { dep, num, sub, title } = m.groups;
     return {
-      Course: `CS ${courseNum}`,
-      Subsection: subsection!.toUpperCase(),
+      Course: `${dep} ${num}`,
+      Subsection: sub!.toUpperCase(),
+      Title: title,
     };
   },
   z.object({
-    Course: z.string().regex(/^CS \d{3,4}$/, 'Expected like "CS 1102"'),
+    Course: z.string().regex(COURSE_RE, 'Expected like "CS 1102"'),
     Subsection: z
       .string()
       .regex(/^[A-Z]{1,3}\d{2,3}$/, 'Expected like "AL01" or "A01"'),
+    Title: z.string(),
   }),
 );
 
