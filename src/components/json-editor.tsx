@@ -231,7 +231,12 @@ function registerAllocationSnippets(monaco: Monaco) {
       .split(/\r?\n/)
       .map((l) => `> ${l}`)
       .join("\n");
-    return `${header}\n\n---\n**Comments:**\n\n${quoted}`;
+    return (
+      `${header}\n\n---\n**Comments:**\n\n${quoted}` +
+      +"\n\n---\n\n**Tip**:\n\n" +
+      'Once you are sure where an assistant is going to be placed, set their `"Locked"` field to `true`.\n' +
+      "Doing so will remove an assistant from the auto complete list."
+    );
   }
 
   return monaco.languages.registerCompletionItemProvider("json", {
@@ -415,7 +420,7 @@ function registerAllocationSnippets(monaco: Monaco) {
           label: {
             label: `${First} ${Last}`,
             // detail: ` RANK`,
-            description: `Qualified • ${prevSummary}`,
+            description: `Qualified • in ${prevSummary}`,
           },
           kind: monaco.languages.CompletionItemKind.Snippet,
           insertTextRules:
