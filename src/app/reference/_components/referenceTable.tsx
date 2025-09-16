@@ -36,7 +36,7 @@ export function ReferenceTable() {
     if (activeTab !== currentTab) {
       router.replace(`/reference?${createQueryString("tab", activeTab)}`);
     }
-  }, [activeTab]);
+  }, [activeTab, createQueryString, router, searchParams]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
