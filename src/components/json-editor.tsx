@@ -283,6 +283,14 @@ function registerAllocationSnippets(monaco: Monaco) {
         (currentAllocation?.[currentKeyNameInObject] ?? []).map(personKey),
       );
 
+      // Everyone who is *locked* anywhere in this role (across allocations)
+      const lockedAssistantSet = new Set(
+        doc
+          .flatMap((a) => a[currentKeyNameInObject] ?? [])
+          .filter((p) => p.Locked === true)
+          .map(personKey),
+      );
+
       const uri = monaco.Uri.parse(`${roleSingular} Preferences`);
       const prefModel = monaco.editor.getModel(uri);
       if (!prefModel) return { suggestions: [] };
@@ -298,13 +306,16 @@ function registerAllocationSnippets(monaco: Monaco) {
 
       // Split into "unassigned" and "allocated elsewhere"
       const unassignedAssistants = availableAssistants.filter(
-        (p) => !assignedAssistantSet.has(personKey(p)),
+        (p) =>
+          !assignedAssistantSet.has(personKey(p)) &&
+          !lockedAssistantSet.has(personKey(p)),
       );
 
       const allocatedElsewhereAssistants = availableAssistants.filter(
         (p) =>
           assignedAssistantSet.has(personKey(p)) &&
-          !currentPeopleSet.has(personKey(p)),
+          !currentPeopleSet.has(personKey(p)) &&
+          !lockedAssistantSet.has(personKey(p)),
       );
 
       // Helper to build the insert object
