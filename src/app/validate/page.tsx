@@ -159,19 +159,19 @@ export default function ValidationPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
-                  <Link href="/reference?reference=allocations">
+                  <Link href="/reference?tab=allocations">
                     {" "}
                     Allocations{" "}
                   </Link>
                 </DropdownMenuLabel>
                 <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
-                  <Link href="/reference?reference=taPref">
+                  <Link href="/reference?tab=taPref">
                     {" "}
                     TA Preferences{" "}
                   </Link>
                 </DropdownMenuLabel>
                 <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
-                  <Link href="/reference?reference=plaPref">
+                  <Link href="/reference?tab=plaPref">
                     {" "}
                     PLA Preferences{" "}
                   </Link>
