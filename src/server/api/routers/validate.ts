@@ -92,7 +92,7 @@ function ensureSocialImpsAvailability(
     warnings,
     meta: {
       ms: Math.round(performance.now() - t0),
-      rule: "xCS 3043 assistants must be available for the course time.",
+      rule: "CS 3043 assistants must be available for the course time.",
     },
   };
 }
