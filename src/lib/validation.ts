@@ -1,8 +1,9 @@
-import type {
-  Allocation,
-  AllocationWithoutAssistants,
-  Assignment,
-  AssistantPreferences,
+import {
+  COURSE_RE,
+  type Allocation,
+  type AllocationWithoutAssistants,
+  type Assignment,
+  type AssistantPreferences,
 } from "@/types/excel";
 
 export function mergeAllocationsAndAssignments(
@@ -31,11 +32,9 @@ export function mergeAllocationsAndAssignments(
 export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
   const courseMap: Record<string, Set<string>> = {};
 
-  const courseRegex = /^CS \d{3,4}$/;
-
   for (const student of data) {
     for (const [key, value] of Object.entries(student)) {
-      if (courseRegex.test(key) && value === true) {
+      if (COURSE_RE.test(key) && value === true) {
         courseMap[key] ??= new Set();
         courseMap[key].add(personKey(student));
       }
