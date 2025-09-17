@@ -1,52 +1,14 @@
-import {
-  makeCourseToAssistantMap,
-  personKey,
-  sectionKey,
-} from "@/lib/validation";
-import { createTRPCRouter, publicProcedure } from "../trpc";
-import { ValidationInputSchema, type Allocation } from "@/types/excel";
+// lib/validation-functions.ts
+// Extract the individual validation functions from route handler
+// so they can be tested independently
+
+import { sectionKey, personKey } from "./validation";
+import type { Allocation } from "@/types/excel";
 import type { ValidationResult } from "@/types/validation";
 
-export const validateRoute = createTRPCRouter({
-  validateFullSolution: publicProcedure
-    .input(ValidationInputSchema)
-    .mutation(async ({ input }) => {
-      const plaAvailableSet = new Set(
-        input["PLA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
-      const taAvailableSet = new Set(
-        input["TA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
-      return {
-        issues: [
-          ensureAssistantsAreAssignedToOnlyOneClass(input.Allocations),
-          ensureAssignedTAsAndPLAsAreAvailable(
-            input.Allocations,
-            plaAvailableSet,
-            taAvailableSet,
-          ),
-          ensureAssignedAssistantsAreQualified(
-            input.Allocations,
-            makeCourseToAssistantMap(input["PLA Preferences"]),
-            makeCourseToAssistantMap(input["TA Preferences"]),
-          ),
-          ensureCourseNeedsAreMet(input.Allocations),
-          ensureAllAvailableAssistantsAreAssigned(
-            input.Allocations,
-            plaAvailableSet,
-            taAvailableSet,
-          ),
-        ],
-      };
-    }),
-});
-
-/**
- * Ensure each course has staffing within acceptable MOE limits.
- */
-function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
+export function ensureCourseNeedsAreMet(
+  assignments: Allocation[],
+): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -80,7 +42,7 @@ function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
           `${course}: short by ${Math.abs(diff)}h but within MOE ${MOEShort}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
         );
       }
-      continue;
+      continue; // no need to also check the overage branch
     }
 
     // Too many hours
@@ -90,11 +52,14 @@ function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
           `${course}: over by ${diff}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOEOver}h).`,
         );
       } else {
+        // within MOE
         warnings.push(
           `${course}: over by ${diff}h but within MOE ${MOEOver}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
         );
       }
     }
+
+    // If diff === 0, perfect match so no message
   }
 
   return {
@@ -108,10 +73,7 @@ function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
   };
 }
 
-/**
- * Ensure assistants are only assigned to courses they are qualified for.
- */
-function ensureAssignedAssistantsAreQualified(
+export function ensureAssignedAssistantsAreQualified(
   assignments: Allocation[],
   courseToAssistantsPla: Record<string, Set<string>>,
   courseToAssistantsTa: Record<string, Set<string>>,
@@ -124,10 +86,14 @@ function ensureAssignedAssistantsAreQualified(
     const key = assignment.Section.Course;
 
     const taSet = courseToAssistantsTa[key];
-    if (!taSet) continue;
+    if (!taSet) {
+      continue;
+    }
 
     const plaSet = courseToAssistantsPla[key];
-    if (!plaSet) continue;
+    if (!plaSet) {
+      continue;
+    }
 
     for (const ta of assignment.TAs) {
       const id = personKey(ta);
@@ -154,10 +120,7 @@ function ensureAssignedAssistantsAreQualified(
   };
 }
 
-/**
- * Ensure that assigned assistants exist in preferences and are available.
- */
-function ensureAssignedTAsAndPLAsAreAvailable(
+export function ensureAssignedTAsAndPLAsAreAvailable(
   assignments: Allocation[],
   plaAvailableSet: Set<string>,
   taAvailableSet: Set<string>,
@@ -181,7 +144,7 @@ function ensureAssignedTAsAndPLAsAreAvailable(
       const fullName = personKey(ta);
       if (!taAvailableSet.has(fullName)) {
         errors.push(
-          `TA "${fullName}" assigned to ${courseFullName} does not exist in TA preferences.`,
+          `TA "${fullName}" assigned to ${courseFullName} does not exist in TA preferences.`, // TAs should always be available
         );
       }
     }
@@ -198,10 +161,7 @@ function ensureAssignedTAsAndPLAsAreAvailable(
   };
 }
 
-/**
- * Ensure assistants are not duplicated across assignments.
- */
-function ensureAssistantsAreAssignedToOnlyOneClass(
+export function ensureAssistantsAreAssignedToOnlyOneClass(
   assignments: Allocation[],
 ): ValidationResult {
   const t0 = performance.now();
@@ -244,57 +204,6 @@ function ensureAssistantsAreAssignedToOnlyOneClass(
     meta: {
       ms: Math.round(performance.now() - t0),
       rule: "Assistant is assigned to only one class.",
-    },
-  };
-}
-
-/**
- * Ensure all available assistants are assigned at least once.
- * - PLA: warning if not assigned
- * - TA: error if not assigned
- */
-function ensureAllAvailableAssistantsAreAssigned(
-  assignments: Allocation[],
-  plaAvailableSet: Set<string>,
-  taAvailableSet: Set<string>,
-): ValidationResult {
-  const t0 = performance.now();
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  const assignedPLAs = new Set<string>();
-  const assignedTAs = new Set<string>();
-
-  for (const assignment of assignments) {
-    for (const pla of assignment.PLAs) {
-      assignedPLAs.add(personKey(pla));
-    }
-    for (const ta of assignment.TAs) {
-      assignedTAs.add(personKey(ta));
-    }
-  }
-
-  for (const pla of plaAvailableSet) {
-    if (!assignedPLAs.has(pla)) {
-      warnings.push(
-        `PLA "${pla}" is available but not assigned to any course.`,
-      );
-    }
-  }
-
-  for (const ta of taAvailableSet) {
-    if (!assignedTAs.has(ta)) {
-      errors.push(`TA "${ta}" is available but not assigned to any course.`);
-    }
-  }
-
-  return {
-    ok: errors.length === 0,
-    errors,
-    warnings,
-    meta: {
-      ms: Math.round(performance.now() - t0),
-      rule: "All available assistants should be assigned at least once.",
     },
   };
 }
