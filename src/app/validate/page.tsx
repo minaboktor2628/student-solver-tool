@@ -54,8 +54,8 @@ export default function ValidationPage() {
 
   // Add parse results state
   const [parseResults, setParseResults] = useLocalStorage<ValidationResult[]>(
-    "validation:parseResults", 
-    []
+    "validation:parseResults",
+    [],
   );
 
   const [editorFiles, setEditorFiles] = useLocalStorage<EditorFile[]>(
@@ -78,16 +78,20 @@ export default function ValidationPage() {
     onSuccess: ({ files, parseResult }) => {
       setEditorFiles(files);
       setParseResults([parseResult]); // Wrap in array to match ValidationResult[] type
-      
+
       // Show success/warning toast based on parse results
       if (parseResult.ok) {
         if (parseResult.warnings.length > 0) {
-          toast.warning(`Files parsed with ${parseResult.warnings.length} warnings. Check results panel for details.`);
+          toast.warning(
+            `Files parsed with ${parseResult.warnings.length} warnings. Check results panel for details.`,
+          );
         } else {
           toast.success("Excel files parsed successfully!");
         }
       } else {
-        toast.error(`Failed to parse Excel files. ${parseResult.errors.length} errors found.`);
+        toast.error(
+          `Failed to parse Excel files. ${parseResult.errors.length} errors found.`,
+        );
       }
     },
   });

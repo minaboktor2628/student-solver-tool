@@ -2,11 +2,13 @@
 // Extract the individual validation functions from route handler
 // so they can be tested independently
 
-import { sectionKey, personKey } from './validation'
-import type { Allocation } from '@/types/excel'
-import type { ValidationResult } from '@/types/validation'
+import { sectionKey, personKey } from "./validation";
+import type { Allocation } from "@/types/excel";
+import type { ValidationResult } from "@/types/validation";
 
-export function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
+export function ensureCourseNeedsAreMet(
+  assignments: Allocation[],
+): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];

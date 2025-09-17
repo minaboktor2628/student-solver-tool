@@ -149,8 +149,7 @@ function ensureAssignedAssistantsAreQualified(
     warnings,
     meta: {
       ms: Math.round(performance.now() - t0),
-      rule:
-        "Assistants should only be assigned to courses that they are qualified for.",
+      rule: "Assistants should only be assigned to courses that they are qualified for.",
     },
   };
 }
@@ -277,7 +276,9 @@ function ensureAllAvailableAssistantsAreAssigned(
 
   for (const pla of plaAvailableSet) {
     if (!assignedPLAs.has(pla)) {
-      warnings.push(`PLA "${pla}" is available but not assigned to any course.`);
+      warnings.push(
+        `PLA "${pla}" is available but not assigned to any course.`,
+      );
     }
   }
 

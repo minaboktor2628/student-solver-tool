@@ -59,7 +59,7 @@ export const excelRoute = createTRPCRouter({
 
           if (!baseName.success) {
             parseWarnings.push(
-              `Skipped sheet "${sheetName}" in ${originalName} - not a recognized sheet name.`
+              `Skipped sheet "${sheetName}" in ${originalName} - not a recognized sheet name.`,
             );
             continue;
           }
@@ -90,23 +90,26 @@ export const excelRoute = createTRPCRouter({
             } else {
               const rowNum = index + 2; // +2 because Excel is 1-indexed and we skip header
               const errorDetails = res.error.issues
-                .map(issue => `${issue.path.join('.') || 'row'}: ${issue.message}`)
-                .join('; ');
+                .map(
+                  (issue) =>
+                    `${issue.path.join(".") || "row"}: ${issue.message}`,
+                )
+                .join("; ");
               parseErrors.push(
-                `${baseName.data} row ${rowNum}: ${errorDetails}`
+                `${baseName.data} row ${rowNum}: ${errorDetails}`,
               );
               return { ok: false as const, value: row };
             }
           });
 
           // Keep ALL rows (both valid and invalid) for the JSON editor
-          const allRows = rowResults.map(r => r.value);
-          const rowErrorCount = rowResults.filter(r => !r.ok).length;
+          const allRows = rowResults.map((r) => r.value);
+          const rowErrorCount = rowResults.filter((r) => !r.ok).length;
           totalRowsWithErrors += rowErrorCount;
 
           if (rowErrorCount > 0) {
             parseWarnings.push(
-              `${baseName.data}: ${rowErrorCount} out of ${sanitizedRows.length} rows had validation errors.`
+              `${baseName.data}: ${rowErrorCount} out of ${sanitizedRows.length} rows had validation errors.`,
             );
           }
 
@@ -114,20 +117,20 @@ export const excelRoute = createTRPCRouter({
           // For merging, we need only valid rows, but for display we keep all
           if (baseName.data === "Allocations") {
             allocationsRows = rowResults
-              .filter(r => r.ok)
-              .map(r => r.value) as AllocationWithoutAssistants[];
+              .filter((r) => r.ok)
+              .map((r) => r.value) as AllocationWithoutAssistants[];
             // Still push to files for editor display (with invalid rows)
             files.push({
               filename: baseName.data,
-              language: "json", 
+              language: "json",
               code: JSON.stringify(allRows, null, 2),
             });
             continue;
           }
           if (baseName.data === "Assignments") {
             assignmentsRows = rowResults
-              .filter(r => r.ok)
-              .map(r => r.value) as Assignment[];
+              .filter((r) => r.ok)
+              .map((r) => r.value) as Assignment[];
             // Still push to files for editor display (with invalid rows)
             files.push({
               filename: baseName.data,
@@ -155,9 +158,11 @@ export const excelRoute = createTRPCRouter({
             allocationsRows,
             assignmentsRows ?? [],
           );
-          
+
           // Replace the Allocations file with the merged version
-          const allocationsIndex = files.findIndex(f => f.filename === "Allocations");
+          const allocationsIndex = files.findIndex(
+            (f) => f.filename === "Allocations",
+          );
           if (allocationsIndex >= 0) {
             files[allocationsIndex] = {
               filename: "Allocations",
@@ -166,14 +171,14 @@ export const excelRoute = createTRPCRouter({
             };
           } else {
             files.push({
-              filename: "Allocations", 
+              filename: "Allocations",
               language: "json",
               code: JSON.stringify(merged, null, 2),
             });
           }
         } catch (error) {
           parseErrors.push(
-            `Failed to merge Allocations and Assignments: ${String(error)}`
+            `Failed to merge Allocations and Assignments: ${String(error)}`,
           );
         }
       }
