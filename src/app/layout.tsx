@@ -7,6 +7,7 @@ import { Navbar, type NavbarNavItem } from "@/components/ui/shadcn-io/navbar";
 import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthButton } from "@/components/auth-button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "SST",
@@ -35,18 +36,20 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
       <body className="flex h-dvh flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Toaster richColors toastOptions={{ duration: 5000 }} />
-          <TRPCReactProvider>
-            <Navbar
-              logo={<Calculator />}
-              navigationLinks={links}
-              authSlot={<AuthButton />}
-              className="shrink-0"
-            />
-            <main className="min-h-0 flex-1">{children}</main>
-          </TRPCReactProvider>
-        </ThemeProvider>
+        <TooltipProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <Toaster richColors toastOptions={{ duration: 5000 }} />
+            <TRPCReactProvider>
+              <Navbar
+                logo={<Calculator />}
+                navigationLinks={links}
+                authSlot={<AuthButton />}
+                className="shrink-0"
+              />
+              <main className="min-h-0 flex-1">{children}</main>
+            </TRPCReactProvider>
+          </ThemeProvider>
+        </TooltipProvider>
       </body>
     </html>
   );
