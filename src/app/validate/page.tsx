@@ -41,15 +41,19 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { Kbd, KbdKey } from "@/components/ui/shadcn-io/kbd";
 
 export default function ValidationPage() {
-  const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true);
+  const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true, {
+    initializeWithValue: false,
+  });
+
   const [areAllFilesValid, setAreAllFilesValid] = useLocalStorage(
     "validation:allValid",
     false,
+    { initializeWithValue: false },
   );
 
   const [validationResults, setValidationResults] = useLocalStorage<
     ValidationResult[]
-  >("validation:results", []);
+  >("validation:results", [], { initializeWithValue: false });
 
   const [editorFiles, setEditorFiles] = useLocalStorage<EditorFile[]>(
     "validation:editorFiles",
@@ -58,6 +62,7 @@ export default function ValidationPage() {
       language: "json",
       code: "[]",
     })),
+    { initializeWithValue: false },
   );
 
   const [selected, setSelected] = useState<
