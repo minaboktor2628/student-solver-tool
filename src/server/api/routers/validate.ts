@@ -1,6 +1,5 @@
 import {
   makeCourseToAssistantMap,
-  makeMeetingToAssistantMap,
   personKey,
   sectionKey,
 } from "@/lib/validation";
@@ -11,9 +10,6 @@ import {
   type AssistantPreferences,
 } from "@/types/excel";
 import type { ValidationResult } from "@/types/validation";
-
-const SOCIAL_IMPS_SECTIONS = ["A01", "A02"];
-const SOCIAL_IMPS_TIMES = ["T-F 3:00 PM - 4:50 PM", "T-F 4:00 PM - 5:50 PM"];
 
 export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
@@ -33,69 +29,11 @@ export const validateRoute = createTRPCRouter({
             input["TA Preferences"],
           ),
           ensureCourseNeedsAreMet(input.Allocations),
-          ensureSocialImpsAvailability(
-            input.Allocations,
-            makeMeetingToAssistantMap(input["PLA Preferences"]),
-            makeMeetingToAssistantMap(input["TA Preferences"]),
-          ),
+          ensureAssignedAssistantsAreQualified
         ],
       };
     }),
 });
-
-function ensureSocialImpsAvailability(
-  assignments: Allocation[],
-  courseToAssistantsPla: Record<string, Set<string>>,
-  courseToAssistantsTa: Record<string, Set<string>>,
-): ValidationResult {
-  const t0 = performance.now();
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  // go through course staff assigned to social imps
-  // check if course staff available under "T-F 3:00 PM - 4:50 PM" or	"T-F 4:00 PM - 5:50 PM"
-
-  for (const assignment of assignments) {
-    const key = assignment.Section.Course;
-    if (key !== "CS 3043") {
-      continue;
-    }
-    const subsection = assignment.Section.Subsection;
-    const time = assignment["Meeting Pattern(s)"];
-
-    // plas assigned to social imps
-    for (const pla of assignment.PLAs) {
-      const id = personKey(pla);
-      //if pla preference of course [time] is false, push error
-      if (typeof time === "string" && !courseToAssistantsPla[time]?.has(id)) {
-        errors.push(
-          `PLA ${id} assigned to CS 3043 ${subsection} is not available during ${time}.`,
-        );
-      }
-    }
-
-    // tas assigned to social imps
-    for (const ta of assignment.TAs) {
-      const id = personKey(ta);
-      //if ta preference of course [time] is false, push error
-      if (typeof time === "string" && !courseToAssistantsTa[time]?.has(id)) {
-        errors.push(
-          `TA ${id} assigned to CS 3043 ${subsection} is not available during ${time}.`,
-        );
-      }
-    }
-  }
-
-  return {
-    ok: errors.length === 0,
-    errors,
-    warnings,
-    meta: {
-      ms: Math.round(performance.now() - t0),
-      rule: "CS 3043 assistants must be available for the course time.",
-    },
-  };
-}
 
 function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
   const t0 = performance.now();
