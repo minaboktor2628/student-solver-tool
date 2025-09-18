@@ -57,7 +57,7 @@ export function makeMeetingToAssistantMap(data: AssistantPreferences[]) {
       }
     }
   }
-  
+
   return courseMap;
 }
 
