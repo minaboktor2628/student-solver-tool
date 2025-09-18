@@ -203,7 +203,7 @@ const makePeoplePreprocessor = (defaultHours: number) =>
     return z.NEVER;
   }, PeopleArraySchema);
 
-export const AssistantEnumTypeSchema = z.enum(["PLA", "GLA", "TA"]);
+export const AssistantEnumTypeSchema = z.enum(["PLAs", "GLAs", "TAs"]);
 export type AssistantEnumType = z.infer<typeof AssistantEnumTypeSchema>;
 export const AssignmentSchema = AllocationWithoutAssistantsSchema.omit({
   "Student Hour Allocation": true,

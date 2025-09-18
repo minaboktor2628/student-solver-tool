@@ -4,33 +4,29 @@ import {
   sectionKey,
 } from "@/lib/validation";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import { ValidationInputSchema, type Allocation } from "@/types/excel";
+import {
+  ValidationInputSchema,
+  type Allocation,
+  type AssistantPreferences,
+} from "@/types/excel";
 import type { ValidationResult } from "@/types/validation";
 
 export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
-      const plaAvailableSet = new Set(
-        input["PLA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
-      const taAvailableSet = new Set(
-        input["TA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
       return {
         issues: [
           ensureAssistantsAreAssignedToOnlyOneClass(input.Allocations),
           ensureAssignedTAsAndPLAsAreAvailable(
             input.Allocations,
-            plaAvailableSet,
-            taAvailableSet,
+            input["PLA Preferences"],
+            input["TA Preferences"],
           ),
           ensureAssignedAssistantsAreQualified(
             input.Allocations,
-            makeCourseToAssistantMap(input["PLA Preferences"]),
-            makeCourseToAssistantMap(input["TA Preferences"]),
+            input["PLA Preferences"],
+            input["TA Preferences"],
           ),
           ensureCourseNeedsAreMet(input.Allocations),
         ],
@@ -105,40 +101,50 @@ function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
 
 function ensureAssignedAssistantsAreQualified(
   assignments: Allocation[],
-  courseToAssistantsPla: Record<string, Set<string>>,
-  courseToAssistantsTa: Record<string, Set<string>>,
+  plaPreferences: AssistantPreferences[],
+  taPreferences: AssistantPreferences[],
 ): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  const courseToTas = makeCourseToAssistantMap(taPreferences);
+  const courseToPlas = makeCourseToAssistantMap(plaPreferences);
+
   for (const assignment of assignments) {
-    const key = assignment.Section.Course;
+    const courseKey = assignment.Section.Course;
 
-    const taSet = courseToAssistantsTa[key];
-    if (!taSet) {
+    const tas = courseToTas[courseKey];
+    if (!tas) {
       continue;
     }
 
-    const plaSet = courseToAssistantsPla[key];
-    if (!plaSet) {
-      continue;
-    }
-
-    for (const ta of assignment.TAs) {
+    for (const ta of assignment.TAs ?? []) {
       const id = personKey(ta);
-      if (!taSet.has(id)) {
-        errors.push(`TA "${id}" is not qualified for ${key}.`);
-      }
-    }
-
-    for (const pla of assignment.PLAs) {
-      const id = personKey(pla);
-      if (!plaSet.has(id)) {
-        errors.push(`PLA "${id}" is not qualified for ${key}.`);
+      const qualified = tas.some((p) => personKey(p) === id);
+      if (!qualified) {
+        errors.push(`TA "${id}" is not qualified for ${courseKey}.`);
       }
     }
   }
+
+  for (const assignment of assignments) {
+    const courseKey = assignment.Section.Course;
+
+    const plas = courseToPlas[courseKey];
+    if (!plas) {
+      continue;
+    }
+
+    for (const pla of assignment.PLAs ?? []) {
+      const id = personKey(pla);
+      const qualified = plas.some((p) => personKey(p) === id);
+      if (!qualified) {
+        errors.push(`PLA "${id}" is not qualified for ${courseKey}.`);
+      }
+    }
+  }
+
   return {
     ok: errors.length === 0,
     errors,
@@ -152,11 +158,19 @@ function ensureAssignedAssistantsAreQualified(
 
 function ensureAssignedTAsAndPLAsAreAvailable(
   assignments: Allocation[],
-  plaAvailableSet: Set<string>,
-  taAvailableSet: Set<string>,
+  plaPreferences: AssistantPreferences[],
+  taPreferences: AssistantPreferences[],
 ): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
+
+  const plaAvailableSet = new Set(
+    plaPreferences.filter((a) => a.Available).map(personKey),
+  );
+
+  const taAvailableSet = new Set(
+    taPreferences.filter((a) => a.Available).map(personKey),
+  );
 
   for (const assignment of assignments) {
     const courseFullName = sectionKey(assignment.Section);

@@ -98,7 +98,7 @@ export const excelRoute = createTRPCRouter({
           allocationsRows,
           assignmentsRows ?? [], // if no assignments passed in, default as empty array
         );
-        files.push({
+        files.unshift({
           filename: "Allocations",
           language: "json",
           code: JSON.stringify(merged, null, 2),
