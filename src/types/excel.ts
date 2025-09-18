@@ -82,9 +82,9 @@ const normalizeAvailableKeys = (input: unknown) => {
 
 // For course alloc number
 export const NumberWithMOESchema = z.object({
-  Calculated: z.number(),
-  MOEOver: z.number(),
-  MOEShort: z.number(),
+  Calculated: z.number().describe("Calculated number of hours required per class"),
+  MOEOver: z.number().describe("Margin of error allowed over the calculated hours"),
+  MOEShort: z.number().describe("Margin of error allowed under the calculated hours"),
 });
 export type NumberWithMOE = z.infer<typeof NumberWithMOESchema>;
 
@@ -149,30 +149,30 @@ const SectionSchema = z.preprocess(
 );
 
 export const AllocationWithoutAssistantsSchema = z.object({
-  "Academic Period": z.string(),
-  Section: SectionSchema,
-  CrossListed: yesNoBoolean,
-  "Meeting Pattern(s)": z.string().nullable(),
-  Instructors: z.string().nullable(),
-  "Reserved Cap": z.number().nullable(),
-  "Cap Breakdown": z.string().nullable(),
-  "Section Cap": z.number().nullable(),
-  Enrollment: z.number(),
-  "Waitlist Count": z.number(),
-  "Student Hour Allocation": numberWithMOE,
+  "Academic Period": z.string().describe("The academic term that the course takes place in."),
+  Section: SectionSchema.describe("The course number, subsection code and course title."),
+  CrossListed: yesNoBoolean.describe("Indicates if the course is cross-listed with another department."),
+  "Meeting Pattern(s)": z.string().nullable().describe("The days and times the course meets."),
+  Instructors: z.string().nullable().describe("The instructor(s) teaching the course."),
+  "Reserved Cap": z.number().nullable().describe("Number of seats reserved for certain students."),
+  "Cap Breakdown": z.string().nullable().describe("Breakdown of reserved seats by group, if applicable."),
+  "Section Cap": z.number().nullable().describe("The maximum number of students allowed in the section."),
+  Enrollment: z.number().describe("Current number of students enrolled in the section."),
+  "Waitlist Count": z.number().describe("Current number of students on the waitlist."),
+  "Student Hour Allocation": numberWithMOE.describe("Number of student hours recommended for the course."),
 });
 
 export const AssistantSchema = z.object({
-  First: z.string(),
-  Last: z.string(),
-  Email: z.string().email().endsWith("@wpi.edu"),
+  First: z.string().describe("Assistant's first name."),
+  Last: z.string().describe("Assistant's last name."),
+  Email: z.string().email().endsWith("@wpi.edu").describe("Assistant's WPI email address."),
 });
 
 export type Assistant = z.infer<typeof AssistantSchema>;
 
 const PeopleSchema = AssistantSchema.omit({ Email: true }).extend({
-  Locked: z.boolean(),
-  Hours: z.number(),
+  Locked: z.boolean().describe("Whether the assistant is locked to this assignment."),
+  Hours: z.number().describe("Number of hours assigned to this assistant."),
 });
 const PeopleArraySchema = z.array(PeopleSchema);
 const makePeoplePreprocessor = (defaultHours: number) =>
@@ -219,21 +219,21 @@ export type AllocationWithoutAssistants = z.infer<
 export type Assignment = z.infer<typeof AssignmentSchema>;
 
 export const AllocationSchema = AllocationWithoutAssistantsSchema.extend({
-  TAs: PeopleArraySchema,
-  PLAs: PeopleArraySchema,
-  GLAs: PeopleArraySchema,
+  TAs: PeopleArraySchema.describe("List of assigned TAs for this course."),
+  PLAs: PeopleArraySchema.describe("List of assigned PLAs for this course."),
+  GLAs: PeopleArraySchema.describe("List of assigned GLAs for this course."),
 });
 export type Allocation = z.infer<typeof AllocationSchema>;
 
 export const AssistantPreferencesSchema = z.preprocess(
   normalizeAvailableKeys,
   AssistantSchema.extend({
-    Comments: z.string().nullable(),
+    Comments: z.string().nullable().describe("Additional comments from the assistant"),
     // ensure "Available" exists after preprocessing
-    Available: yesNoBoolean,
+    Available: yesNoBoolean.describe("Whether the assistant is available for assignments"),
   })
     // every other key (courses, timeslots, etc.) -> boolean
-    .catchall(yesNoBoolean),
+    .catchall(yesNoBoolean).describe("Preference field indicating courses, timeslots, etc."),
 );
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 
