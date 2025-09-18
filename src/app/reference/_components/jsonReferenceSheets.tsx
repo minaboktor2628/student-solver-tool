@@ -18,7 +18,8 @@ import { json } from "stream/consumers";
 const allocationsRefInfo = [
   {
     jsonKey: "Academic Period",
-    description: AllocationWithoutAssistantsSchema.shape["Academic Period"].description,
+    description:
+      AllocationWithoutAssistantsSchema.shape["Academic Period"].description,
     format: "Year + Season + Term",
     example: "2025 Fall A Term",
     type: "String",
@@ -32,35 +33,40 @@ const allocationsRefInfo = [
   },
   {
     jsonKey: "CrossListed",
-    description: AllocationWithoutAssistantsSchema.shape.CrossListed.description,
+    description:
+      AllocationWithoutAssistantsSchema.shape.CrossListed.description,
     format: "true | false",
     example: "false",
     type: "Boolean",
   },
   {
     jsonKey: "Meeting Pattern(s)",
-    description: AllocationWithoutAssistantsSchema.shape["Meeting Pattern(s)"].description,
+    description:
+      AllocationWithoutAssistantsSchema.shape["Meeting Pattern(s)"].description,
     format: "Days | Start Time - End Time",
     example: "M-T-R-F | 10:00 AM - 10:50 AM",
     type: "String",
   },
   {
     jsonKey: "Instructors",
-    description: AllocationWithoutAssistantsSchema.shape.Instructors.description,
+    description:
+      AllocationWithoutAssistantsSchema.shape.Instructors.description,
     format: "Instructor Name(s)",
     example: "Joseph Quinn",
     type: "String",
   },
   {
     jsonKey: "Reserved Cap",
-    description: AllocationWithoutAssistantsSchema.shape["Reserved Cap"].description,
+    description:
+      AllocationWithoutAssistantsSchema.shape["Reserved Cap"].description,
     format: "Integer",
     example: "2",
     type: "Integer",
   },
   {
     jsonKey: "Cap Breakdown",
-    description: AllocationWithoutAssistantsSchema.shape["Cap Breakdown"].description,
+    description:
+      AllocationWithoutAssistantsSchema.shape["Cap Breakdown"].description,
     format: "Object | null",
     example:
       "80 - reserved for Student Records - Student is a First Year for 2025-2026 or Mass Academy until 08/11/2025",
@@ -68,7 +74,8 @@ const allocationsRefInfo = [
   },
   {
     jsonKey: "Section Cap",
-    description: AllocationWithoutAssistantsSchema.shape["Section Cap"].description,
+    description:
+      AllocationWithoutAssistantsSchema.shape["Section Cap"].description,
     format: "Integer",
     example: "30",
     type: "Integer",
@@ -82,14 +89,17 @@ const allocationsRefInfo = [
   },
   {
     jsonKey: "Waitlist Count",
-    description: AllocationWithoutAssistantsSchema.shape["Waitlist Count"].description,
+    description:
+      AllocationWithoutAssistantsSchema.shape["Waitlist Count"].description,
     format: "Integer",
     example: "0",
     type: "Integer",
   },
   {
     jsonKey: "Student Hour Allocation",
-    description: AllocationWithoutAssistantsSchema.shape["Student Hour Allocation"].description,
+    description:
+      AllocationWithoutAssistantsSchema.shape["Student Hour Allocation"]
+        .description,
     format: "{ Calculated: Integer, MOEOver: Integer, MOEShort: Integer }",
     example: `{ "Calculated": 10, "MOEOver": 10, "MOEShort": 5 }`,
     type: "Object",
@@ -97,7 +107,8 @@ const allocationsRefInfo = [
   {
     jsonKey: "TAs",
     description: AllocationSchema.shape.TAs.description,
-    format: "Array of { First: String, Last: String, Email: String, Locked: Boolean, Hours: Integer }",
+    format:
+      "Array of { First: String, Last: String, Email: String, Locked: Boolean, Hours: Integer }",
     example:
       '[{ "First": "Peter", "Last": "Griffin", "Email": pgriffin@wpi.edu"}]',
     type: "Array",
@@ -105,7 +116,8 @@ const allocationsRefInfo = [
   {
     jsonKey: "PLAs",
     description: AllocationSchema.shape.PLAs.description,
-    format: "Array of { First: String, Last: String, Email: String, Locked: Boolean, Hours: Integer }",
+    format:
+      "Array of { First: String, Last: String, Email: String, Locked: Boolean, Hours: Integer }",
     example:
       '[{ "First": "Peter", "Last": "Griffin", "Email": pgriffin@wpi.edu}]',
     type: "Array",
@@ -113,7 +125,8 @@ const allocationsRefInfo = [
   {
     jsonKey: "GLAs",
     description: AllocationSchema.shape.GLAs.description,
-    format: "Array of { First: String, Last: String, Email: String, Locked: Boolean, Hours: Integer }",
+    format:
+      "Array of { First: String, Last: String, Email: String, Locked: Boolean, Hours: Integer }",
     example:
       '[{ "First": "Peter", "Last": "Griffin", "Email": pgriffin@wpi.edu}]',
     type: "Array",

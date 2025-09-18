@@ -10,7 +10,6 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ReferenceTable() {
@@ -45,7 +44,14 @@ export function ReferenceTable() {
   };
 
   return (
-    <Suspense fallback={<div> <LoadingSpinner /> </div>}>
+    <Suspense
+      fallback={
+        <div>
+          {" "}
+          <LoadingSpinner />{" "}
+        </div>
+      }
+    >
       <div>
         <h3 className="justify-left m-3 flex text-sm font-medium">
           JSON Reference Sheets
