@@ -40,6 +40,13 @@ import { ValidationResultsDisplay } from "@/components/validation-results-displa
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Kbd, KbdKey } from "@/components/ui/shadcn-io/kbd";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
 
 export default function ValidationPage() {
   const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true);
@@ -145,12 +152,14 @@ export default function ValidationPage() {
               api={{ ...validationApi }}
             />
           </div>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <ChevronsUpDown className="mr-1 size-4" />
-              <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
-            </Button>
-          </CollapsibleTrigger>
+          <div className="flex h-8 flex-row justify-center gap-2 px-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-2">
+                <ChevronsUpDown className="mr-1 size-4" />
+                <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
+              </Button>
+            </CollapsibleTrigger>
+          </div>
         </div>
         <CollapsibleContent className="border-b px-2 py-2">
           <div className="flex flex-col space-y-2">
