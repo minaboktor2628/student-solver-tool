@@ -1,7 +1,4 @@
-import {
-  makeCourseToAssistantMap,
-  personKey,
-} from "@/lib/validation";
+import { makeCourseToAssistantMap, personKey } from "@/lib/validation";
 import {
   ensureCourseNeedsAreMet,
   ensureAssignedAssistantsAreQualified,
