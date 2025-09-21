@@ -73,30 +73,29 @@ export default function ValidationPage() {
 
   const pickedCount = Object.values(selected).filter(Boolean).length;
 
-const parserApi = api.excel.parseExcelWorkbooks.useMutation({
-  onError: (error) => toast.error(error.message),
-  onSuccess: ({ files, parseResult }) => {
-    setEditorFiles(files);
-    setValidationResults([]);
-    setParseResults([parseResult]); // Wrap in array to match ValidationResult[] type
+  const parserApi = api.excel.parseExcelWorkbooks.useMutation({
+    onError: (error) => toast.error(error.message),
+    onSuccess: ({ files, parseResult }) => {
+      setEditorFiles(files);
+      setValidationResults([]);
+      setParseResults([parseResult]); // Wrap in array to match ValidationResult[] type
 
-    // Show success/warning toast based on parse results
-    if (parseResult.ok) {
-      if (parseResult.warnings.length > 0) {
-        toast.warning(
-          `Files parsed with ${parseResult.warnings.length} warnings. Check results panel for details.`,
-        );
+      // Show success/warning toast based on parse results
+      if (parseResult.ok) {
+        if (parseResult.warnings.length > 0) {
+          toast.warning(
+            `Files parsed with ${parseResult.warnings.length} warnings. Check results panel for details.`,
+          );
+        } else {
+          toast.success("Excel files parsed successfully!");
+        }
       } else {
-        toast.success("Excel files parsed successfully!");
+        toast.error(
+          `Failed to parse Excel files. ${parseResult.errors.length} errors found.`,
+        );
       }
-    } else {
-      toast.error(
-        `Failed to parse Excel files. ${parseResult.errors.length} errors found.`,
-      );
-    }
-  },
-});
-
+    },
+  });
 
   const validationApi = api.validate.validateFullSolution.useMutation({
     onError: (error) => toast.error(error.message),

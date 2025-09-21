@@ -7,9 +7,7 @@ import {
   ensureAllAvailableAssistantsAreAssigned,
 } from "@/lib/validation-functions";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import {
-  ValidationInputSchema
-} from "@/types/excel";
+import { ValidationInputSchema } from "@/types/excel";
 
 export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
@@ -25,14 +23,20 @@ export const validateRoute = createTRPCRouter({
       );
 
       // Create course-to-assistant maps for qualification checking
-      const courseToAssistantsPla = makeCourseToAssistantMap(input["PLA Preferences"]);
-      const courseToAssistantsTa = makeCourseToAssistantMap(input["TA Preferences"]);
+      const courseToAssistantsPla = makeCourseToAssistantMap(
+        input["PLA Preferences"],
+      );
+      const courseToAssistantsTa = makeCourseToAssistantMap(
+        input["TA Preferences"],
+      );
 
       // Convert to Sets for the validation function
       const courseToAssistantsPlaSet: Record<string, Set<string>> = {};
       const courseToAssistantsTaSet: Record<string, Set<string>> = {};
 
-      for (const [course, assistants] of Object.entries(courseToAssistantsPla)) {
+      for (const [course, assistants] of Object.entries(
+        courseToAssistantsPla,
+      )) {
         courseToAssistantsPlaSet[course] = new Set(assistants.map(personKey));
       }
 
