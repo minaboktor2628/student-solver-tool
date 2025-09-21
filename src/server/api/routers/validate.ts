@@ -4,15 +4,18 @@ import {
   ensureAssignedAssistantsAreQualified,
   ensureAssignedTAsAndPLAsAreAvailable,
   ensureAssistantsAreAssignedToOnlyOneClass,
+  ensureAllAvailableAssistantsAreAssigned,
 } from "@/lib/validation-functions";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import { ValidationInputSchema, type Allocation } from "@/types/excel";
-import type { ValidationResult } from "@/types/validation";
+import {
+  ValidationInputSchema
+} from "@/types/excel";
 
 export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
+      // Create sets of available assistants
       const plaAvailableSet = new Set(
         input["PLA Preferences"].filter((a) => a.Available).map(personKey),
       );
@@ -20,6 +23,22 @@ export const validateRoute = createTRPCRouter({
       const taAvailableSet = new Set(
         input["TA Preferences"].filter((a) => a.Available).map(personKey),
       );
+
+      // Create course-to-assistant maps for qualification checking
+      const courseToAssistantsPla = makeCourseToAssistantMap(input["PLA Preferences"]);
+      const courseToAssistantsTa = makeCourseToAssistantMap(input["TA Preferences"]);
+
+      // Convert to Sets for the validation function
+      const courseToAssistantsPlaSet: Record<string, Set<string>> = {};
+      const courseToAssistantsTaSet: Record<string, Set<string>> = {};
+
+      for (const [course, assistants] of Object.entries(courseToAssistantsPla)) {
+        courseToAssistantsPlaSet[course] = new Set(assistants.map(personKey));
+      }
+
+      for (const [course, assistants] of Object.entries(courseToAssistantsTa)) {
+        courseToAssistantsTaSet[course] = new Set(assistants.map(personKey));
+      }
 
       return {
         issues: [
@@ -31,8 +50,8 @@ export const validateRoute = createTRPCRouter({
           ),
           ensureAssignedAssistantsAreQualified(
             input.Allocations,
-            makeCourseToAssistantMap(input["PLA Preferences"]),
-            makeCourseToAssistantMap(input["TA Preferences"]),
+            courseToAssistantsPlaSet,
+            courseToAssistantsTaSet,
           ),
           ensureCourseNeedsAreMet(input.Allocations),
           ensureAllAvailableAssistantsAreAssigned(
@@ -44,54 +63,3 @@ export const validateRoute = createTRPCRouter({
       };
     }),
 });
-
-/**
- * Ensure all available assistants are assigned at least once.
- * - PLA: warning if not assigned
- * - TA: error if not assigned
- */
-function ensureAllAvailableAssistantsAreAssigned(
-  assignments: Allocation[],
-  plaAvailableSet: Set<string>,
-  taAvailableSet: Set<string>,
-): ValidationResult {
-  const t0 = performance.now();
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  const assignedPLAs = new Set<string>();
-  const assignedTAs = new Set<string>();
-
-  for (const assignment of assignments) {
-    for (const pla of assignment.PLAs) {
-      assignedPLAs.add(personKey(pla));
-    }
-    for (const ta of assignment.TAs) {
-      assignedTAs.add(personKey(ta));
-    }
-  }
-
-  for (const pla of plaAvailableSet) {
-    if (!assignedPLAs.has(pla)) {
-      warnings.push(
-        `PLA "${pla}" is available but not assigned to any course.`,
-      );
-    }
-  }
-
-  for (const ta of taAvailableSet) {
-    if (!assignedTAs.has(ta)) {
-      errors.push(`TA "${ta}" is available but not assigned to any course.`);
-    }
-  }
-
-  return {
-    ok: errors.length === 0,
-    errors,
-    warnings,
-    meta: {
-      ms: Math.round(performance.now() - t0),
-      rule: "All available assistants should be assigned at least once.",
-    },
-  };
-}

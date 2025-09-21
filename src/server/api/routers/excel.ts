@@ -156,7 +156,7 @@ export const excelRoute = createTRPCRouter({
         try {
           const merged = mergeAllocationsAndAssignments(
             allocationsRows,
-            assignmentsRows ?? [],
+            assignmentsRows ?? [], // if no assignments passed in, default as empty array
           );
 
           // Replace the Allocations file with the merged version
