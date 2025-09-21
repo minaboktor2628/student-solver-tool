@@ -150,6 +150,25 @@ export default function ValidationPage() {
             />
           </div>
           <div className="flex h-8 flex-row justify-center gap-2 px-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  {" "}
+                  Info{" "}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
+                  <Link href="/reference?tab=allocations"> Allocations </Link>
+                </DropdownMenuLabel>
+                <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
+                  <Link href="/reference?tab=taPref"> TA Preferences </Link>
+                </DropdownMenuLabel>
+                <DropdownMenuLabel className="hover:bg-accent hover:text-accent-foreground">
+                  <Link href="/reference?tab=plaPref"> PLA Preferences </Link>
+                </DropdownMenuLabel>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <CollapsibleTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 px-2">
                 <ChevronsUpDown className="mr-1 size-4" />

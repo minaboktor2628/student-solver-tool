@@ -27,6 +27,7 @@ const geist = Geist({
 const links: NavbarNavItem[] = [
   { href: "/", label: "Home" },
   { href: "/validate", label: "Validate" },
+  { href: "/reference", label: "Reference" },
 ];
 
 export default function RootLayout({
