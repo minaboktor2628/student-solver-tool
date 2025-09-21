@@ -182,7 +182,7 @@ export const AllocationWithoutAssistantsSchema = z.object({
     'Description: The course number, subsection code and course title.\n Format: { Course: String, Subsection: String, Title: String } \nExample: { "Course": "CS 1005", "Subsection": "AL01", "Title": "Introduction to Program Design" } \nType: Object',
   ),
   CrossListed: yesNoBoolean.describe(
-    "Indicates if the course is cross-listed with another department.",
+    "Description: Indicates if the course is cross-listed with another department.\n Format: true | false \nExample: false \nType: Boolean",
   ),
   "Meeting Pattern(s)": z
     .string()
@@ -331,7 +331,7 @@ export const AssistantPreferencesSchema = z.preprocess(
       ),
     // ensure "Available" exists after preprocessing
     Available: yesNoBoolean.describe(
-      "Whether the assistant is available for assignments",
+      "Description: Indicates if the assistant is available.\n Format: true | false \nExample: true \nType: Boolean",
     ),
   })
     // every other key (courses, timeslots, etc.) -> boolean
