@@ -84,13 +84,19 @@ const normalizeAvailableKeys = (input: unknown) => {
 export const NumberWithMOESchema = z.object({
   Calculated: z
     .number()
-    .describe("Description: Calculated number of hours required per class.\n Format: Integer \nExample: 80 \nType: Integer"),
+    .describe(
+      "Description: Calculated number of hours required per class.\n Format: Integer \nExample: 80 \nType: Integer",
+    ),
   MOEOver: z
     .number()
-    .describe("Description: Margin of error allowed over the calculated hours.\n Format: Integer \nExample: 10 \nType: Integer"),
+    .describe(
+      "Description: Margin of error allowed over the calculated hours.\n Format: Integer \nExample: 10 \nType: Integer",
+    ),
   MOEShort: z
     .number()
-    .describe("Description: Margin of error allowed under the calculated hours. \n Format: Integer \nExample: 5 \nType: Integer"),
+    .describe(
+      "Description: Margin of error allowed under the calculated hours. \n Format: Integer \nExample: 5 \nType: Integer",
+    ),
 });
 export type NumberWithMOE = z.infer<typeof NumberWithMOESchema>;
 
@@ -146,21 +152,34 @@ const SectionSchema = z.preprocess(
     };
   },
   z.object({
-    Course: z.string().regex(COURSE_RE, 'Expected like "CS 1102"').describe("Description: The course number.\n Format: Department + Course Number \nExample: CS 1102 \nType: String"),
+    Course: z
+      .string()
+      .regex(COURSE_RE, 'Expected like "CS 1102"')
+      .describe(
+        "Description: The course number.\n Format: Department + Course Number \nExample: CS 1102 \nType: String",
+      ),
     Subsection: z
       .string()
       .regex(/^[A-Z]{1,3}\d{2,3}$/, 'Expected like "AL01" or "A01"')
-      .describe("Description: The subsection code of the course. \nFormat: String \nExample: AL01 \nType: String"),
-    Title: z.string().describe("Description: The title of the course. \nFormat: String \nExample: Introduction to Program Design \nType: String"),
+      .describe(
+        "Description: The subsection code of the course. \nFormat: String \nExample: AL01 \nType: String",
+      ),
+    Title: z
+      .string()
+      .describe(
+        "Description: The title of the course. \nFormat: String \nExample: Introduction to Program Design \nType: String",
+      ),
   }),
 );
 
 export const AllocationWithoutAssistantsSchema = z.object({
   "Academic Period": z
     .string()
-    .describe("Description: The academic term that the course takes place in. \nFormat: Year + Season + Term \nExample: 2025 Fall A Term \nType: String"),
+    .describe(
+      "Description: The academic term that the course takes place in. \nFormat: Year + Season + Term \nExample: 2025 Fall A Term \nType: String",
+    ),
   Section: SectionSchema.describe(
-    "Description: The course number, subsection code and course title.\n Format: { Course: String, Subsection: String, Title: String } \nExample: { \"Course\": \"CS 1005\", \"Subsection\": \"AL01\", \"Title\": \"Introduction to Program Design\" } \nType: Object",
+    'Description: The course number, subsection code and course title.\n Format: { Course: String, Subsection: String, Title: String } \nExample: { "Course": "CS 1005", "Subsection": "AL01", "Title": "Introduction to Program Design" } \nType: Object',
   ),
   CrossListed: yesNoBoolean.describe(
     "Description: Indicates if the course is cross-listed with another department.\n Format: true | false \nExample: false \nType: Boolean",
@@ -168,42 +187,66 @@ export const AllocationWithoutAssistantsSchema = z.object({
   "Meeting Pattern(s)": z
     .string()
     .nullable()
-    .describe("Description: The days and times the course meets.\n Format: Days | Start Time - End Time \nExample: M-T-R-F | 10:00 AM - 10:50 AM \nType: String"),
+    .describe(
+      "Description: The days and times the course meets.\n Format: Days | Start Time - End Time \nExample: M-T-R-F | 10:00 AM - 10:50 AM \nType: String",
+    ),
   Instructors: z
     .string()
     .nullable()
-    .describe("Description: The instructor(s) teaching the course.\n Format: Instructor Name(s) \nExample: Joseph Quinn \nType: String"),
+    .describe(
+      "Description: The instructor(s) teaching the course.\n Format: Instructor Name(s) \nExample: Joseph Quinn \nType: String",
+    ),
   "Reserved Cap": z
     .number()
     .nullable()
-    .describe("Description: Number of seats reserved for certain students.\n Format: Integer \nExample: 2 \nType: Integer"),
+    .describe(
+      "Description: Number of seats reserved for certain students.\n Format: Integer \nExample: 2 \nType: Integer",
+    ),
   "Cap Breakdown": z
     .string()
     .nullable()
-    .describe("Description: Breakdown of reserved seats by group, if applicable.\n Format: Object | null \nExample: 80 - reserved for Student Records - Student is a First Year for 2025-2026 or Mass Academy until 08/11/2025 \nType: Object | Null"),
+    .describe(
+      "Description: Breakdown of reserved seats by group, if applicable.\n Format: Object | null \nExample: 80 - reserved for Student Records - Student is a First Year for 2025-2026 or Mass Academy until 08/11/2025 \nType: Object | Null",
+    ),
   "Section Cap": z
     .number()
     .nullable()
-    .describe("Description: The maximum number of students allowed in the section.\n Format: Integer \nExample: 80 \nType: Integer"),
+    .describe(
+      "Description: The maximum number of students allowed in the section.\n Format: Integer \nExample: 80 \nType: Integer",
+    ),
   Enrollment: z
     .number()
-    .describe("Description: Current number of students enrolled in the section.\n Format: Integer \nExample: 75 \nType: Integer"),
+    .describe(
+      "Description: Current number of students enrolled in the section.\n Format: Integer \nExample: 75 \nType: Integer",
+    ),
   "Waitlist Count": z
     .number()
-    .describe("Description: Current number of students on the waitlist.\n Format: Integer \nExample: 5 \nType: Integer"),
+    .describe(
+      "Description: Current number of students on the waitlist.\n Format: Integer \nExample: 5 \nType: Integer",
+    ),
   "Student Hour Allocation": numberWithMOE.describe(
-    "Description: Number of student hours recommended for the course.\n Format: { Calculated: Int, MOEOver: Int, MOEShort: Int } \nExample: { \"Calculated\": 150, \"MOEOver\": 15, \"MOEShort\": 10 } \nType: Object",
+    'Description: Number of student hours recommended for the course.\n Format: { Calculated: Int, MOEOver: Int, MOEShort: Int } \nExample: { "Calculated": 150, "MOEOver": 15, "MOEShort": 10 } \nType: Object',
   ),
 });
 
 export const AssistantSchema = z.object({
-  First: z.string().describe("Description: Assistant's first name.\n Format: String \nExample: \"Peter\" \nType: String"),
-  Last: z.string().describe("Description: Assistant's last name.\n Format: String \nExample: \"Parker\" \nType: String"),
+  First: z
+    .string()
+    .describe(
+      'Description: Assistant\'s first name.\n Format: String \nExample: "Peter" \nType: String',
+    ),
+  Last: z
+    .string()
+    .describe(
+      'Description: Assistant\'s last name.\n Format: String \nExample: "Parker" \nType: String',
+    ),
   Email: z
     .string()
     .email()
     .endsWith("@wpi.edu")
-    .describe("Description: Assistant's WPI email address.\n Format: String \nExample: \"pparker@wpi.edu\" \nType: String"),
+    .describe(
+      'Description: Assistant\'s WPI email address.\n Format: String \nExample: "pparker@wpi.edu" \nType: String',
+    ),
 });
 
 export type Assistant = z.infer<typeof AssistantSchema>;
@@ -211,8 +254,14 @@ export type Assistant = z.infer<typeof AssistantSchema>;
 const PeopleSchema = AssistantSchema.omit({ Email: true }).extend({
   Locked: z
     .boolean()
-    .describe("Description: Whether the assistant is locked to this assignment.\n Format: true | false \nExample: false \nType: Boolean"),
-  Hours: z.number().describe("Description: Number of hours assigned to this assistant.\n Format: Integer \nExample: 150 \nType: Integer"),
+    .describe(
+      "Description: Whether the assistant is locked to this assignment.\n Format: true | false \nExample: false \nType: Boolean",
+    ),
+  Hours: z
+    .number()
+    .describe(
+      "Description: Number of hours assigned to this assistant.\n Format: Integer \nExample: 150 \nType: Integer",
+    ),
 });
 const PeopleArraySchema = z.array(PeopleSchema);
 const makePeoplePreprocessor = (defaultHours: number) =>
@@ -259,9 +308,15 @@ export type AllocationWithoutAssistants = z.infer<
 export type Assignment = z.infer<typeof AssignmentSchema>;
 
 export const AllocationSchema = AllocationWithoutAssistantsSchema.extend({
-  TAs: PeopleArraySchema.describe("Description: List of assigned TAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ \"First\": \"Peter\", \"Last\": \"Parker\", \"Locked\": false, \"Hours\": 150 }] \nType: Array"),
-  PLAs: PeopleArraySchema.describe("Description: List of assigned PLAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ \"First\": \"Peter\", \"Last\": \"Parker\", \"Locked\": false, \"Hours\": 150 }] \nType: Array"),
-  GLAs: PeopleArraySchema.describe("Description: List of assigned GLAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ \"First\": \"Peter\", \"Last\": \"Parker\", \"Locked\": false, \"Hours\": 150 }] \nType: Array"),
+  TAs: PeopleArraySchema.describe(
+    'Description: List of assigned TAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ "First": "Peter", "Last": "Parker", "Locked": false, "Hours": 150 }] \nType: Array',
+  ),
+  PLAs: PeopleArraySchema.describe(
+    'Description: List of assigned PLAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ "First": "Peter", "Last": "Parker", "Locked": false, "Hours": 150 }] \nType: Array',
+  ),
+  GLAs: PeopleArraySchema.describe(
+    'Description: List of assigned GLAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ "First": "Peter", "Last": "Parker", "Locked": false, "Hours": 150 }] \nType: Array',
+  ),
 });
 export type Allocation = z.infer<typeof AllocationSchema>;
 
@@ -271,7 +326,9 @@ export const AssistantPreferencesSchema = z.preprocess(
     Comments: z
       .string()
       .nullable()
-      .describe("Description: Additional comments from the assistant.\n Format: String | null \nExample: \"CS3703 > CS1101\" \nType: String | null"),
+      .describe(
+        'Description: Additional comments from the assistant.\n Format: String | null \nExample: "CS3703 > CS1101" \nType: String | null',
+      ),
     // ensure "Available" exists after preprocessing
     Available: yesNoBoolean.describe(
       "Description: Whether the assistant is available for the assignment.\n Format: true | false \nExample: true \nType: Boolean",
@@ -279,7 +336,9 @@ export const AssistantPreferencesSchema = z.preprocess(
   })
     // every other key (courses, timeslots, etc.) -> boolean
     .catchall(yesNoBoolean)
-    .describe("Description: Preference field indicating courses, timeslots, etc.\n Format: true | false \nExample: \"CS 1101\": true \nType: Boolean"),
+    .describe(
+      'Description: Preference field indicating courses, timeslots, etc.\n Format: true | false \nExample: "CS 1101": true \nType: Boolean',
+    ),
 );
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 
