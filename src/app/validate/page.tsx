@@ -55,12 +55,6 @@ export default function ValidationPage() {
     ValidationResult[]
   >("validation:results", [], { initializeWithValue: false });
 
-  // Add parse results state
-  const [parseResults, setParseResults] = useLocalStorage<ValidationResult[]>(
-    "validation:parseResults",
-    [],
-  );
-
   const [editorFiles, setEditorFiles] = useLocalStorage<EditorFile[]>(
     "validation:editorFiles",
     Object.keys(ValidationInputSchema.shape).map((name) => ({
@@ -81,23 +75,7 @@ export default function ValidationPage() {
     onError: (error) => toast.error(error.message),
     onSuccess: ({ files, parseResult }) => {
       setEditorFiles(files);
-      setValidationResults([]);
-      setParseResults([parseResult]); // Wrap in array to match ValidationResult[] type
-
-      // Show success/warning toast based on parse results
-      if (parseResult.ok) {
-        if (parseResult.warnings.length > 0) {
-          toast.warning(
-            `Files parsed with ${parseResult.warnings.length} warnings. Check results panel for details.`,
-          );
-        } else {
-          toast.success("Excel files parsed successfully!");
-        }
-      } else {
-        toast.error(
-          `Failed to parse Excel files. ${parseResult.errors.length} errors found.`,
-        );
-      }
+      setValidationResults([parseResult]);
     },
   });
 
@@ -121,8 +99,6 @@ export default function ValidationPage() {
       if (file) fd.append(key, file);
     }
 
-    // Clear previous parse results
-    setParseResults([]);
     parserApi.mutate(fd);
   }
 
@@ -147,13 +123,8 @@ export default function ValidationPage() {
       return;
     }
 
-    // Clear previous validation results
-    setValidationResults([]);
     validationApi.mutate(result.data);
   }
-
-  // Combine parse and validation results for display
-  const allResults = [...parseResults, ...validationResults];
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
@@ -218,7 +189,7 @@ export default function ValidationPage() {
           </ResizablePanel>
           <ResizableHandle withHandle className="bg-background" />
           <ResizablePanel minSize={20} defaultSize={30} maxSize={60}>
-            <ValidationResultsDisplay result={allResults} />
+            <ValidationResultsDisplay result={validationResults} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

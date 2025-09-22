@@ -59,7 +59,7 @@ export const excelRoute = createTRPCRouter({
 
           if (!baseName.success) {
             parseWarnings.push(
-              `Skipped sheet "${sheetName}" in ${originalName} - not a recognized sheet name.`,
+              `Skipped sheet "${sheetName}" in ${originalName} `,
             );
             continue;
           }
@@ -170,7 +170,7 @@ export const excelRoute = createTRPCRouter({
               code: JSON.stringify(merged, null, 2),
             };
           } else {
-            files.push({
+            files.unshift({
               filename: "Allocations",
               language: "json",
               code: JSON.stringify(merged, null, 2),

@@ -229,12 +229,20 @@ export function ensureAssistantsAreAssignedToOnlyOneClass(
 
 export function ensureAllAvailableAssistantsAreAssigned(
   assignments: Allocation[],
-  plaAvailableSet: Set<string>,
-  taAvailableSet: Set<string>,
+  plaPreferences: AssistantPreferences[],
+  taPreferences: AssistantPreferences[],
 ): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  // Create sets of available assistants
+  const plaAvailableSet = new Set(
+    plaPreferences.filter((a) => a.Available).map(personKey),
+  );
+  const taAvailableSet = new Set(
+    taPreferences.filter((a) => a.Available).map(personKey),
+  );
 
   const assignedPLAs = new Set<string>();
   const assignedTAs = new Set<string>();

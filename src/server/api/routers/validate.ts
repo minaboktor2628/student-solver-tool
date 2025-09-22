@@ -24,15 +24,6 @@ export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
-      // Create sets of available assistants for functions that need them
-      const plaAvailableSet = new Set(
-        input["PLA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
-      const taAvailableSet = new Set(
-        input["TA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
       return {
         issues: [
           ensureAssistantsAreAssignedToOnlyOneClass(input.Allocations),
@@ -49,8 +40,8 @@ export const validateRoute = createTRPCRouter({
           ensureCourseNeedsAreMet(input.Allocations),
           ensureAllAvailableAssistantsAreAssigned(
             input.Allocations,
-            plaAvailableSet,
-            taAvailableSet,
+            input["PLA Preferences"],
+            input["TA Preferences"],
           ),
           ensureSocialImpsAvailability(
             input.Allocations,
