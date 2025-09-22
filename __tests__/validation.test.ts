@@ -142,7 +142,7 @@ describe("Validation Helper Functions", () => {
       // Check that the correct assistants are mapped to CS 101
       const cs101Assistants = courseMap["CS 101"] || [];
       const cs101Names = cs101Assistants.map(personKey);
-      
+
       expect(cs101Names).toContain("Alice Johnson");
       expect(cs101Names).toContain("Bob Smith");
       expect(cs101Names).not.toContain("Carol Davis");
@@ -150,14 +150,14 @@ describe("Validation Helper Functions", () => {
       // Check CS 303
       const cs303Assistants = courseMap["CS 303"] || [];
       const cs303Names = cs303Assistants.map(personKey);
-      
+
       expect(cs303Names).toContain("Bob Smith");
       expect(cs303Names).not.toContain("Alice Johnson");
 
       // Check CS 202 (Carol should be included regardless of Available status)
       const cs202Assistants = courseMap["CS 202"] || [];
       const cs202Names = cs202Assistants.map(personKey);
-      
+
       expect(cs202Names).toContain("Carol Davis");
     });
 
@@ -178,9 +178,9 @@ describe("Validation Helper Functions", () => {
       // Check that Dave is mapped to CS 101
       const cs101Assistants = courseMap["CS 101"] || [];
       const cs101Names = cs101Assistants.map(personKey);
-      
+
       expect(cs101Names).toContain("Dave Wilson");
-      
+
       // Check that non-course fields are not in the map
       expect(courseMap["Available"]).toBeUndefined();
       expect(courseMap["Comments"]).toBeUndefined();
