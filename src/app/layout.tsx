@@ -8,6 +8,7 @@ import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthButton } from "@/components/auth-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { RootProvider } from "fumadocs-ui/provider";
 
 export const metadata: Metadata = {
   title: "SST",
@@ -28,6 +29,7 @@ const geist = Geist({
 const links: NavbarNavItem[] = [
   { href: "/", label: "Home" },
   { href: "/validate", label: "Validate" },
+  { href: "/docs", label: "Docs" },
 ];
 
 export default function RootLayout({
@@ -46,7 +48,9 @@ export default function RootLayout({
                 authSlot={<AuthButton />}
                 className="shrink-0"
               />
-              <main className="min-h-0 flex-1">{children}</main>
+              <main className="min-h-0 flex-1">
+                <RootProvider>{children}</RootProvider>
+              </main>
             </TRPCReactProvider>
           </ThemeProvider>
         </TooltipProvider>
