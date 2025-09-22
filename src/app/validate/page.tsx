@@ -155,7 +155,7 @@ export default function ValidationPage() {
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="border-b px-2 py-2">
+        <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden border-b px-2 py-2">
           <div className="flex flex-col space-y-2">
             <div className="flex flex-col gap-2 sm:flex-row">
               {ExcelInputFiles.map((name) => (
