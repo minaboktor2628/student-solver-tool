@@ -1,5 +1,6 @@
 import {
   makeCourseToAssistantMap,
+  makeMeetingToAssistantMap,
   personKey,
   sectionKey,
 } from "@/lib/validation";
@@ -30,7 +31,11 @@ export const validateRoute = createTRPCRouter({
             input["TA Preferences"],
           ),
           ensureCourseNeedsAreMet(input.Allocations),
-          ensureAssignedAssistantsAreQualified,
+          ensureAssignedAssistantsAreQualified(
+            input.Allocations,
+            input["PLA Preferences"],
+            input["TA Preferences"],
+          ),
           ensureSocialImpsAvailability(
             input.Allocations,
             input["PLA Preferences"],
@@ -50,9 +55,9 @@ function ensureSocialImpsAvailability(
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const courseToTas = makeCourseToAssistantMap(taPreferences);
-  const courseToPlas = makeCourseToAssistantMap(plaPreferences);
-
+  const meetingToPlas = makeMeetingToAssistantMap(plaPreferences);
+  const meetingToTas = makeMeetingToAssistantMap(taPreferences);
+  
   // go through course staff assigned to social imps
   // check if course staff available under "T-F 3:00 PM - 4:50 PM" or	"T-F 4:00 PM - 5:50 PM"
 
@@ -69,7 +74,7 @@ function ensureSocialImpsAvailability(
       );
     }
 
-    const plas = courseToPlas[time];
+    const plas = meetingToPlas[time];
     if (plas) {
       // plas assigned to social imps
       for (const pla of assignment.PLAs) {
@@ -86,7 +91,7 @@ function ensureSocialImpsAvailability(
 
     // this check is not necessary for current data because TAs cannot be assigned to CS 3043
     // kept for redundancy
-    const tas = courseToTas[time];
+    const tas = meetingToTas[time];
     if (tas) {
       // tas assigned to social imps
       for (const ta of assignment.TAs) {
@@ -101,6 +106,7 @@ function ensureSocialImpsAvailability(
       }
     }
   }
+
 
   return {
     ok: errors.length === 0,

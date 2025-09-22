@@ -50,9 +50,11 @@ export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
 export function makeMeetingToAssistantMap(data: AssistantPreferences[]) {
   const courseMap: Record<string, AssistantPreferences[]> = {};
 
+  const meeetingRegex = /^(?<days>[MTWRF](?:-[MTWRF])*)\s*\|?\s*(?<start>\d{1,2}:\d{2}\s[AP]M)\s*-\s*(?<end>\d{1,2}:\d{2}\s[AP]M)$/
+
   for (const student of data) {
     for (const [key, value] of Object.entries(student)) {
-      if (value === true) {
+      if (meeetingRegex.test(key) && value === true) {
         (courseMap[key] ??= []).push(student);
       }
     }
