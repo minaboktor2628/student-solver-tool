@@ -181,26 +181,26 @@ const PeopleArraySchema = z.array(PeopleSchema);
 const makePeoplePreprocessor = (defaultHours: number) =>
   z.preprocess((val) => {
     if (val == null) return [];
-    if (Array.isArray(val)) return PeopleArraySchema.parse(val); // already parsed -> pass through
 
-    if (typeof val === "string") {
-      // normalize whitespace (replace newlines/tabs/periods with comma)
-      // TODO: Should we replace periods or make it an error?
-      const normalized = val.replace(/[\n\t.]/g, ",");
-      return normalized
-        .split(";")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((entry) => {
-          const [last, first] = entry.split(",").map((s) => s.trim());
-          return {
-            First: first ?? "",
-            Last: last ?? "",
-            Locked: false,
-            Hours: defaultHours,
-          };
-        });
+    if (typeof val !== "string") {
+      return val;
     }
+    // normalize whitespace (replace newlines/tabs/periods with comma)
+    // TODO: Should we replace periods or make it an error?
+    const normalized = val.replace(/[\n\t.]/g, ",");
+    return normalized
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const [last, first] = entry.split(",").map((s) => s.trim());
+        return {
+          First: first ?? "",
+          Last: last ?? "",
+          Locked: false,
+          Hours: defaultHours,
+        };
+      });
 
     // Not string/array/null -> let schema fail instead of silently erasing data
     return z.NEVER;
