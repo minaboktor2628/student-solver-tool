@@ -1,5 +1,6 @@
 import {
   COURSE_RE,
+  MEETING_RE,
   type Allocation,
   type AllocationWithoutAssistants,
   type Assignment,
@@ -38,6 +39,20 @@ export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
   for (const student of data) {
     for (const [key, value] of Object.entries(student)) {
       if (COURSE_RE.test(key) && value === true) {
+        (courseMap[key] ??= []).push(student);
+      }
+    }
+  }
+
+  return courseMap;
+}
+
+export function makeMeetingToAssistantMap(data: AssistantPreferences[]) {
+  const courseMap: Record<string, AssistantPreferences[]> = {};
+
+  for (const student of data) {
+    for (const [key, value] of Object.entries(student)) {
+      if (MEETING_RE.test(key) && value === true) {
         (courseMap[key] ??= []).push(student);
       }
     }
