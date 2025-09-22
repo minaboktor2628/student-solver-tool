@@ -62,7 +62,6 @@ export default function ValidationPage() {
       language: "json",
       code: "[]",
     })),
-    { initializeWithValue: false },
   );
 
   const [selected, setSelected] = useState<
@@ -149,16 +148,11 @@ export default function ValidationPage() {
               api={{ ...validationApi }}
             />
           </div>
-          <CollapsibleTrigger asChild>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-2">
-                  <ChevronsUpDown className="mr-1 size-4" />
-                  <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Show/hide the excel upload forms.</TooltipContent>
-            </Tooltip>
+          <CollapsibleTrigger asChild title="Show/hide the excel upload forms.">
+            <Button variant="outline" size="sm" className="h-8 px-2">
+              <ChevronsUpDown className="mr-1 size-4" />
+              <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
+            </Button>
           </CollapsibleTrigger>
         </div>
         <CollapsibleContent className="border-b px-2 py-2">
