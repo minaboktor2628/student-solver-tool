@@ -31,11 +31,6 @@ export const validateRoute = createTRPCRouter({
             input["TA Preferences"],
           ),
           ensureCourseNeedsAreMet(input.Allocations),
-          ensureAssignedAssistantsAreQualified(
-            input.Allocations,
-            input["PLA Preferences"],
-            input["TA Preferences"],
-          ),
           ensureSocialImpsAvailability(
             input.Allocations,
             input["PLA Preferences"],
