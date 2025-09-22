@@ -57,7 +57,7 @@ export default async function Home() {
               </Link>
 
               <a
-                href="https://github.com/yourusername/your-repo-name"
+                href="https://github.com/minaboktor2628/student-solver-tool"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-lg border px-8 py-4 text-lg font-semibold transition-all duration-200"
