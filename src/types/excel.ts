@@ -201,9 +201,6 @@ const makePeoplePreprocessor = (defaultHours: number) =>
           Hours: defaultHours,
         };
       });
-
-    // Not string/array/null -> let schema fail instead of silently erasing data
-    return z.NEVER;
   }, PeopleArraySchema);
 
 export const AssistantEnumTypeSchema = z.enum(["PLAs", "GLAs", "TAs"]);
@@ -228,15 +225,48 @@ export const AllocationSchema = AllocationWithoutAssistantsSchema.extend({
 });
 export type Allocation = z.infer<typeof AllocationSchema>;
 
+const BASE_KEYS = new Set(["First", "Last", "Email", "Comments", "Available"]);
+
+// Coerce any unknown-key value to boolean
+const coerceUnknownKeyBooleans = (input: unknown) => {
+  if (typeof input !== "object" || input === null) return input;
+  const o = { ...(input as Record<string, unknown>) };
+
+  for (const [k, v] of Object.entries(o)) {
+    if (!BASE_KEYS.has(k)) {
+      o[k] = yesNoBoolean.safeParse(v).success ? yesNoBoolean.parse(v) : !!v;
+    }
+  }
+  return o;
+};
+
 export const AssistantPreferencesSchema = z.preprocess(
-  normalizeAvailableKeys,
+  // normalize "Available..." keys
+  (val) => coerceUnknownKeyBooleans(normalizeAvailableKeys(val)),
+  //validate base fields, allow passthrough for extras
   AssistantSchema.extend({
     Comments: z.string().nullable(),
-    // ensure "Available" exists after preprocessing
-    Available: yesNoBoolean,
+    Available: yesNoBoolean, // guaranteed to exist via normalizeAvailableKeys
   })
-    // every other key (courses, timeslots, etc.) -> boolean
-    .catchall(yesNoBoolean),
+    .passthrough()
+    // enforce that every *extra* key matches COURSE_RE or MEETING_RE
+    .superRefine((obj, ctx) => {
+      for (const key of Object.keys(obj)) {
+        if (BASE_KEYS.has(key)) continue;
+
+        const isCourse = COURSE_RE.test(key);
+        const isMeeting = MEETING_RE.test(key);
+
+        if (!isCourse && !isMeeting) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message:
+              'Key must be a course like "CS 1102" or a meeting like "M-T-R-F | 9:00 AM - 9:50 AM"',
+          });
+        }
+      }
+    }),
 );
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 
