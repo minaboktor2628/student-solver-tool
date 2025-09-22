@@ -42,15 +42,15 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors toastOptions={{ duration: 5000 }} />
             <TRPCReactProvider>
-              <Navbar
-                logo={<Calculator />}
-                navigationLinks={links}
-                authSlot={<AuthButton />}
-                className="shrink-0"
-              />
-              <main className="min-h-0 flex-1">
-                <RootProvider>{children}</RootProvider>
-              </main>
+              <RootProvider>
+                <Navbar
+                  logo={<Calculator />}
+                  navigationLinks={links}
+                  authSlot={<AuthButton />}
+                  className="shrink-0"
+                />
+                <main className="min-h-0 flex-1">{children}</main>
+              </RootProvider>
             </TRPCReactProvider>
           </ThemeProvider>
         </TooltipProvider>
