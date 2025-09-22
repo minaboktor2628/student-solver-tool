@@ -1,14 +1,16 @@
 // lib/validation-functions.ts
-// Extract the individual validation functions from route handler
-// so they can be tested independently
-
-import { sectionKey, personKey } from "./validation";
-import type { Allocation } from "@/types/excel";
+import {
+  makeCourseToAssistantMap,
+  personKey,
+  sectionKey,
+} from "@/lib/validation";
+import type {
+  Allocation,
+  AssistantPreferences,
+} from "@/types/excel";
 import type { ValidationResult } from "@/types/validation";
 
-export function ensureCourseNeedsAreMet(
-  assignments: Allocation[],
-): ValidationResult {
+export function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -75,40 +77,50 @@ export function ensureCourseNeedsAreMet(
 
 export function ensureAssignedAssistantsAreQualified(
   assignments: Allocation[],
-  courseToAssistantsPla: Record<string, Set<string>>,
-  courseToAssistantsTa: Record<string, Set<string>>,
+  plaPreferences: AssistantPreferences[],
+  taPreferences: AssistantPreferences[],
 ): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  const courseToTas = makeCourseToAssistantMap(taPreferences);
+  const courseToPlas = makeCourseToAssistantMap(plaPreferences);
+
   for (const assignment of assignments) {
-    const key = assignment.Section.Course;
+    const courseKey = assignment.Section.Course;
 
-    const taSet = courseToAssistantsTa[key];
-    if (!taSet) {
+    const tas = courseToTas[courseKey];
+    if (!tas) {
       continue;
     }
 
-    const plaSet = courseToAssistantsPla[key];
-    if (!plaSet) {
-      continue;
-    }
-
-    for (const ta of assignment.TAs) {
+    for (const ta of assignment.TAs ?? []) {
       const id = personKey(ta);
-      if (!taSet.has(id)) {
-        errors.push(`TA "${id}" is not qualified for ${key}.`);
-      }
-    }
-
-    for (const pla of assignment.PLAs) {
-      const id = personKey(pla);
-      if (!plaSet.has(id)) {
-        errors.push(`PLA "${id}" is not qualified for ${key}.`);
+      const qualified = tas.some((p) => personKey(p) === id);
+      if (!qualified) {
+        errors.push(`TA "${id}" is not qualified for ${courseKey}.`);
       }
     }
   }
+
+  for (const assignment of assignments) {
+    const courseKey = assignment.Section.Course;
+
+    const plas = courseToPlas[courseKey];
+    if (!plas) {
+      continue;
+    }
+
+    for (const pla of assignment.PLAs ?? []) {
+      const id = personKey(pla);
+      const qualified = plas.some((p) => personKey(p) === id);
+      if (!qualified) {
+        errors.push(`PLA "${id}" is not qualified for ${courseKey}.`);
+      }
+    }
+  }
+
   return {
     ok: errors.length === 0,
     errors,
@@ -122,11 +134,19 @@ export function ensureAssignedAssistantsAreQualified(
 
 export function ensureAssignedTAsAndPLAsAreAvailable(
   assignments: Allocation[],
-  plaAvailableSet: Set<string>,
-  taAvailableSet: Set<string>,
+  plaPreferences: AssistantPreferences[],
+  taPreferences: AssistantPreferences[],
 ): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
+
+  const plaAvailableSet = new Set(
+    plaPreferences.filter((a) => a.Available).map(personKey),
+  );
+
+  const taAvailableSet = new Set(
+    taPreferences.filter((a) => a.Available).map(personKey),
+  );
 
   for (const assignment of assignments) {
     const courseFullName = sectionKey(assignment.Section);

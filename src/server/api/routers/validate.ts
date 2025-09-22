@@ -1,3 +1,4 @@
+// validation router
 import {
   makeCourseToAssistantMap,
   makeMeetingToAssistantMap,
@@ -23,7 +24,7 @@ export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
-      // Create sets of available assistants
+      // Create sets of available assistants for functions that need them
       const plaAvailableSet = new Set(
         input["PLA Preferences"].filter((a) => a.Available).map(personKey),
       );
@@ -32,40 +33,18 @@ export const validateRoute = createTRPCRouter({
         input["TA Preferences"].filter((a) => a.Available).map(personKey),
       );
 
-      // Create course-to-assistant maps for qualification checking
-      const courseToAssistantsPla = makeCourseToAssistantMap(
-        input["PLA Preferences"],
-      );
-      const courseToAssistantsTa = makeCourseToAssistantMap(
-        input["TA Preferences"],
-      );
-
-      // Convert to Sets for the validation function
-      const courseToAssistantsPlaSet: Record<string, Set<string>> = {};
-      const courseToAssistantsTaSet: Record<string, Set<string>> = {};
-
-      for (const [course, assistants] of Object.entries(
-        courseToAssistantsPla,
-      )) {
-        courseToAssistantsPlaSet[course] = new Set(assistants.map(personKey));
-      }
-
-      for (const [course, assistants] of Object.entries(courseToAssistantsTa)) {
-        courseToAssistantsTaSet[course] = new Set(assistants.map(personKey));
-      }
-
       return {
         issues: [
           ensureAssistantsAreAssignedToOnlyOneClass(input.Allocations),
           ensureAssignedTAsAndPLAsAreAvailable(
             input.Allocations,
-            plaAvailableSet,
-            taAvailableSet,
+            input["PLA Preferences"],
+            input["TA Preferences"],
           ),
           ensureAssignedAssistantsAreQualified(
             input.Allocations,
-            courseToAssistantsPlaSet,
-            courseToAssistantsTaSet,
+            input["PLA Preferences"],
+            input["TA Preferences"],
           ),
           ensureCourseNeedsAreMet(input.Allocations),
           ensureAllAvailableAssistantsAreAssigned(
