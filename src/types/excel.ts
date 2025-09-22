@@ -125,7 +125,8 @@ const CS_SECTION_RE =
 
 export const COURSE_RE = /^[A-Z]{2,4} \d{3,4}$/;
 
-export const MEETING_RE = /^(?<days>[MTWRF](?:-[MTWRF])*)\s*\|?\s*(?<start>\d{1,2}:\d{2}\s[AP]M)\s*-\s*(?<end>\d{1,2}:\d{2}\s[AP]M)$/;
+export const MEETING_RE =
+  /^(?<days>[MTWRF](?:-[MTWRF])*)\s*\|?\s*(?<start>\d{1,2}:\d{2}\s[AP]M)\s*-\s*(?<end>\d{1,2}:\d{2}\s[AP]M)$/;
 
 const SectionSchema = z.preprocess(
   (val) => {
