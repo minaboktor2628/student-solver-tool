@@ -72,9 +72,9 @@ export default function ValidationPage() {
 
   const parserApi = api.excel.parseExcelWorkbooks.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: ({ files }) => {
+    onSuccess: ({ files, parseResult }) => {
       setEditorFiles(files);
-      setValidationResults([]);
+      setValidationResults([parseResult]);
     },
   });
 
