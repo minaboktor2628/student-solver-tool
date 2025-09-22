@@ -1,4 +1,9 @@
-import { makeCourseToAssistantMap, makeMeetingToAssistantMap, personKey, sectionKey } from "@/lib/validation";
+import {
+  makeCourseToAssistantMap,
+  makeMeetingToAssistantMap,
+  personKey,
+  sectionKey,
+} from "@/lib/validation";
 import {
   ensureCourseNeedsAreMet,
   ensureAssignedAssistantsAreQualified,
