@@ -30,7 +30,7 @@ export const exportRoute = createTRPCRouter({
       }
       if (!Array.isArray(data)) {
         throw new Error(
-          "Invalid solution data format - expected {[...]} or [...]",
+          "Invalid allocations data format - expected {[...]} or [...]",
         );
       }
 

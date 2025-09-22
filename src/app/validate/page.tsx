@@ -90,7 +90,7 @@ export default function ValidationPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "solution.xlsx";
+      a.download = "Assignments.xlsx";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -119,7 +119,7 @@ export default function ValidationPage() {
   function handleExport() {
     const fileToExport = editorFiles.find((f) => f.filename === "Allocations");
     if (!fileToExport) {
-      toast.error("No file to export.");
+      toast.error("Could not find Allocations file.");
       return;
     }
     exportApi.mutate(fileToExport);
