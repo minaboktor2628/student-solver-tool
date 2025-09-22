@@ -57,7 +57,7 @@ function ensureSocialImpsAvailability(
 
   const meetingToPlas = makeMeetingToAssistantMap(plaPreferences);
   const meetingToTas = makeMeetingToAssistantMap(taPreferences);
-  
+
   // go through course staff assigned to social imps
   // check if course staff available under "T-F 3:00 PM - 4:50 PM" or	"T-F 4:00 PM - 5:50 PM"
 
@@ -106,7 +106,6 @@ function ensureSocialImpsAvailability(
       }
     }
   }
-
 
   return {
     ok: errors.length === 0,
