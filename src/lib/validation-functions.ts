@@ -4,13 +4,12 @@ import {
   personKey,
   sectionKey,
 } from "@/lib/validation";
-import type {
-  Allocation,
-  AssistantPreferences,
-} from "@/types/excel";
+import type { Allocation, AssistantPreferences } from "@/types/excel";
 import type { ValidationResult } from "@/types/validation";
 
-export function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
+export function ensureCourseNeedsAreMet(
+  assignments: Allocation[],
+): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
