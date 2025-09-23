@@ -83,6 +83,27 @@ export default function ValidationPage() {
     onSuccess: ({ issues }) => setValidationResults(issues),
   });
 
+  const exportApi = api.export.exportSolutionToExcel.useMutation({
+    onError: (error) => toast.error(error.message),
+    onSuccess: (data) => {
+      if (!data || data.length === 0) {
+        toast.error("No data to export.");
+        return;
+      }
+      const blob = new Blob([data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Assignments.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+  });
+
   function handleDrop(key: ExcelInputFileEnum, files: File[]) {
     if (!files?.length) return;
     const file = files[0]!;
@@ -99,6 +120,15 @@ export default function ValidationPage() {
     }
 
     parserApi.mutate(fd);
+  }
+
+  function handleExport() {
+    const fileToExport = editorFiles.find((f) => f.filename === "Allocations");
+    if (!fileToExport) {
+      toast.error("Could not find Allocations file.");
+      return;
+    }
+    exportApi.mutate(fileToExport);
   }
 
   function handleValidate() {
@@ -146,6 +176,11 @@ export default function ValidationPage() {
               handleClick={() => handleValidate()}
               disabled={validationApi.isPending || !areAllFilesValid}
               api={{ ...validationApi }}
+            />
+            <ExportButton
+              handleClick={() => handleExport()}
+              disabled={exportApi.isPending || !areAllFilesValid}
+              api={{ ...exportApi }}
             />
           </div>
           <CollapsibleTrigger asChild title="Show/hide the excel upload forms.">
@@ -217,6 +252,51 @@ function UploadExcelFilesButton({
             ? "Select all required Excel files before uploading"
             : "Upload the Excel workbooks"}
         </p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ExportButton({
+  handleClick,
+  disabled,
+  api,
+}: ValidationPageButtonProps) {
+  useHotkeys(
+    "alt+e",
+    (event) => {
+      event.preventDefault();
+      if (!disabled) handleClick();
+    },
+    {
+      enableOnFormTags: true,
+      enableOnContentEditable: true,
+    },
+    [disabled, handleClick],
+  );
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="flex-1">
+          <Button className="w-full" onClick={handleClick} disabled={disabled}>
+            {api.isPending ? <LoadingSpinner size="sm" /> : "Export"}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {disabled ? (
+          <p>Upload Excel files and fix all their errors before validating.</p>
+        ) : (
+          <p className="max-w-sm">
+            Press{" "}
+            <Kbd>
+              <KbdKey aria-label="Meta">Alt</KbdKey>
+              <KbdKey>E</KbdKey>
+            </Kbd>{" "}
+            to export.
+          </p>
+        )}
       </TooltipContent>
     </Tooltip>
   );
