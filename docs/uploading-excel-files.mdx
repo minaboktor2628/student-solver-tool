@@ -51,8 +51,8 @@ Below are the required columns and shapes **before** parsing. Your Excel columns
 
 ### 1) Allocations (required)
 
-- Represents course-section rows **without people assigned** (TAs/PLAs/GLAs).  
-- Includes `Student Hour Allocation` column. 
+- Represents course-section rows **without people assigned** (TAs/PLAs/GLAs).
+- Includes `Student Hour Allocation` column.
 
 Each row must include:
 
@@ -60,12 +60,11 @@ Each row must include:
 
 - `Academic Period` — `string` (e.g., `2025 Fall A Term`)
 - `Section` - A single string formatted like:  
-    `CS 2022-AL01/ MA 2201-AL01 - Discrete Mathematics`  
-    This will be **pre-parsed** into:
-    - `Course` — `AAAn` format like `CS 1102` (`^[A-Z]{2,4} \d{3,4}$`)
-    - `Subsection` — like `AL01`, `A01` (`^[A-Z]{1,3}\d{2,3}$`)
-    - `Title` — arbitrary string
-
+   `CS 2022-AL01/ MA 2201-AL01 - Discrete Mathematics`  
+   This will be **pre-parsed** into:
+  - `Course` — `AAAn` format like `CS 1102` (`^[A-Z]{2,4} \d{3,4}$`)
+  - `Subsection` — like `AL01`, `A01` (`^[A-Z]{1,3}\d{2,3}$`)
+  - `Title` — arbitrary string
 
 **Scheduling & metadata**
 
@@ -97,6 +96,7 @@ Additionally, each row must include:
 ---
 
 ### 2) PLA Preferences (required)
+
 ### 3) TA Preferences (required)
 
 Both sheets share the same row schema. Each row represents an assistant + their preferences and availability.
@@ -118,7 +118,7 @@ You may include **any number** of extra columns where each header is either:
   Format: `^(?<days>MTWRF))\s|\s*(?<start>\d{1,2}:\d{2}\s[AP]M)\s*-\s*(?<end>\d{1,2}:\d{2}\s[AP]M)$`
 
 Example: `M-T-R-F | 9:00 AM - 9:50 AM`
-Note the `|` in the middle of the string. 
+Note the `|` in the middle of the string.
 
 Each extra column’s **cell value** is coerced to boolean (see **Boolean coercion**).  
 Any header that is **not** a valid course code or meeting pattern will cause validation to fail.
