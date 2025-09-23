@@ -62,7 +62,6 @@ export default function ValidationPage() {
       language: "json",
       code: "[]",
     })),
-    { initializeWithValue: false },
   );
 
   const [selected, setSelected] = useState<
@@ -73,9 +72,9 @@ export default function ValidationPage() {
 
   const parserApi = api.excel.parseExcelWorkbooks.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: ({ files }) => {
+    onSuccess: ({ files, parseResult }) => {
       setEditorFiles(files);
-      setValidationResults([]);
+      setValidationResults([parseResult]);
     },
   });
 
@@ -149,19 +148,14 @@ export default function ValidationPage() {
               api={{ ...validationApi }}
             />
           </div>
-          <CollapsibleTrigger asChild>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-2">
-                  <ChevronsUpDown className="mr-1 size-4" />
-                  <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Show/hide the excel upload forms.</TooltipContent>
-            </Tooltip>
+          <CollapsibleTrigger asChild title="Show/hide the excel upload forms.">
+            <Button variant="outline" size="sm" className="h-8 px-2">
+              <ChevronsUpDown className="mr-1 size-4" />
+              <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
+            </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="border-b px-2 py-2">
+        <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden border-b px-2 py-2">
           <div className="flex flex-col space-y-2">
             <div className="flex flex-col gap-2 sm:flex-row">
               {ExcelInputFiles.map((name) => (
