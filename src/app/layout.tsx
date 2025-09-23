@@ -1,5 +1,5 @@
 import "@/styles/globals.css";
-import { type Metadata } from "next";
+import { type Metadata, type Route } from "next";
 import { Geist } from "next/font/google";
 import { TRPCReactProvider } from "@/trpc/react";
 import { Toaster } from "@/components/ui/sonner";
@@ -29,7 +29,7 @@ const geist = Geist({
 const links: NavbarNavItem[] = [
   { href: "/", label: "Home" },
   { href: "/validate", label: "Validate" },
-  { href: "/docs", label: "Docs" },
+  { href: "/docs" as Route, label: "Docs" }, // not sure why nextjs is having trouble with /docs
 ];
 
 export default function RootLayout({
