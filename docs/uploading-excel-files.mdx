@@ -1,11 +1,142 @@
 ---
 title: Uploading Excel Files
+description: How to structure your Excel workbooks and sheets so they parse and validate correctly.
 ---
 
 # Uploading Excel Files
 
-This page explains exactly what files to upload, which sheet names are recognized, and what each sheet’s columns must look like so the validator can parse your data without errors.
+This page describes **exactly** how your Excel files must be structured so the app can parse them and run validation.
 
-```ts
-const hi = no;
-```
+## What files do I need?
+
+You must upload **three** workbooks:
+
+1. **Allocations** (required)
+2. **PLA Preferences** (required)
+3. **TA Preferences** (required)
+
+> You may also include an **Assignments** sheet _inside any workbook_ (optional). If present, it will be merged with Allocations to produce the final **Allocations** JSON.
+
+### Accepted file types
+
+- **.xlsx** (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)
+- **.xls** (`application/vnd.ms-excel`)
+
+Any other types will be rejected.
+
+---
+
+## How sheet names are detected
+
+For each uploaded workbook:
+
+- If the workbook has **one sheet**, its **workbook filename** must be _exactly_ one of:
+  - `Assignments`
+  - `PLA Preferences`
+  - `TA Preferences`
+- If the workbook has **multiple sheets**, each **sheet tab name** must be one of:
+  - `Allocations`
+  - `PLA Preferences`
+  - `TA Preferences`
+  - `Assignments` (optional)
+
+> The parser will read **every** sheet with one of the names above from the three uploaded files.  
+> Only **three files** can be uploaded: `Allocations`, `PLA Preferences`, and `TA Preferences`.
+
+---
+
+## Data model by sheet
+
+Below are the required columns and shapes **before** parsing. Your Excel columns must map to these headers (case-insensitive; leading/trailing spaces are ignored). Empty cells become `null` unless otherwise noted. Every single sheet must have the headers as the first row of the excel file.
+
+### 1) Allocations (required)
+
+- Represents course-section rows **without people assigned** (TAs/PLAs/GLAs).  
+- Includes `Student Hour Allocation` column. 
+
+Each row must include:
+
+**Course & section**
+
+- `Academic Period` — `string` (e.g., `2025 Fall A Term`)
+- `Section` - A single string formatted like:  
+    `CS 2022-AL01/ MA 2201-AL01 - Discrete Mathematics`  
+    This will be **pre-parsed** into:
+    - `Course` — `AAAn` format like `CS 1102` (`^[A-Z]{2,4} \d{3,4}$`)
+    - `Subsection` — like `AL01`, `A01` (`^[A-Z]{1,3}\d{2,3}$`)
+    - `Title` — arbitrary string
+
+
+**Scheduling & metadata**
+
+- `CrossListed` — boolean (see **Boolean coercion** below)
+- `Meeting Pattern(s)` — `string | null` (free text OK)
+- `Instructors` — `string | null`
+- `Reserved Cap` — `number | null`
+- `Cap Breakdown` — `string | null`
+- `Section Cap` — `number | null`
+- `Enrollment` — `number` (required)
+- `Waitlist Count` — `number` (required)
+
+### 1) Assignments (optional)
+
+Same as the Allocations, but without the `Student Hour Allocation` column
+
+Additionally, each row must include:
+
+**Assigned people** (strings that get parsed into arrays):
+
+- `TAs` — string list like:  
+  `Doe, Jane; Smith, John`  
+  Each entry becomes `{ First, Last, Locked: false, Hours: defaultTAHours }`
+- `PLAs` — same format; Hours default to `defaultPLAHours()`
+- `GLAs` — same format; Hours default to `defaultGLAHours()`
+
+> **Tip:** In the people lists, newlines, tabs, and periods are normalized to commas. The canonical delimiter between people is semicolon `;`. Each person is `"Last, First"`.
+
+---
+
+### 2) PLA Preferences (required)
+### 3) TA Preferences (required)
+
+Both sheets share the same row schema. Each row represents an assistant + their preferences and availability.
+
+**Base fields (required)**
+
+- `First` — `string`
+- `Last` — `string`
+- `Email` — valid WPI email (must end with `@wpi.edu`)
+- `Comments` — `string | null`
+- `Available` — `boolean` (see **Availability normalization**)
+
+**Preference columns (flexible headers)**
+
+You may include **any number** of extra columns where each header is either:
+
+- A **course code**: `^[A-Z]{2,4} \d{3,4}$` (e.g., `CS 1102`)
+- A **meeting pattern**: `M-T-W-R-F` letters with dashes, pipe, and time range  
+  Format: `^(?<days>MTWRF))\s|\s*(?<start>\d{1,2}:\d{2}\s[AP]M)\s*-\s*(?<end>\d{1,2}:\d{2}\s[AP]M)$`
+
+Example: `M-T-R-F | 9:00 AM - 9:50 AM`
+Note the `|` in the middle of the string. 
+
+Each extra column’s **cell value** is coerced to boolean (see **Boolean coercion**).  
+Any header that is **not** a valid course code or meeting pattern will cause validation to fail.
+
+#### Availability normalization
+
+You can provide **any** columns whose header starts with `Available` (e.g., `Available`, `Availability`, `Available (A term)`). All such columns are:
+
+- Parsed to booleans and **OR-ed** together
+- Collapsed into a single final `Available` boolean
+- If you provide **no** `Available*` header, `Available` defaults to **true**
+
+#### Boolean coercion (Preferences)
+
+For all preference booleans (including `Available` and all extra columns):
+
+- `Y`, `YES`, `TRUE`, `T`, nonzero numbers → **true**
+- `N`, `NO`, `FALSE`, `F`, `0`, empty string, `null`/`undefined` → **false**
+- Any other string → **false**
+
+---

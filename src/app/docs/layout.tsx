@@ -9,7 +9,7 @@ export default function Layout(props: LayoutProps<"/docs">) {
       themeSwitch={{ enabled: false }}
       {...baseOptions()}
     >
-      <div>{props.children}</div>
+      {props.children}
     </DocsLayout>
   );
 }
