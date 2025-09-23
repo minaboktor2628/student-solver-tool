@@ -8,7 +8,7 @@ import {
 import { isExcelName, isExcelType } from "@/lib/utils";
 import z from "zod";
 
-// For backend validation
+// For backend validation.
 export const ExcelFileSchema = z
   .instanceof(File)
   .refine((f) => f.size > 0, "File must not be empty.")
@@ -341,9 +341,9 @@ export const AssistantPreferencesSchema = z.preprocess(
   //validate base fields, allow passthrough for extras
   AssistantSchema.extend({
     Comments: z
-    .string()
-    .nullable()
-    .describe(
+      .string()
+      .nullable()
+      .describe(
         'Description: Additional comments from the assistant.\n Format: String | null \nExample: "CS3703 > CS1101"',
       ),
     Available: yesNoBoolean.describe(
