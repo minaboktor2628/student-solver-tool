@@ -6,11 +6,10 @@ export default function Layout(props: LayoutProps<"/docs">) {
   return (
     <DocsLayout
       tree={source.pageTree}
-      {...baseOptions()}
-      sidebar={{ className: "mt-16" }}
       themeSwitch={{ enabled: false }}
+      {...baseOptions()}
     >
-      <div className="prose dark:prose-invert p-4">{props.children}</div>
+      <div>{props.children}</div>
     </DocsLayout>
   );
 }
