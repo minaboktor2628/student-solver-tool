@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Print tool & package versions
+        run: |
+          node -v
+          pnpm -v
+          pnpm ls eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser next typescript
+
       - name: Lint check
         run: pnpm run lint
 
