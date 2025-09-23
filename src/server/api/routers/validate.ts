@@ -1,229 +1,116 @@
+// validation router
 import {
   makeCourseToAssistantMap,
+  makeMeetingToAssistantMap,
   personKey,
   sectionKey,
 } from "@/lib/validation";
+import {
+  ensureCourseNeedsAreMet,
+  ensureAssignedAssistantsAreQualified,
+  ensureAssignedTAsAndPLAsAreAvailable,
+  ensureAssistantsAreAssignedToOnlyOneClass,
+  ensureAllAvailableAssistantsAreAssigned,
+} from "@/lib/validation-functions";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import { ValidationInputSchema, type Allocation } from "@/types/excel";
+import {
+  ValidationInputSchema,
+  type Allocation,
+  type AssistantPreferences,
+} from "@/types/excel";
 import type { ValidationResult } from "@/types/validation";
 
 export const validateRoute = createTRPCRouter({
   validateFullSolution: publicProcedure
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
-      const plaAvailableSet = new Set(
-        input["PLA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
-      const taAvailableSet = new Set(
-        input["TA Preferences"].filter((a) => a.Available).map(personKey),
-      );
-
       return {
         issues: [
           ensureAssistantsAreAssignedToOnlyOneClass(input.Allocations),
           ensureAssignedTAsAndPLAsAreAvailable(
             input.Allocations,
-            plaAvailableSet,
-            taAvailableSet,
+            input["PLA Preferences"],
+            input["TA Preferences"],
           ),
           ensureAssignedAssistantsAreQualified(
             input.Allocations,
-            makeCourseToAssistantMap(input["PLA Preferences"]),
-            makeCourseToAssistantMap(input["TA Preferences"]),
+            input["PLA Preferences"],
+            input["TA Preferences"],
           ),
           ensureCourseNeedsAreMet(input.Allocations),
+          ensureAllAvailableAssistantsAreAssigned(
+            input.Allocations,
+            input["PLA Preferences"],
+            input["TA Preferences"],
+          ),
+          ensureSocialImpsAvailability(
+            input.Allocations,
+            input["PLA Preferences"],
+            input["TA Preferences"],
+          ),
         ],
       };
     }),
 });
 
-function ensureCourseNeedsAreMet(assignments: Allocation[]): ValidationResult {
-  const t0 = performance.now();
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  const sumHours = (xs: { Hours: number }[]) =>
-    xs.reduce((acc, x) => acc + x.Hours, 0);
-
-  for (const assignment of assignments) {
-    const course = sectionKey(assignment.Section);
-    const {
-      Calculated: hoursNeeded,
-      MOEOver,
-      MOEShort,
-    } = assignment["Student Hour Allocation"];
-
-    const assistantHoursAssigned =
-      sumHours(assignment.PLAs) +
-      sumHours(assignment.GLAs) +
-      sumHours(assignment.TAs);
-
-    const diff = assistantHoursAssigned - hoursNeeded; // positive = extra, negative = short
-
-    // Too few hours
-    if (diff < 0) {
-      if (Math.abs(diff) > MOEShort) {
-        errors.push(
-          `${course}: short by ${Math.abs(diff)}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOEShort}h).`,
-        );
-      } else {
-        warnings.push(
-          `${course}: short by ${Math.abs(diff)}h but within MOE ${MOEShort}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
-        );
-      }
-      continue; // no need to also check the overage branch
-    }
-
-    // Too many hours
-    if (diff > 0) {
-      if (diff > MOEOver) {
-        warnings.push(
-          `${course}: over by ${diff}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h; exceeds MOE ${MOEOver}h).`,
-        );
-      } else {
-        // within MOE
-        warnings.push(
-          `${course}: over by ${diff}h but within MOE ${MOEOver}h (needed ${hoursNeeded}h, assigned ${assistantHoursAssigned}h).`,
-        );
-      }
-    }
-
-    // If diff === 0, perfect match so no message
-  }
-
-  return {
-    ok: errors.length === 0,
-    errors,
-    warnings,
-    meta: {
-      ms: Math.round(performance.now() - t0),
-      rule: "Courses should have sufficient staffing.",
-    },
-  };
-}
-
-function ensureAssignedAssistantsAreQualified(
+function ensureSocialImpsAvailability(
   assignments: Allocation[],
-  courseToAssistantsPla: Record<string, Set<string>>,
-  courseToAssistantsTa: Record<string, Set<string>>,
+  plaPreferences: AssistantPreferences[],
+  taPreferences: AssistantPreferences[],
 ): ValidationResult {
   const t0 = performance.now();
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  const meetingToPlas = makeMeetingToAssistantMap(plaPreferences);
+  const meetingToTas = makeMeetingToAssistantMap(taPreferences);
+
+  // go through course staff assigned to social imps
+  // check if course staff available under "T-F 3:00 PM - 4:50 PM" or	"T-F 4:00 PM - 5:50 PM"
 
   for (const assignment of assignments) {
     const key = assignment.Section.Course;
-
-    const taSet = courseToAssistantsTa[key];
-    if (!taSet) {
+    if (key !== "CS 3043") {
       continue;
     }
-
-    const plaSet = courseToAssistantsPla[key];
-    if (!plaSet) {
-      continue;
+    const subsection = assignment.Section.Subsection;
+    const time = assignment["Meeting Pattern(s)"];
+    if (typeof time !== "string") {
+      throw new Error(
+        `Expected meeting pattern to be a string for CS 3043 ${subsection}, got ${time}`,
+      );
     }
 
-    for (const ta of assignment.TAs) {
-      const id = personKey(ta);
-      if (!taSet.has(id)) {
-        errors.push(`TA "${id}" is not qualified for ${key}.`);
+    const plas = meetingToPlas[time];
+    if (plas) {
+      // plas assigned to social imps
+      for (const pla of assignment.PLAs) {
+        const id = personKey(pla);
+        //if pla preference of course [time] is false, push error
+        const available = plas.some((p) => personKey(p) === id);
+        if (!available) {
+          errors.push(
+            `PLA ${id} assigned to CS 3043 ${subsection} is not available during ${time}.`,
+          );
+        }
       }
     }
 
-    for (const pla of assignment.PLAs) {
-      const id = personKey(pla);
-      if (!plaSet.has(id)) {
-        errors.push(`PLA "${id}" is not qualified for ${key}.`);
+    // this check is not necessary for current data because TAs cannot be assigned to CS 3043
+    // kept for redundancy
+    const tas = meetingToTas[time];
+    if (tas) {
+      // tas assigned to social imps
+      for (const ta of assignment.TAs) {
+        const id = personKey(ta);
+        //if ta preference of course [time] is false, push error
+        const available = tas.some((p) => personKey(p) === id);
+        if (!available) {
+          errors.push(
+            `TA ${id} assigned to CS 3043 ${subsection} is not available during ${time}.`,
+          );
+        }
       }
-    }
-  }
-  return {
-    ok: errors.length === 0,
-    errors,
-    warnings,
-    meta: {
-      ms: Math.round(performance.now() - t0),
-      rule: "Assistants should only be assigned to courses that they are qualified for.",
-    },
-  };
-}
-
-function ensureAssignedTAsAndPLAsAreAvailable(
-  assignments: Allocation[],
-  plaAvailableSet: Set<string>,
-  taAvailableSet: Set<string>,
-): ValidationResult {
-  const t0 = performance.now();
-  const errors: string[] = [];
-
-  for (const assignment of assignments) {
-    const courseFullName = sectionKey(assignment.Section);
-
-    for (const pla of assignment.PLAs) {
-      const fullName = personKey(pla);
-      if (!plaAvailableSet.has(fullName)) {
-        errors.push(
-          `PLA "${fullName}" assigned to ${courseFullName} does not exist in PLA preferences or is unavailable for this term.`,
-        );
-      }
-    }
-
-    for (const ta of assignment.TAs) {
-      const fullName = personKey(ta);
-      if (!taAvailableSet.has(fullName)) {
-        errors.push(
-          `TA "${fullName}" assigned to ${courseFullName} does not exist in TA preferences.`, // TAs should always be available
-        );
-      }
-    }
-  }
-
-  return {
-    ok: errors.length === 0,
-    errors,
-    warnings: [],
-    meta: {
-      ms: Math.round(performance.now() - t0),
-      rule: "Assigned assistant exists and is available for this term.",
-    },
-  };
-}
-
-function ensureAssistantsAreAssignedToOnlyOneClass(
-  assignments: Allocation[],
-): ValidationResult {
-  const t0 = performance.now();
-  const plaSet = new Set();
-  const taSet = new Set();
-  const glaSet = new Set();
-
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  for (const assignment of assignments) {
-    const courseFullName = sectionKey(assignment.Section);
-
-    for (const pla of assignment.PLAs) {
-      const fullName = personKey(pla);
-      if (plaSet.has(fullName))
-        errors.push(`PLA "${fullName}" is duplicated in ${courseFullName}.`);
-      else plaSet.add(fullName);
-    }
-
-    for (const gla of assignment.GLAs) {
-      const fullName = personKey(gla);
-      if (glaSet.has(fullName))
-        warnings.push(`GLA "${fullName}" is duplicated in ${courseFullName}.`);
-      else glaSet.add(fullName);
-    }
-
-    for (const ta of assignment.TAs) {
-      const fullName = personKey(ta);
-      if (taSet.has(fullName))
-        errors.push(`TA "${fullName}" is duplicated in ${courseFullName}.`);
-      else taSet.add(fullName);
     }
   }
 
@@ -233,7 +120,7 @@ function ensureAssistantsAreAssignedToOnlyOneClass(
     warnings,
     meta: {
       ms: Math.round(performance.now() - t0),
-      rule: "Assistant is assigned to only one class.",
+      rule: "CS 3043 assistants must be available for the course time.",
     },
   };
 }

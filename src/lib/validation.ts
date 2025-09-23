@@ -1,8 +1,10 @@
 import {
   COURSE_RE,
+  MEETING_RE,
   type Allocation,
   type AllocationWithoutAssistants,
   type Assignment,
+  type Assistant,
   type AssistantPreferences,
 } from "@/types/excel";
 
@@ -30,16 +32,32 @@ export function mergeAllocationsAndAssignments(
 }
 
 export function makeCourseToAssistantMap(data: AssistantPreferences[]) {
-  const courseMap: Record<string, Set<string>> = {};
+  const courseMap: Record<string, AssistantPreferences[]> = {};
 
+  // if the key is like "CS 2023" and the value at that key is true,
+  // add that assistant to the available list of assistants for that course
   for (const student of data) {
     for (const [key, value] of Object.entries(student)) {
       if (COURSE_RE.test(key) && value === true) {
-        courseMap[key] ??= new Set();
-        courseMap[key].add(personKey(student));
+        (courseMap[key] ??= []).push(student);
       }
     }
   }
+
+  return courseMap;
+}
+
+export function makeMeetingToAssistantMap(data: AssistantPreferences[]) {
+  const courseMap: Record<string, AssistantPreferences[]> = {};
+
+  for (const student of data) {
+    for (const [key, value] of Object.entries(student)) {
+      if (MEETING_RE.test(key) && value === true) {
+        (courseMap[key] ??= []).push(student);
+      }
+    }
+  }
+
   return courseMap;
 }
 
@@ -51,6 +69,6 @@ export function sectionKey(section: {
   return `${section.Course}-${section.Subsection}`;
 }
 
-export function personKey<T extends { First: string; Last: string }>(s: T) {
+export function personKey(s: Partial<Assistant>) {
   return `${s.First} ${s.Last}`;
 }

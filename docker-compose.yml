@@ -13,4 +13,3 @@ services:
     env_file:
       - .env
     image: t3-app
-

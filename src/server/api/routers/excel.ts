@@ -9,6 +9,7 @@ import {
   type Assignment,
 } from "@/types/excel";
 import type { EditorFile } from "@/types/editor";
+import type { ValidationResult } from "@/types/validation";
 import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
 import { mergeAllocationsAndAssignments } from "@/lib/validation";
 
@@ -21,6 +22,7 @@ export const excelRoute = createTRPCRouter({
         .pipe(ExcelFileToJsonInputSchema),
     )
     .mutation(async ({ input }) => {
+      const t0 = performance.now();
       const workbooks = await Promise.all(
         ExcelInputFiles.map(async (key) => {
           const wb = await excelFileToWorkbook(input[key]);
@@ -29,6 +31,10 @@ export const excelRoute = createTRPCRouter({
       );
 
       const files: EditorFile[] = [];
+      const parseErrors: string[] = [];
+      const parseWarnings: string[] = [];
+      let totalRowsParsed = 0;
+      let totalRowsWithErrors = 0;
 
       // hold these to merge later
       let allocationsRows: AllocationWithoutAssistants[] | null = null;
@@ -49,9 +55,14 @@ export const excelRoute = createTRPCRouter({
               "Assignments",
               "Allocations",
             ])
-            .safeParse(isSingleSheet ? originalName : sheetName); // Use workbook filename if only one sheet, otherwise sheet name
+            .safeParse(isSingleSheet ? originalName : sheetName);
 
-          if (!baseName.success) continue;
+          if (!baseName.success) {
+            parseWarnings.push(
+              `Skipped sheet "${sheetName}" in ${originalName} `,
+            );
+            continue;
+          }
 
           const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
             ws,
@@ -63,48 +74,126 @@ export const excelRoute = createTRPCRouter({
             },
           );
 
+          if (rawRows.length === 0) {
+            parseWarnings.push(`Sheet "${baseName.data}" is empty.`);
+            continue;
+          }
+
           const sanitizedRows = sanitizeSheet(rawRows);
+          totalRowsParsed += sanitizedRows.length;
 
           const schemaForSheet = ExcelSheetSchema[baseName.data];
-          const rowResults = sanitizedRows.map((row) => {
+          const rowResults = sanitizedRows.map((row, index) => {
             const res = schemaForSheet.safeParse(row);
-            if (res.success) return { ok: true, value: res.data };
-            else return { ok: false, value: row };
+            if (res.success) {
+              return { ok: true as const, value: res.data };
+            } else {
+              const rowNum = index + 2; // +2 because Excel is 1-indexed and we skip header
+              const errorDetails = res.error.issues
+                .map(
+                  (issue) =>
+                    `${issue.path.join(".") || "row"}: ${issue.message}`,
+                )
+                .join("; ");
+              parseErrors.push(
+                `${baseName.data} row ${rowNum}: ${errorDetails}`,
+              );
+              return { ok: false as const, value: row };
+            }
           });
 
-          const mergedRows = rowResults.map((r) => r.value);
+          // Keep ALL rows (both valid and invalid) for the JSON editor
+          const allRows = rowResults.map((r) => r.value);
+          const rowErrorCount = rowResults.filter((r) => !r.ok).length;
+          totalRowsWithErrors += rowErrorCount;
+
+          if (rowErrorCount > 0) {
+            parseWarnings.push(
+              `${baseName.data}: ${rowErrorCount} out of ${sanitizedRows.length} rows had validation errors.`,
+            );
+          }
 
           // capture Allocations / Assignments and don't emit yet
+          // For merging, we need only valid rows, but for display we keep all
           if (baseName.data === "Allocations") {
-            allocationsRows = mergedRows as AllocationWithoutAssistants[];
+            allocationsRows = rowResults
+              .filter((r) => r.ok)
+              .map((r) => r.value) as AllocationWithoutAssistants[];
+            // Still push to files for editor display (with invalid rows)
+            files.push({
+              filename: baseName.data,
+              language: "json",
+              code: JSON.stringify(allRows, null, 2),
+            });
             continue;
           }
           if (baseName.data === "Assignments") {
-            assignmentsRows = mergedRows as Assignment[];
+            assignmentsRows = rowResults
+              .filter((r) => r.ok)
+              .map((r) => r.value) as Assignment[];
+            // Still push to files for editor display (with invalid rows)
+            files.push({
+              filename: baseName.data,
+              language: "json",
+              code: JSON.stringify(allRows, null, 2),
+            });
             continue;
           }
 
-          // only push preference files here
+          // preference files - keep all rows including invalid ones
           files.push({
             filename: baseName.data,
             language: "json",
-            code: JSON.stringify(mergedRows, null, 2),
+            code: JSON.stringify(allRows, null, 2),
           });
         }
       }
 
+      // Merge allocations and assignments if we have allocations
+      // Note: We already added Allocations to files above, but we need to create
+      // a merged version as well for the final Allocations file
       if (allocationsRows) {
-        const merged = mergeAllocationsAndAssignments(
-          allocationsRows,
-          assignmentsRows ?? [], // if no assignments passed in, default as empty array
-        );
-        files.push({
-          filename: "Allocations",
-          language: "json",
-          code: JSON.stringify(merged, null, 2),
-        });
+        try {
+          const merged = mergeAllocationsAndAssignments(
+            allocationsRows,
+            assignmentsRows ?? [], // if no assignments passed in, default as empty array
+          );
+
+          // Replace the Allocations file with the merged version
+          const allocationsIndex = files.findIndex(
+            (f) => f.filename === "Allocations",
+          );
+          if (allocationsIndex >= 0) {
+            files[allocationsIndex] = {
+              filename: "Allocations",
+              language: "json",
+              code: JSON.stringify(merged, null, 2),
+            };
+          } else {
+            files.unshift({
+              filename: "Allocations",
+              language: "json",
+              code: JSON.stringify(merged, null, 2),
+            });
+          }
+        } catch (error) {
+          parseErrors.push(
+            `Failed to merge Allocations and Assignments: ${String(error)}`,
+          );
+        }
       }
 
-      return { files };
+      // Create parse result
+      const parseResult: ValidationResult = {
+        ok: parseErrors.length === 0,
+        errors: parseErrors,
+        warnings: parseWarnings,
+        meta: {
+          ms: Math.round(performance.now() - t0),
+          rule: `Excel parsing completed. ${totalRowsParsed} total rows processed, ${totalRowsWithErrors} rows with errors.`,
+        },
+      };
+
+      return { files, parseResult };
     }),
 });

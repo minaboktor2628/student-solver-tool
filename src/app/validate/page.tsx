@@ -27,7 +27,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { ValidationResult } from "@/types/validation";
@@ -42,15 +41,19 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { Kbd, KbdKey } from "@/components/ui/shadcn-io/kbd";
 
 export default function ValidationPage() {
-  const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true);
+  const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true, {
+    initializeWithValue: false,
+  });
+
   const [areAllFilesValid, setAreAllFilesValid] = useLocalStorage(
     "validation:allValid",
     false,
+    { initializeWithValue: false },
   );
 
   const [validationResults, setValidationResults] = useLocalStorage<
     ValidationResult[]
-  >("validation:results", []);
+  >("validation:results", [], { initializeWithValue: false });
 
   const [editorFiles, setEditorFiles] = useLocalStorage<EditorFile[]>(
     "validation:editorFiles",
@@ -69,7 +72,10 @@ export default function ValidationPage() {
 
   const parserApi = api.excel.parseExcelWorkbooks.useMutation({
     onError: (error) => toast.error(error.message),
-    onSuccess: ({ files }) => setEditorFiles(files),
+    onSuccess: ({ files, parseResult }) => {
+      setEditorFiles(files);
+      setValidationResults([parseResult]);
+    },
   });
 
   const validationApi = api.validate.validateFullSolution.useMutation({
@@ -177,14 +183,14 @@ export default function ValidationPage() {
               api={{ ...exportApi }}
             />
           </div>
-          <CollapsibleTrigger asChild>
+          <CollapsibleTrigger asChild title="Show/hide the excel upload forms.">
             <Button variant="outline" size="sm" className="h-8 px-2">
               <ChevronsUpDown className="mr-1 size-4" />
               <span className="text-xs">{isOpen ? "Hide" : "Show"}</span>
             </Button>
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="border-b px-2 py-2">
+        <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden border-b px-2 py-2">
           <div className="flex flex-col space-y-2">
             <div className="flex flex-col gap-2 sm:flex-row">
               {ExcelInputFiles.map((name) => (
@@ -232,28 +238,22 @@ function UploadExcelFilesButton({
   api,
 }: ValidationPageButtonProps) {
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="flex-1">
-            <Button
-              className="w-full"
-              onClick={handleClick}
-              disabled={disabled}
-            >
-              {api.isPending ? <LoadingSpinner /> : "Upload"}
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>
-            {disabled
-              ? "Select all required Excel files before uploading"
-              : "Upload the Excel workbooks"}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="flex-1">
+          <Button className="w-full" onClick={handleClick} disabled={disabled}>
+            {api.isPending ? <LoadingSpinner size="sm" /> : "Upload"}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>
+          {disabled
+            ? "Select all required Excel files before uploading"
+            : "Upload the Excel workbooks"}
+        </p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -263,7 +263,7 @@ function ExportButton({
   api,
 }: ValidationPageButtonProps) {
   useHotkeys(
-    "ctrl+shift+e",
+    "alt+e",
     (event) => {
       event.preventDefault();
       if (!disabled) handleClick();
@@ -276,36 +276,29 @@ function ExportButton({
   );
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="flex-1">
-            <Button
-              className="w-full"
-              onClick={handleClick}
-              disabled={disabled}
-            >
-              {api.isPending ? <LoadingSpinner /> : "Export"}
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          {disabled ? (
-            <p>Upload Excel files and fix all their errors before exporting.</p>
-          ) : (
-            <p className="max-w-sm">
-              Press{" "}
-              <Kbd>
-                <KbdKey aria-label="Meta">⌘</KbdKey>
-                <KbdKey>Shift</KbdKey>
-                <KbdKey>E</KbdKey>
-              </Kbd>{" "}
-              to export.
-            </p>
-          )}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="flex-1">
+          <Button className="w-full" onClick={handleClick} disabled={disabled}>
+            {api.isPending ? <LoadingSpinner size="sm" /> : "Export"}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {disabled ? (
+          <p>Upload Excel files and fix all their errors before validating.</p>
+        ) : (
+          <p className="max-w-sm">
+            Press{" "}
+            <Kbd>
+              <KbdKey aria-label="Meta">Alt</KbdKey>
+              <KbdKey>E</KbdKey>
+            </Kbd>{" "}
+            to export.
+          </p>
+        )}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -315,7 +308,7 @@ function ValidateButton({
   api,
 }: ValidationPageButtonProps) {
   useHotkeys(
-    "ctrl+shift+v",
+    "alt+v",
     (event) => {
       event.preventDefault();
       if (!disabled) handleClick();
@@ -328,38 +321,29 @@ function ValidateButton({
   );
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="flex-1">
-            <Button
-              className="w-full"
-              onClick={handleClick}
-              disabled={disabled}
-            >
-              {api.isPending ? <LoadingSpinner /> : "Validate"}
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          {disabled ? (
-            <p>
-              Upload Excel files and fix all their errors before validating.
-            </p>
-          ) : (
-            <p className="max-w-sm">
-              Press{" "}
-              <Kbd>
-                <KbdKey aria-label="Meta">⌘</KbdKey>
-                <KbdKey>Shift</KbdKey>
-                <KbdKey>V</KbdKey>
-              </Kbd>{" "}
-              to run validation.
-            </p>
-          )}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="flex-1">
+          <Button className="w-full" onClick={handleClick} disabled={disabled}>
+            {api.isPending ? <LoadingSpinner size="sm" /> : "Validate"}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {disabled ? (
+          <p>Upload Excel files and fix all their errors before validating.</p>
+        ) : (
+          <p className="max-w-sm">
+            Press{" "}
+            <Kbd>
+              <KbdKey aria-label="Meta">Alt</KbdKey>
+              <KbdKey>V</KbdKey>
+            </Kbd>{" "}
+            to run validation.
+          </p>
+        )}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
