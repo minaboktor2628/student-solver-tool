@@ -14,6 +14,13 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum Role {
+  PLA
+  TA
+  COORDINATOR
+  PROFESSOR
+}
+
 // Necessary for Next auth
 model User {
   id            String    @id @default(cuid())
@@ -23,7 +30,7 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  roles         String[]
+  roles         Role[]
 }
 
 model Account {
