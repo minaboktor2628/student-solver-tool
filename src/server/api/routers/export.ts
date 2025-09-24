@@ -38,32 +38,38 @@ export const exportRoute = createTRPCRouter({
 
       const processedData = data.map((row: Assignment) => ({
         "Academic Period": row["Academic Period"],
-        "Course": `${row.Section?.Course ?? ""}-${row.Section?.Subsection ?? ""} - ${row.Section?.Title ?? ""}`,
+        Course: `${row.Section?.Course ?? ""}-${row.Section?.Subsection ?? ""} - ${row.Section?.Title ?? ""}`,
         "Meeting Pattern(s)": row["Meeting Pattern(s)"],
-        "Instructors": row.Instructors,
-        "PLAs": Array.isArray(row.PLAs)
+        Instructors: row.Instructors,
+        PLAs: Array.isArray(row.PLAs)
           ? row.PLAs.map(
               (p: Partial<Assistant>) => `${p.Last}, ${p.First}`,
             ).join("; ")
           : "",
-        "TAs": Array.isArray(row.TAs)
+        TAs: Array.isArray(row.TAs)
           ? row.TAs.map(
               (p: Partial<Assistant>) => `${p.Last}, ${p.First}`,
             ).join("; ")
           : "",
-        "GLAs": Array.isArray(row.GLAs)
+        GLAs: Array.isArray(row.GLAs)
           ? row.GLAs.map(
               (p: Partial<Assistant>) => `${p.Last}, ${p.First}`,
             ).join("; ")
           : "",
       }));
-      type ProcessedAssignment =  
-      Omit<
+      type ProcessedAssignment = Omit<
         Assignment,
-        "Section" | "CrossListed" | "Reserved Cap" | "Cap Breakdown" | "Section Cap" | "Enrollment" | "Waitlist Count" | "PLAs" | "TAs" | "GLAs"
-      >
-      
-      & {
+        | "Section"
+        | "CrossListed"
+        | "Reserved Cap"
+        | "Cap Breakdown"
+        | "Section Cap"
+        | "Enrollment"
+        | "Waitlist Count"
+        | "PLAs"
+        | "TAs"
+        | "GLAs"
+      > & {
         Course: string;
         PLAs: string;
         TAs: string;
