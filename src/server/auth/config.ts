@@ -95,13 +95,19 @@ const providers: NextAuthConfig["providers"] = [
 
             const email = `${pwd}@wpi.edu`;
 
-            return {
-              email,
-              name: pwd,
-              image:
-                "https://avatars.githubusercontent.com/u/67470890?s=200&v=4",
-              roles,
-            };
+            const user = await db.user.upsert({
+              where: { email },
+              update: { roles: { set: roles } },
+              create: {
+                email,
+                name: pwd,
+                image:
+                  "https://avatars.githubusercontent.com/u/67470890?s=200&v=4",
+                roles,
+              },
+            });
+
+            return user;
           },
         }),
       ]
