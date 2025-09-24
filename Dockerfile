@@ -10,7 +10,7 @@ COPY prisma ./
 
 # Install dependencies 
 
-COPY package.json pnpm-lock.yaml\* source.config.ts ./
+COPY package.json pnpm-lock.yaml\* ./
 RUN corepack enable && pnpm i
 
 ##### BUILDER
