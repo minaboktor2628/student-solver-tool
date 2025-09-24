@@ -9,7 +9,7 @@ export default function Layout(props: LayoutProps<"/docs">) {
       themeSwitch={{ enabled: false }}
       {...baseOptions()}
     >
-      {props.children}
+      <div className="-mt-[var(--fd-nav-height)]">{props.children}</div>
     </DocsLayout>
   );
 }
