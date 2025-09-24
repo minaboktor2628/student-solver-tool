@@ -57,18 +57,11 @@ export const exportRoute = createTRPCRouter({
             ).join("; ")
           : "",
       }));
-      type ProcessedAssignment = Omit<
+      type ProcessedAssignment = Pick<
         Assignment,
-        | "Section"
-        | "CrossListed"
-        | "Reserved Cap"
-        | "Cap Breakdown"
-        | "Section Cap"
-        | "Enrollment"
-        | "Waitlist Count"
-        | "PLAs"
-        | "TAs"
-        | "GLAs"
+        | "Academic Period"
+        | "Meeting Pattern(s)"
+        | "Instructors"
       > & {
         Course: string;
         PLAs: string;
