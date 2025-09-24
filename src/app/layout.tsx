@@ -8,6 +8,8 @@ import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthButton } from "@/components/auth-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { env } from "@/env";
+import DevDock from "@/components/dev-dock";
 
 export const metadata: Metadata = {
   title: "SST",
@@ -33,6 +35,8 @@ const links: NavbarNavItem[] = [
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const enableDevDock = env.NODE_ENV !== "production";
+
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
       <body className="flex h-dvh flex-col">
@@ -47,6 +51,7 @@ export default function RootLayout({
                 className="shrink-0"
               />
               <main className="min-h-0 flex-1">{children}</main>
+              {enableDevDock && <DevDock />}
             </TRPCReactProvider>
           </ThemeProvider>
         </TooltipProvider>
