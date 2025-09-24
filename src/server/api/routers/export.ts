@@ -59,9 +59,7 @@ export const exportRoute = createTRPCRouter({
       }));
       type ProcessedAssignment = Pick<
         Assignment,
-        | "Academic Period"
-        | "Meeting Pattern(s)"
-        | "Instructors"
+        "Academic Period" | "Meeting Pattern(s)" | "Instructors"
       > & {
         Course: string;
         PLAs: string;
