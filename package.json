@@ -24,6 +24,11 @@
     "cypress:open": "cypress open",
     "prepare": "husky"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,md,mdx,json,css}": [
+      "prettier --write"
+    ]
+  },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
     "@hookform/resolvers": "^5.2.1",
@@ -110,6 +115,7 @@
     "eslint-config-next": "^15.2.3",
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
+    "lint-staged": "^16.2.0",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
