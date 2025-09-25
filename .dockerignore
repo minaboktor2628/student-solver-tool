@@ -4,5 +4,6 @@ Dockerfile
 node_modules
 npm-debug.log
 README.md
+paper
 .next
 .git

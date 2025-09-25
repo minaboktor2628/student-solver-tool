@@ -1,0 +1,31 @@
+\section{Introduction} % Introduce the problem (ta/pla scheduling issue) and for now our current goal (just creating the validator) - around one page 
+Assigning student staff to courses in a large computer science department is a complex and constraint-heavy task.
+Each academic term, Prof.~Ahrens, the department’s current SATA Coordinator,
+must assign Student Assistants (SAs/PLAs), Teaching Assistants (TAs), and Graduate Learning Assistants (GLAs)
+to courses based on multiple factors, including student abilities, student preferences, instructor requirements,
+and various ad-hoc constraints.
+While some constraints remain consistent across terms, others shift,
+producing a dynamic assignment problem that resists simple codification.
+At present, these assignments are managed manually through spreadsheets.
+This process requires the coordinator to check assignments by hand,
+ensuring that no constraint has been violated---a task that quickly becomes analogous to solving a large,
+irregular sudoku puzzle.
+In addition, staffing needs must be estimated based on enrollment projections and the availability of student staff,
+often with incomplete information.
+As both enrollment numbers and the pool of student staff increase,
+this manual approach grows increasingly inefficient, error-prone,
+and difficult to scale.
+The \tool was developed as a first step toward addressing this challenge.
+Rather than immediately attempting to replace the manual process with a full constraint solver,
+the validator serves as a tool to analyze existing spreadsheet assignments and detect inconsistencies
+or violations of defined rules.
+In this way, it acts as a lightweight satisfiability checker:
+given an assignment and a set of constraints, does the current solution hold?
+While the initial iteration focuses on validation,
+the underlying approach anticipates integration with more advanced methods such
+as satisfiability solving and probabilistic reasoning to automate assignments in future iterations.
+The goal of this project was to design and implement a validator that can operate on current
+spreadsheet-based artifacts, provide transparent error feedback,
+and lay the groundwork for eventual extensions, including guided debugging and automated constraint solving.
+The remainder of this paper will present the background on course assignment challenges,
+the design and implementation of the Ahrens Validator, and an evaluation of its effectiveness in supporting the SATA coordination process.

@@ -1,0 +1,46 @@
+\documentclass[11pt]{article}
+
+\input{preamble/packages}
+\input{preamble/commands}
+\input{preamble/layout}
+
+\addbibresource{bib/references.bib}
+
+\begin{document}
+
+\begin{titlepage}
+	\centering
+	% Logo
+	\includegraphics[width=0.6\textwidth]{wpi-logo}\par\vspace{2cm}
+
+	% Title
+	{\Huge \bfseries Student Solver Tool \par}
+	\vspace{1.5cm}
+
+	% Authors
+	{\Large Mina Boktor \\ Jacob Burns \\ Ethan Knorring \\ Ryan Addeche \par}
+	\vspace{1cm}
+
+	% Advisors
+	{\large Advisors: \\ Prof. Mathew Aherns, \\ Prof. Yu-Shan Sun\par}
+	\vfill
+
+	% Footer note
+	{\small This report represents the work of WPI undergraduate students submitted to the faculty as evidence of completion of a degree requirement. WPI routinely publishes these reports on its website without editorial or peer review. For more information about the projects program at WPI, please see \url{http://www.wpi.edu/academics/ugradstudies/project-learning.html}\par}
+
+	% Date
+	\vspace{1cm}
+	{\large \today \par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/methodology}
+\input{sections/future-work}
+
+\printbibliography
+\end{document}
+

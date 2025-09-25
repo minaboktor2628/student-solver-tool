@@ -20,14 +20,23 @@ export function mergeAllocationsAndAssignments(
   return allocations.map((alloc) => {
     const assignment = assignmentMap.get(sectionKey(alloc.Section));
 
-    return {
-      ...alloc,
-      ...(assignment ?? {
+    if (assignment) {
+      // Merge allocation properties with assignment assistants
+      return {
+        ...alloc, // Keep all allocation properties
+        TAs: assignment.TAs || [],
+        PLAs: assignment.PLAs || [],
+        GLAs: assignment.GLAs || [],
+      };
+    } else {
+      // No assignment found, use empty arrays
+      return {
+        ...alloc,
         TAs: [],
         PLAs: [],
         GLAs: [],
-      }),
-    };
+      };
+    }
   });
 }
 

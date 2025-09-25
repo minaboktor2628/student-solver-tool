@@ -39,6 +39,7 @@ import { ValidationResultsDisplay } from "@/components/validation-results-displa
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Kbd, KbdKey } from "@/components/ui/shadcn-io/kbd";
+import { downloadSheet } from "@/lib/xlsx";
 
 export default function ValidationPage() {
   const [isOpen, setIsOpen] = useLocalStorage("validation:isOpen", true, {
@@ -90,17 +91,8 @@ export default function ValidationPage() {
         toast.error("No data to export.");
         return;
       }
-      const blob = new Blob([data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Assignments.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+
+      downloadSheet(data, "Assignments");
     },
   });
 

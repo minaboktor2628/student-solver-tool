@@ -225,18 +225,25 @@ function registerAllocationSnippets(monaco: Monaco) {
     course: string,
   ) {
     const header = `**Insert** ***${first} ${last}*** into ${course}`;
-    if (!comments) return header;
-    const quoted = comments
-      .trim()
-      .split(/\r?\n/)
-      .map((l) => `> ${l}`)
-      .join("\n");
-    return (
-      `${header}\n\n---\n**Comments:**\n\n${quoted}` +
-      +"\n\n---\n\n**Tip**:\n\n" +
+
+    let body = "";
+
+    if (comments?.trim()) {
+      const quoted = comments
+        .trim()
+        .split(/\r?\n/)
+        .map((l) => `> ${l}`)
+        .join("\n");
+
+      body += `\n\n---\n**Comments:**\n\n${quoted}`;
+    }
+
+    const tip =
+      "\n\n---\n\n**Tip**:\n\n" +
       'Once you are sure where an assistant is going to be placed, set their `"Locked"` field to `true`.\n' +
-      "Doing so will remove an assistant from the auto complete list."
-    );
+      "Doing so will remove an assistant from the auto complete list.";
+
+    return header + body + tip;
   }
 
   return monaco.languages.registerCompletionItemProvider("json", {
@@ -340,9 +347,9 @@ function registerAllocationSnippets(monaco: Monaco) {
           label: {
             label: `${First} ${Last}`,
             // detail: ` RANK`,
-            description: `Qualified • available`,
+            description: `☑️ Available`,
           },
-          kind: monaco.languages.CompletionItemKind.Snippet,
+          kind: monaco.languages.CompletionItemKind.User,
           insertTextRules:
             monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           insertText: objectSnippet(buildInsert(First, Last)),
@@ -420,9 +427,9 @@ function registerAllocationSnippets(monaco: Monaco) {
           label: {
             label: `${First} ${Last}`,
             // detail: ` RANK`,
-            description: `Qualified • in ${prevSummary}`,
+            description: `⚠️ ${prevSummary}`,
           },
-          kind: monaco.languages.CompletionItemKind.Snippet,
+          kind: monaco.languages.CompletionItemKind.Reference,
           insertTextRules:
             monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           insertText: objectSnippet(buildInsert(First, Last)),
@@ -430,6 +437,7 @@ function registerAllocationSnippets(monaco: Monaco) {
           filterText: `${First} ${Last}`,
           additionalTextEdits,
           detail: `⚠️ This will remove "${First} ${Last}" from ${prevDetail}.`,
+          tags: [monaco.languages.CompletionItemTag.Deprecated],
           sortText: "1", // shown beneath unassigned
           range,
         });

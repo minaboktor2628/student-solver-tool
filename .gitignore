@@ -49,3 +49,7 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# Fumadocs generated
+.source
+
