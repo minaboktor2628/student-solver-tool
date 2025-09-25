@@ -1,10 +1,5 @@
 // validation router
-import {
-  makeCourseToAssistantMap,
-  makeMeetingToAssistantMap,
-  personKey,
-  sectionKey,
-} from "@/lib/validation";
+import { makeMeetingToAssistantMap, personKey } from "@/lib/validation";
 import {
   ensureCourseNeedsAreMet,
   ensureAssignedAssistantsAreQualified,

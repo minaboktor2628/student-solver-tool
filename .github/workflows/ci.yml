@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SKIP_ENV_VALIDATION: true
+      NEXT_TELEMETRY_DISABLED: 1
       CI: true
     steps:
       - uses: actions/checkout@v4
@@ -25,11 +26,14 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: ".nvmrc"
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Next types
+        run: pnpm run typegen
 
       - name: Lint check
         run: pnpm run lint
