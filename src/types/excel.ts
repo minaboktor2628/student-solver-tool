@@ -8,7 +8,7 @@ import {
 import { isExcelName, isExcelType } from "@/lib/utils";
 import z from "zod";
 
-// For backend validation
+// For backend validation.
 export const ExcelFileSchema = z
   .instanceof(File)
   .refine((f) => f.size > 0, "File must not be empty.")
@@ -82,9 +82,21 @@ const normalizeAvailableKeys = (input: unknown) => {
 
 // For course alloc number
 export const NumberWithMOESchema = z.object({
-  Calculated: z.number(),
-  MOEOver: z.number(),
-  MOEShort: z.number(),
+  Calculated: z
+    .number()
+    .describe(
+      "Description: Calculated number of hours required per class.\n Format: Integer \nExample: 80",
+    ),
+  MOEOver: z
+    .number()
+    .describe(
+      "Description: Margin of error allowed over the calculated hours.\n Format: Integer \nExample: 10",
+    ),
+  MOEShort: z
+    .number()
+    .describe(
+      "Description: Margin of error allowed under the calculated hours. \n Format: Integer \nExample: 5",
+    ),
 });
 export type NumberWithMOE = z.infer<typeof NumberWithMOESchema>;
 
@@ -125,6 +137,9 @@ const CS_SECTION_RE =
 
 export const COURSE_RE = /^[A-Z]{2,4} \d{3,4}$/;
 
+export const MEETING_RE =
+  /^(?<days>[MTWRF](?:-[MTWRF])*)\s*\|\s*(?<start>\d{1,2}:\d{2}\s[AP]M)\s*-\s*(?<end>\d{1,2}:\d{2}\s[AP]M)$/;
+
 const SectionSchema = z.preprocess(
   (val) => {
     if (typeof val !== "string") return val;
@@ -140,70 +155,144 @@ const SectionSchema = z.preprocess(
     };
   },
   z.object({
-    Course: z.string().regex(COURSE_RE, 'Expected like "CS 1102"'),
+    Course: z
+      .string()
+      .regex(COURSE_RE, 'Expected like "CS 1102"')
+      .describe(
+        'Description: The course number.\n Format: Department + Course Number \nExample: "CS 1102"',
+      ),
     Subsection: z
       .string()
-      .regex(/^[A-Z]{1,3}\d{2,3}$/, 'Expected like "AL01" or "A01"'),
-    Title: z.string(),
+      .regex(/^[A-Z]{1,3}\d{2,3}$/, 'Expected like "AL01" or "A01"')
+      .describe(
+        'Description: The subsection code of the course. \nFormat: String \nExample: "AL01"',
+      ),
+    Title: z
+      .string()
+      .describe(
+        'Description: The title of the course. \nFormat: String \nExample: "Introduction to Program Design"',
+      ),
   }),
 );
 
 export const AllocationWithoutAssistantsSchema = z.object({
-  "Academic Period": z.string(),
-  Section: SectionSchema,
-  CrossListed: yesNoBoolean,
-  "Meeting Pattern(s)": z.string().nullable(),
-  Instructors: z.string().nullable(),
-  "Reserved Cap": z.number().nullable(),
-  "Cap Breakdown": z.string().nullable(),
-  "Section Cap": z.number().nullable(),
-  Enrollment: z.number(),
-  "Waitlist Count": z.number(),
-  "Student Hour Allocation": numberWithMOE,
+  "Academic Period": z
+    .string()
+    .describe(
+      'Description: The academic term that the course takes place in. \nFormat: Year + Season + Term \nExample: "2025 Fall A Term"',
+    ),
+  Section: SectionSchema.describe(
+    'Description: The course number, subsection code and course title.\n Format: { Course: String, Subsection: String, Title: String } \nExample: { "Course": "CS 1005", "Subsection": "AL01", "Title": "Introduction to Program Design" }',
+  ),
+  CrossListed: yesNoBoolean.describe(
+    "Description: Indicates if the course is cross-listed with another department.\n Format: true | false \nExample: false",
+  ),
+  "Meeting Pattern(s)": z
+    .string()
+    .nullable()
+    .describe(
+      'Description: The days and times the course meets.\n Format: Days | Start Time - End Time \nExample: "M-T-R-F | 10:00 AM - 10:50 AM"',
+    ),
+  Instructors: z
+    .string()
+    .nullable()
+    .describe(
+      'Description: The instructor(s) teaching the course.\n Format: Instructor Name(s) \nExample: "Joseph Quinn"',
+    ),
+  "Reserved Cap": z
+    .number()
+    .nullable()
+    .describe(
+      "Description: Number of seats reserved for certain students.\n Format: Integer \nExample: 2",
+    ),
+  "Cap Breakdown": z
+    .string()
+    .nullable()
+    .describe(
+      "Description: Breakdown of reserved seats by group, if applicable.\n Format: Object | null \nExample: 80 - reserved for Student Records - Student is a First Year for 2025-2026 or Mass Academy until 08/11/2025",
+    ),
+  "Section Cap": z
+    .number()
+    .nullable()
+    .describe(
+      "Description: The maximum number of students allowed in the section.\n Format: Integer \nExample: 80",
+    ),
+  Enrollment: z
+    .number()
+    .describe(
+      "Description: Current number of students enrolled in the section.\n Format: Integer \nExample: 75",
+    ),
+  "Waitlist Count": z
+    .number()
+    .describe(
+      "Description: Current number of students on the waitlist.\n Format: Integer \nExample: 5",
+    ),
+  "Student Hour Allocation": numberWithMOE.describe(
+    'Description: Number of student hours recommended for the course.\n Format: { Calculated: Int, MOEOver: Int, MOEShort: Int } \nExample: { "Calculated": 150, "MOEOver": 15, "MOEShort": 10 }',
+  ),
 });
 
 export const AssistantSchema = z.object({
-  First: z.string(),
-  Last: z.string(),
-  Email: z.string().email().endsWith("@wpi.edu"),
+  First: z
+    .string()
+    .describe(
+      'Description: Assistant\'s first name.\n Format: String \nExample: "Peter"',
+    ),
+  Last: z
+    .string()
+    .describe(
+      'Description: Assistant\'s last name.\n Format: String \nExample: "Parker"',
+    ),
+  Email: z
+    .string()
+    .email()
+    .endsWith("@wpi.edu")
+    .describe(
+      'Description: Assistant\'s WPI email address.\n Format: String \nExample: "pparker@wpi.edu"',
+    ),
 });
 
 export type Assistant = z.infer<typeof AssistantSchema>;
 
 const PeopleSchema = AssistantSchema.omit({ Email: true }).extend({
-  Locked: z.boolean(),
-  Hours: z.number(),
+  Locked: z
+    .boolean()
+    .describe(
+      "Description: Whether the assistant is locked to this assignment.\n Format: true | false \nExample: false",
+    ),
+  Hours: z
+    .number()
+    .describe(
+      "Description: Number of hours assigned to this assistant.\n Format: Integer \nExample: 150 \n",
+    ),
 });
 const PeopleArraySchema = z.array(PeopleSchema);
 const makePeoplePreprocessor = (defaultHours: number) =>
   z.preprocess((val) => {
     if (val == null) return [];
-    if (Array.isArray(val)) return PeopleArraySchema.parse(val); // already parsed -> pass through
 
-    if (typeof val === "string") {
-      // normalize whitespace (replace newlines/tabs/periods with comma)
-      // TODO: Should we replace periods or make it an error?
-      const normalized = val.replace(/[\n\t.]/g, ",");
-      return normalized
-        .split(";")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((entry) => {
-          const [last, first] = entry.split(",").map((s) => s.trim());
-          return {
-            First: first ?? "",
-            Last: last ?? "",
-            Locked: false,
-            Hours: defaultHours,
-          };
-        });
+    if (typeof val !== "string") {
+      return val;
     }
-
-    // Not string/array/null -> let schema fail instead of silently erasing data
-    return z.NEVER;
+    // normalize whitespace (replace newlines/tabs/periods with comma)
+    // TODO: Should we replace periods or make it an error?
+    const normalized = val.replace(/[\n\t.]/g, ",");
+    return normalized
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((entry) => {
+        const [last, first] = entry.split(",").map((s) => s.trim());
+        return {
+          First: first ?? "",
+          Last: last ?? "",
+          Locked: false,
+          Hours: defaultHours,
+        };
+      });
   }, PeopleArraySchema);
 
-export const AssistantEnumTypeSchema = z.enum(["PLAs", "GLAs", "TAs"]);
+export const AssistantEnumTypeSchema = z.enum(["PLA", "GLA", "TA"]);
 export type AssistantEnumType = z.infer<typeof AssistantEnumTypeSchema>;
 export const AssignmentSchema = AllocationWithoutAssistantsSchema.omit({
   "Student Hour Allocation": true,
@@ -219,21 +308,67 @@ export type AllocationWithoutAssistants = z.infer<
 export type Assignment = z.infer<typeof AssignmentSchema>;
 
 export const AllocationSchema = AllocationWithoutAssistantsSchema.extend({
-  TAs: PeopleArraySchema,
-  PLAs: PeopleArraySchema,
-  GLAs: PeopleArraySchema,
+  TAs: PeopleArraySchema.describe(
+    'Description: List of assigned TAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ "First": "Peter", "Last": "Parker", "Locked": false, "Hours": 150 }]',
+  ),
+  PLAs: PeopleArraySchema.describe(
+    'Description: List of assigned PLAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ "First": "Peter", "Last": "Parker", "Locked": false, "Hours": 150 }]',
+  ),
+  GLAs: PeopleArraySchema.describe(
+    'Description: List of assigned GLAs for this course.\n Format: Array of { First: String, Last: String, Locked: Boolean, Hours: Integer } \nExample: [{ "First": "Peter", "Last": "Parker", "Locked": false, "Hours": 150 }]',
+  ),
 });
 export type Allocation = z.infer<typeof AllocationSchema>;
 
+const BASE_KEYS = new Set(["First", "Last", "Email", "Comments", "Available"]);
+
+// Coerce any unknown-key value to boolean
+const coerceUnknownKeyBooleans = (input: unknown) => {
+  if (typeof input !== "object" || input === null) return input;
+  const o = { ...(input as Record<string, unknown>) };
+
+  for (const [k, v] of Object.entries(o)) {
+    if (!BASE_KEYS.has(k)) {
+      o[k] = yesNoBoolean.safeParse(v).success ? yesNoBoolean.parse(v) : !!v;
+    }
+  }
+  return o;
+};
+
 export const AssistantPreferencesSchema = z.preprocess(
-  normalizeAvailableKeys,
+  // normalize "Available..." keys
+  (val) => coerceUnknownKeyBooleans(normalizeAvailableKeys(val)),
+  //validate base fields, allow passthrough for extras
   AssistantSchema.extend({
-    Comments: z.string().nullable(),
-    // ensure "Available" exists after preprocessing
-    Available: yesNoBoolean,
+    Comments: z
+      .string()
+      .nullable()
+      .describe(
+        'Description: Additional comments from the assistant.\n Format: String | null \nExample: "CS3703 > CS1101"',
+      ),
+    Available: yesNoBoolean.describe(
+      "Description: Indicates if the assistant is available.\n Format: true | false \nExample: true",
+    ), // guaranteed to exist via normalizeAvailableKeys
   })
-    // every other key (courses, timeslots, etc.) -> boolean
-    .catchall(yesNoBoolean),
+    .passthrough()
+    // enforce that every *extra* key matches COURSE_RE or MEETING_RE
+    .superRefine((obj, ctx) => {
+      for (const key of Object.keys(obj)) {
+        if (BASE_KEYS.has(key)) continue;
+
+        const isCourse = COURSE_RE.test(key);
+        const isMeeting = MEETING_RE.test(key);
+
+        if (!isCourse && !isMeeting) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message:
+              'Key must be a course like "CS 1102" or a meeting like "M-T-R-F | 9:00 AM - 9:50 AM"',
+          });
+        }
+      }
+    }),
 );
 export type AssistantPreferences = z.infer<typeof AssistantPreferencesSchema>;
 
