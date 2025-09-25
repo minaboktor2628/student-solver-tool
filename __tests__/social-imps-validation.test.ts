@@ -207,14 +207,18 @@ describe("CS 3043 Social Implications Validation", () => {
 
       expect(result.ok).toBe(false);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("PLA Alex Bregman assigned to CS 3043 B01 is not available during T-F | 4:00 PM - 5:50 PM");
+      expect(result.errors[0]).toContain(
+        "PLA Alex Bregman assigned to CS 3043 B01 is not available during T-F | 4:00 PM - 5:50 PM",
+      );
     });
 
     it("should pass when TA is available for the meeting time", () => {
       const assignments = [
         createAllocation({
           "Meeting Pattern(s)": "T-F | 3:00 PM - 4:50 PM",
-          TAs: [{ First: "Kristian", Last: "Campbell", Locked: false, Hours: 50 }],
+          TAs: [
+            { First: "Kristian", Last: "Campbell", Locked: false, Hours: 50 },
+          ],
         }),
       ];
 
@@ -259,7 +263,9 @@ describe("CS 3043 Social Implications Validation", () => {
 
       expect(result.ok).toBe(false);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("TA Brock Holt assigned to CS 3043 A01 is not available during T-F | 4:00 PM - 5:50 PM");
+      expect(result.errors[0]).toContain(
+        "TA Brock Holt assigned to CS 3043 A01 is not available during T-F | 4:00 PM - 5:50 PM",
+      );
     });
 
     it("should ignore courses that are not CS 3043", () => {
@@ -271,7 +277,9 @@ describe("CS 3043 Social Implications Validation", () => {
             Title: "Introduction to Programming",
           },
           "Meeting Pattern(s)": "M-W-F | 9:00 AM - 9:50 AM",
-          PLAs: [{ First: "Garrett", Last: "Whitlock", Locked: false, Hours: 25 }],
+          PLAs: [
+            { First: "Garrett", Last: "Whitlock", Locked: false, Hours: 25 },
+          ],
         }),
       ];
 
@@ -373,11 +381,17 @@ describe("CS 3043 Social Implications Validation", () => {
         }),
       ];
 
-      const result = ensureSocialImpsAvailability(assignments, plaPrefs, taPrefs);
+      const result = ensureSocialImpsAvailability(
+        assignments,
+        plaPrefs,
+        taPrefs,
+      );
 
       expect(result.ok).toBe(false);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("PLA Alex Bregman assigned to CS 3043 A01 is not available");
+      expect(result.errors[0]).toContain(
+        "PLA Alex Bregman assigned to CS 3043 A01 is not available",
+      );
     });
 
     it("should handle assistants with no preferences for the meeting time", () => {
@@ -401,7 +415,9 @@ describe("CS 3043 Social Implications Validation", () => {
 
       expect(result.ok).toBe(false);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("PLA Rafael Devers assigned to CS 3043 A01 is not available during T-F | 3:00 PM - 4:50 PM");
+      expect(result.errors[0]).toContain(
+        "PLA Rafael Devers assigned to CS 3043 A01 is not available during T-F | 3:00 PM - 4:50 PM",
+      );
     });
 
     it("should handle assistants not in preferences at all", () => {
@@ -425,7 +441,9 @@ describe("CS 3043 Social Implications Validation", () => {
 
       expect(result.ok).toBe(false);
       expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("PLA Marcelo Mayer assigned to CS 3043 A01 is not available");
+      expect(result.errors[0]).toContain(
+        "PLA Marcelo Mayer assigned to CS 3043 A01 is not available",
+      );
     });
 
     it("should throw error when meeting pattern is not a string", () => {
@@ -438,7 +456,9 @@ describe("CS 3043 Social Implications Validation", () => {
 
       expect(() => {
         ensureSocialImpsAvailability(assignments, [], []);
-      }).toThrow("Expected meeting pattern to be a string for CS 3043 A01, got null");
+      }).toThrow(
+        "Expected meeting pattern to be a string for CS 3043 A01, got null",
+      );
     });
 
     it("should handle GLAs (they are not checked)", () => {
@@ -499,7 +519,9 @@ describe("CS 3043 Social Implications Validation", () => {
 
       const result = ensureSocialImpsAvailability(assignments, plaPrefs, []);
 
-      expect(result.meta.rule).toBe("CS 3043 assistants must be available for the course time.");
+      expect(result.meta.rule).toBe(
+        "CS 3043 assistants must be available for the course time.",
+      );
       expect(typeof result.meta.ms).toBe("number");
       expect(result.meta.ms).toBeGreaterThanOrEqual(0);
     });
@@ -554,12 +576,20 @@ describe("CS 3043 Social Implications Validation", () => {
         }),
       ];
 
-      const result = ensureSocialImpsAvailability(assignments, plaPrefs, taPrefs);
+      const result = ensureSocialImpsAvailability(
+        assignments,
+        plaPrefs,
+        taPrefs,
+      );
 
       expect(result.ok).toBe(false);
       expect(result.errors).toHaveLength(2);
-      expect(result.errors.some(e => e.includes("PLA Jarren Duran"))).toBe(true);
-      expect(result.errors.some(e => e.includes("TA David Hamilton"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("PLA Jarren Duran"))).toBe(
+        true,
+      );
+      expect(result.errors.some((e) => e.includes("TA David Hamilton"))).toBe(
+        true,
+      );
     });
   });
 });

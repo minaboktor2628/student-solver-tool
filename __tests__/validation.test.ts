@@ -15,7 +15,7 @@ import {
 import type {
   AssistantPreferences,
   AllocationWithoutAssistants,
-  Assignment
+  Assignment,
 } from "@/types/excel";
 
 // Test data factories using Zod parsing to ensure correct types
@@ -116,7 +116,7 @@ describe("Validation Helper Functions", () => {
     it("should handle empty names gracefully", () => {
       const person = { First: "", Last: "Anthony" };
       expect(personKey(person)).toBe(" Anthony");
-      
+
       const person2 = { First: "Roman", Last: "" };
       expect(personKey(person2)).toBe("Roman ");
     });
