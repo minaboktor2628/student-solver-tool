@@ -37,8 +37,10 @@ export const exportRoute = createTRPCRouter({
       const workbook = XLSX.utils.book_new();
 
       const processedData = data.map((row: Assignment) => ({
+        "Academic Period": row["Academic Period"],
         Course: `${row.Section?.Course ?? ""}-${row.Section?.Subsection ?? ""} - ${row.Section?.Title ?? ""}`,
-        ...row,
+        "Meeting Pattern(s)": row["Meeting Pattern(s)"],
+        Instructors: row.Instructors,
         PLAs: Array.isArray(row.PLAs)
           ? row.PLAs.map(
               (p: Partial<Assistant>) => `${p.Last}, ${p.First}`,
@@ -55,9 +57,9 @@ export const exportRoute = createTRPCRouter({
             ).join("; ")
           : "",
       }));
-      type ProcessedAssignment = Omit<
+      type ProcessedAssignment = Pick<
         Assignment,
-        "Section" | "PLAs" | "TAs" | "GLAs"
+        "Academic Period" | "Meeting Pattern(s)" | "Instructors"
       > & {
         Course: string;
         PLAs: string;
