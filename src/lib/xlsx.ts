@@ -100,3 +100,19 @@ export function sanitizeSheet(rows: Record<string, unknown>[]) {
     return sanitized;
   });
 }
+
+// takes in Uint8Array and converts to spreadsheet, downloads as [filename].xlsx
+export function downloadSheet(data: Uint8Array, filename: string) {
+  const array = new Uint8Array(data); // ensure data is Uint8Array - error shows on blob instantiation without this line, works either way though
+  const blob = new Blob([array], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

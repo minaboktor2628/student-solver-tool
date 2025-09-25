@@ -113,30 +113,19 @@ export const excelRoute = createTRPCRouter({
             );
           }
 
-          // capture Allocations / Assignments and don't emit yet
-          // For merging, we need only valid rows, but for display we keep all
+          // capture Allocations / Assignments but don't add Assignments to files
           if (baseName.data === "Allocations") {
             allocationsRows = rowResults
               .filter((r) => r.ok)
               .map((r) => r.value) as AllocationWithoutAssistants[];
-            // Still push to files for editor display (with invalid rows)
-            files.push({
-              filename: baseName.data,
-              language: "json",
-              code: JSON.stringify(allRows, null, 2),
-            });
+            // Don't add to files yet - we'll add the merged version later
             continue;
           }
           if (baseName.data === "Assignments") {
             assignmentsRows = rowResults
               .filter((r) => r.ok)
               .map((r) => r.value) as Assignment[];
-            // Still push to files for editor display (with invalid rows)
-            files.push({
-              filename: baseName.data,
-              language: "json",
-              code: JSON.stringify(allRows, null, 2),
-            });
+            // Skip adding Assignments to files - we only want the merged version
             continue;
           }
 
@@ -150,8 +139,6 @@ export const excelRoute = createTRPCRouter({
       }
 
       // Merge allocations and assignments if we have allocations
-      // Note: We already added Allocations to files above, but we need to create
-      // a merged version as well for the final Allocations file
       if (allocationsRows) {
         try {
           const merged = mergeAllocationsAndAssignments(
@@ -159,23 +146,12 @@ export const excelRoute = createTRPCRouter({
             assignmentsRows ?? [], // if no assignments passed in, default as empty array
           );
 
-          // Replace the Allocations file with the merged version
-          const allocationsIndex = files.findIndex(
-            (f) => f.filename === "Allocations",
-          );
-          if (allocationsIndex >= 0) {
-            files[allocationsIndex] = {
-              filename: "Allocations",
-              language: "json",
-              code: JSON.stringify(merged, null, 2),
-            };
-          } else {
-            files.unshift({
-              filename: "Allocations",
-              language: "json",
-              code: JSON.stringify(merged, null, 2),
-            });
-          }
+          // Add the merged Allocations file
+          files.unshift({
+            filename: "Allocations",
+            language: "json",
+            code: JSON.stringify(merged, null, 2),
+          });
         } catch (error) {
           parseErrors.push(
             `Failed to merge Allocations and Assignments: ${String(error)}`,
