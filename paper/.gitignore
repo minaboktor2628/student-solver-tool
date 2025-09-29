@@ -1,0 +1,33 @@
+# LaTeX build dir
+build/
+
+# If anyone builds outside build/, ignore common aux files too:
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.tdo
+*.nav
+*.snm
+*.lot
+*.lof
+
+# latexindent
+indent.log
+*-bak
+*-bak*
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+~*
+*.swp
+*.swo
+

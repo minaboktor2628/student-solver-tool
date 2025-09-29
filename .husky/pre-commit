@@ -1,5 +1,2 @@
-echo ">> Running prettier formatter..."
-pnpm run format:write
-
-echo ">> Running lint fix..."
-SKIP_ENV_VALIDATION=true pnpm run lint:fix
+echo ">> Running lint-staged (prettier + eslint)..."
+pnpm lint-staged
