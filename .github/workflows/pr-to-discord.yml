@@ -1,0 +1,38 @@
+name: Notify Discord on PR
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize, closed]
+
+jobs:
+  notify:
+    # If it's closed, only notify when merged
+    # If it's a draft, only notify when ready for review 
+    if: ${{ (github.event.action != 'closed' || github.event.pull_request.merged == true) &&
+            (github.event.pull_request.draft == false || github.event.action == 'ready_for_review') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Discord payload
+        run: |
+          cat <<'JSON' > payload.json
+          {
+            "username": "GitHub PR Bot",
+            "embeds": [{
+              "title": "#${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}",
+              "url": "${{ github.event.pull_request.html_url }}",
+              "description": "by **${{ github.event.pull_request.user.login }}** in `${{ github.repository }}`",
+              "color": ${{ github.event.pull_request.merged && github.event.action == 'closed' && 3066993 || 3447003 }},
+              "fields": [
+                { "name": "Action", "value": "${{ github.event.pull_request.merged && github.event.action == 'closed' && 'merged' || github.event.action }}", "inline": true },
+                { "name": "From → To", "value": "`${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`", "inline": true }
+              ],
+              "timestamp": "${{ github.event.pull_request.updated_at }}"
+            }]
+          }
+          JSON
+      - name: Post to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -sS -H "Content-Type: application/json" \
+               -d @payload.json "$WEBHOOK_URL"
