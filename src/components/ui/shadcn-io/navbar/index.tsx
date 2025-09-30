@@ -78,12 +78,12 @@ export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
       <header
         ref={combinedRef}
         className={cn(
-          "bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b px-4 backdrop-blur md:px-6 [&_*]:no-underline",
+          "bg-background/95 supports-[backdrop-filter]:bg-background/60 fixed inset-x-0 top-0 z-50 h-[var(--fd-nav-height,4rem)] w-full border-b px-4 backdrop-blur md:px-6 [&_*]:no-underline",
           className,
         )}
         {...props}
       >
-        <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-4">
+        <div className="container mx-auto flex h-full max-w-screen-2xl items-center justify-between gap-4">
           {/* Left side */}
           <div className="flex items-center gap-2">
             {/* Mobile menu trigger */}

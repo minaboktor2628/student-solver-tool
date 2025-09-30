@@ -1,5 +1,5 @@
 import "@/styles/globals.css";
-import { type Metadata } from "next";
+import { type Metadata, type Route } from "next";
 import { Geist } from "next/font/google";
 import { TRPCReactProvider } from "@/trpc/react";
 import { Toaster } from "@/components/ui/sonner";
@@ -10,6 +10,7 @@ import { AuthButton } from "@/components/auth-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { env } from "@/env";
 import DevDock from "@/components/dev-dock";
+import { RootProvider } from "fumadocs-ui/provider";
 
 export const metadata: Metadata = {
   title: "SST",
@@ -30,6 +31,7 @@ const geist = Geist({
 const links: NavbarNavItem[] = [
   { href: "/", label: "Home" },
   { href: "/validate", label: "Validate" },
+  { href: "/docs" as Route, label: "Docs" }, // not sure why nextjs is having trouble with /docs
 ];
 
 export default function RootLayout({
@@ -39,19 +41,21 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
-      <body className="flex h-dvh flex-col">
+      <body className="flex h-dvh flex-col pt-[calc(var(--fd-nav-height)+env(safe-area-inset-top))]">
         <TooltipProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors toastOptions={{ duration: 5000 }} />
             <TRPCReactProvider>
-              <Navbar
-                logo={<Calculator />}
-                navigationLinks={links}
-                authSlot={<AuthButton />}
-                className="shrink-0"
-              />
-              <main className="min-h-0 flex-1">{children}</main>
-              {enableDevDock && <DevDock />}
+              <RootProvider>
+                <Navbar
+                  logo={<Calculator />}
+                  navigationLinks={links}
+                  authSlot={<AuthButton />}
+                  className="shrink-0"
+                />
+                <main className="min-h-0 flex-1">{children}</main>
+                {enableDevDock && <DevDock />}
+              </RootProvider>
             </TRPCReactProvider>
           </ThemeProvider>
         </TooltipProvider>
