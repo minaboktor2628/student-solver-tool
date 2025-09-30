@@ -4,7 +4,7 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "@/server/db";
 import { env } from "@/env";
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 
 export const testingPasswordMap: Record<string, Role[]> = {
   testpla: ["PLA"],
@@ -33,13 +33,24 @@ declare module "next-auth" {
 }
 
 /**
+ * Extends the shape of the `profile` param in MicrosoftEntraID({ profile(...) })
+ * since we get extra info from IT.
+ * */
+declare module "next-auth/providers/microsoft-entra-id" {
+  interface MicrosoftEntraIDProfile {
+    department?: string;
+    title?: string;
+    major?: string;
+  }
+}
+
+/**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
  * @see https://next-auth.js.org/configuration/options
  */
 const providers: NextAuthConfig["providers"] = [
   MicrosoftEntraID({
-    authorization: { params: { scope: "openid profile email offline_access" } },
     async profile(profile, tokens) {
       // https://learn.microsoft.com/en-us/graph/api/profilephoto-get?view=graph-rest-1.0&tabs=http#examples
       const response = await fetch(
@@ -48,7 +59,7 @@ const providers: NextAuthConfig["providers"] = [
       );
 
       // Confirm that profile photo was returned
-      let image;
+      let image: string | null = null;
       // TODO: Do this without Buffer
       if (response.ok && typeof Buffer !== "undefined") {
         try {
@@ -58,20 +69,38 @@ const providers: NextAuthConfig["providers"] = [
         } catch {}
       }
 
-      let roles: Role[] = [];
-      if (!profile.roles) {
-        roles = [];
-      } else {
-        const cleaned = profile.roles.map((r) => r.replace(/^Role\./, "")); // strip "Role." prefix if present
-        const validValues = new Set(Object.values(Role)); // enum members as strings
-        roles = cleaned.filter((r): r is Role => validValues.has(r as Role));
+      const roles: Role[] = [];
+
+      // Is this a coordinator? (defined in environment variable)
+      if (env.COORDINATOR_EMAILS.includes(profile.email)) {
+        roles.push("COORDINATOR");
+      }
+
+      // Is this a professor?
+      if (
+        profile.department === "Computer Science" &&
+        /Professor|Instructor/.test(profile.title ?? "")
+      ) {
+        roles.push("PROFESSOR");
+      }
+
+      // Is this a student assistant?
+      if (profile.department === "Student Employment") {
+        // Is this a TA?
+        if ((profile?.title ?? "").startsWith("Teaching Assistant")) {
+          roles.push("TA");
+        }
+        // Is this a PLA?
+        if ((profile?.title ?? "").startsWith("Peer Learning Assistant - CS")) {
+          roles.push("PLA");
+        }
       }
 
       return {
         id: profile.sub,
         name: profile.name,
         email: profile.email,
-        image: image ?? null,
+        image,
         roles,
       };
     },
@@ -120,6 +149,10 @@ export const authConfig = {
   session: { strategy: env.NODE_ENV === "development" ? "jwt" : "database" },
   adapter: PrismaAdapter(db),
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // Only allow users with at least one role
+      return Array.isArray(user.roles && user.roles.length > 0);
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
