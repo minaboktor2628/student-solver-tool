@@ -149,9 +149,9 @@ export const authConfig = {
   session: { strategy: env.NODE_ENV === "development" ? "jwt" : "database" },
   adapter: PrismaAdapter(db),
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user }) {
       // Only allow users with at least one role
-      return Array.isArray(user.roles && user.roles.length > 0);
+      return Array.isArray(user.roles) && user.roles.length > 0;
     },
     async jwt({ token, user }) {
       if (user) {
