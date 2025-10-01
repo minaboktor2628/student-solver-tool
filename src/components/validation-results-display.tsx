@@ -117,8 +117,7 @@ function ExpandableList({
 }) {
   const [open, setOpen] = useState(false);
 
-  const shouldClamp = items.length > initial && !open;
-  const visible = shouldClamp ? items.slice(0, initial) : items;
+  const visible = items.slice(0, initial);
   const hidden = items.slice(initial);
 
   return (
