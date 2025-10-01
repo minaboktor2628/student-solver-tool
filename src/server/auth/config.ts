@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import { db } from "@/server/db";
 import { env } from "@/env";
 import type { Role } from "@prisma/client";
+import { rolesFromProfile } from "./auth-utils";
 
 export const testingPasswordMap: Record<string, Role[]> = {
   testpla: ["PLA"],
@@ -69,39 +70,12 @@ const providers: NextAuthConfig["providers"] = [
         } catch {}
       }
 
-      const roles: Role[] = [];
-
-      // Is this a coordinator? (defined in environment variable)
-      if (env.COORDINATOR_EMAILS.includes(profile.email)) {
-        roles.push("COORDINATOR");
-      }
-
-      // Is this a professor?
-      if (
-        profile.department === "Computer Science" &&
-        /Professor|Instructor/.test(profile.title ?? "")
-      ) {
-        roles.push("PROFESSOR");
-      }
-
-      // Is this a student assistant?
-      if (profile.department === "Student Employment") {
-        // Is this a TA?
-        if ((profile?.title ?? "").startsWith("Teaching Assistant")) {
-          roles.push("TA");
-        }
-        // Is this a PLA?
-        if ((profile?.title ?? "").startsWith("Peer Learning Assistant - CS")) {
-          roles.push("PLA");
-        }
-      }
-
       return {
         id: profile.sub,
         name: profile.name,
         email: profile.email,
         image,
-        roles,
+        roles: rolesFromProfile(profile, env.COORDINATOR_EMAILS),
       };
     },
   }),
