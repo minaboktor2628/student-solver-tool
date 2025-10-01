@@ -1,17 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { rolesFromProfile } from "@/server/auth/auth-utils";
-import { vi } from "vitest";
-
-// Minimal shim so next-auth's import succeeds
-vi.mock("next/server", () => {
-  return {
-    // next-auth usually only touches env via this import; stubs are fine
-    headers: () => new Headers(),
-    // cookies: () => ({ get: () => undefined, set: () => {}, delete: () => {} }),
-    // NextResponse: { next: () => ({}), redirect: () => ({}), json: (x) => x },
-    NextRequest: class {},
-  };
-});
 
 describe("rolesFromProfile", () => {
   it("coordinator list wins", () => {
