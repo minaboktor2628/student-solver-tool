@@ -42,12 +42,8 @@ function createTestAllocationWithoutAssistants(
   const baseData = {
     "Academic Period": "Fall 2024",
     Section: "CS 101-A01", // Will be parsed by SectionSchema
-    CrossListed: false,
     "Meeting Pattern(s)": "MWF 10:00-10:50",
     Instructors: "Prof. Smith",
-    "Reserved Cap": null,
-    "Cap Breakdown": null,
-    "Section Cap": 30,
     Enrollment: 25,
     "Waitlist Count": 0,
     "Student Hour Allocation": 20, // Will be parsed to include MOE values
@@ -61,12 +57,8 @@ function createTestAssignment(overrides: Record<string, any> = {}): Assignment {
   const baseData = {
     "Academic Period": "Fall 2024",
     Section: "CS 101-A01", // Will be parsed by SectionSchema
-    CrossListed: false,
     "Meeting Pattern(s)": "MWF 10:00-10:50",
     Instructors: "Prof. Smith",
-    "Reserved Cap": null,
-    "Cap Breakdown": null,
-    "Section Cap": 30,
     Enrollment: 25,
     "Waitlist Count": 0,
     TAs: [],
@@ -161,7 +153,7 @@ describe("Validation Helper Functions", () => {
       const courseMap = makeCourseToAssistantMap(preferences);
 
       // Check that the correct assistants are mapped to CS 101
-      const cs101Assistants = courseMap["CS 101"] || [];
+      const cs101Assistants = courseMap["CS 101"] ?? [];
       const cs101Names = cs101Assistants.map(personKey);
 
       expect(cs101Names).toContain("Wilyer Abreu");
@@ -169,14 +161,14 @@ describe("Validation Helper Functions", () => {
       expect(cs101Names).not.toContain("Kristian Campbell");
 
       // Check CS 303
-      const cs303Assistants = courseMap["CS 303"] || [];
+      const cs303Assistants = courseMap["CS 303"] ?? [];
       const cs303Names = cs303Assistants.map(personKey);
 
       expect(cs303Names).toContain("Alex Bregman");
       expect(cs303Names).not.toContain("Wilyer Abreu");
 
       // Check CS 202 (Kristian should be included regardless of Available status)
-      const cs202Assistants = courseMap["CS 202"] || [];
+      const cs202Assistants = courseMap["CS 202"] ?? [];
       const cs202Names = cs202Assistants.map(personKey);
 
       expect(cs202Names).toContain("Kristian Campbell");
@@ -197,15 +189,15 @@ describe("Validation Helper Functions", () => {
       const courseMap = makeCourseToAssistantMap(preferences);
 
       // Check that Brock is mapped to CS 101
-      const cs101Assistants = courseMap["CS 101"] || [];
+      const cs101Assistants = courseMap["CS 101"] ?? [];
       const cs101Names = cs101Assistants.map(personKey);
 
       expect(cs101Names).toContain("Brock Holt");
 
       // Check that non-course fields are not in the map
-      expect(courseMap["Available"]).toBeUndefined();
-      expect(courseMap["Comments"]).toBeUndefined();
-      expect(courseMap["Email"]).toBeUndefined();
+      expect(courseMap.Available).toBeUndefined();
+      expect(courseMap.Comments).toBeUndefined();
+      expect(courseMap.Email).toBeUndefined();
     });
 
     it("should only include courses that match CS pattern", () => {
@@ -290,7 +282,7 @@ describe("Validation Helper Functions", () => {
       ];
 
       const courseMap = makeCourseToAssistantMap(preferences);
-      const cs101Assistants = courseMap["CS 101"] || [];
+      const cs101Assistants = courseMap["CS 101"] ?? [];
 
       expect(cs101Assistants).toHaveLength(3);
       expect(cs101Assistants.map(personKey)).toContain("Connor Wong");
@@ -320,8 +312,8 @@ describe("Validation Helper Functions", () => {
 
       const meetingMap = makeMeetingToAssistantMap(preferences);
 
-      const morning = meetingMap["M-T-R-F | 10:00 AM - 10:50 AM"] || [];
-      const afternoon = meetingMap["T-F | 3:00 PM - 4:50 PM"] || [];
+      const morning = meetingMap["M-T-R-F | 10:00 AM - 10:50 AM"] ?? [];
+      const afternoon = meetingMap["T-F | 3:00 PM - 4:50 PM"] ?? [];
 
       expect(morning.map(personKey)).toContain("Wilyer Abreu");
       expect(morning.map(personKey)).toContain("Alex Bregman");
@@ -460,7 +452,6 @@ describe("Validation Helper Functions", () => {
           Section: "CS 101-A01",
           "Academic Period": "Spring 2025",
           Enrollment: 42,
-          "Section Cap": 50,
         }),
       ];
 
@@ -475,7 +466,6 @@ describe("Validation Helper Functions", () => {
 
       expect(merged[0]!["Academic Period"]).toBe("Spring 2025");
       expect(merged[0]!.Enrollment).toBe(42);
-      expect(merged[0]!["Section Cap"]).toBe(50);
       expect(merged[0]!.TAs).toHaveLength(1);
     });
 

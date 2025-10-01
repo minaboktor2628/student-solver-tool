@@ -184,9 +184,6 @@ export const AllocationWithoutAssistantsSchema = z.object({
   Section: SectionSchema.describe(
     'Description: The course number, subsection code and course title.\n Format: { Course: String, Subsection: String, Title: String } \nExample: { "Course": "CS 1005", "Subsection": "AL01", "Title": "Introduction to Program Design" }',
   ),
-  CrossListed: yesNoBoolean.describe(
-    "Description: Indicates if the course is cross-listed with another department.\n Format: true | false \nExample: false",
-  ),
   "Meeting Pattern(s)": z
     .string()
     .nullable()
@@ -198,24 +195,6 @@ export const AllocationWithoutAssistantsSchema = z.object({
     .nullable()
     .describe(
       'Description: The instructor(s) teaching the course.\n Format: Instructor Name(s) \nExample: "Joseph Quinn"',
-    ),
-  "Reserved Cap": z
-    .number()
-    .nullable()
-    .describe(
-      "Description: Number of seats reserved for certain students.\n Format: Integer \nExample: 2",
-    ),
-  "Cap Breakdown": z
-    .string()
-    .nullable()
-    .describe(
-      "Description: Breakdown of reserved seats by group, if applicable.\n Format: Object | null \nExample: 80 - reserved for Student Records - Student is a First Year for 2025-2026 or Mass Academy until 08/11/2025",
-    ),
-  "Section Cap": z
-    .number()
-    .nullable()
-    .describe(
-      "Description: The maximum number of students allowed in the section.\n Format: Integer \nExample: 80",
     ),
   Enrollment: z
     .number()
