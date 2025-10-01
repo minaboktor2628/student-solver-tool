@@ -108,7 +108,7 @@ jobs:
 
       # Run Cypress via the official action; it will:
       # - cache / install the Cypress binary
-      # - start your dev server
+      # - start dev server
       # - wait for it
       # - run tests headlessly
       - name: Cypress run
