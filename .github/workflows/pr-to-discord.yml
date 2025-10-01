@@ -16,6 +16,8 @@ jobs:
         run: |
           cat <<'JSON' > payload.json
           {
+            "conent": "@everyone",
+            "allowed_mentions": { "parse": ["everyone"] },
             "username": "GitHub PR Bot",
             "embeds": [{
               "title": "#${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}",
