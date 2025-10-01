@@ -1,9 +1,9 @@
 import "@/styles/globals.css";
-import { type Metadata, type Route } from "next";
+import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { TRPCReactProvider } from "@/trpc/react";
 import { Toaster } from "@/components/ui/sonner";
-import { Navbar, type NavbarNavItem } from "@/components/ui/shadcn-io/navbar";
+import { Navbar } from "@/components/ui/shadcn-io/navbar";
 import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthButton } from "@/components/auth-button";
@@ -11,6 +11,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { env } from "@/env";
 import DevDock from "@/components/dev-dock";
 import { RootProvider } from "fumadocs-ui/provider";
+import { allowedLinks } from "@/server/auth/permissions";
+import { auth } from "@/server/auth";
 
 export const metadata: Metadata = {
   title: "SST",
@@ -28,16 +30,12 @@ const geist = Geist({
   variable: "--font-geist-sans",
 });
 
-const links: NavbarNavItem[] = [
-  { href: "/", label: "Home" },
-  { href: "/validate", label: "Validate" },
-  { href: "/docs" as Route, label: "Docs" }, // not sure why nextjs is having trouble with /docs
-];
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const enableDevDock = env.NODE_ENV !== "production";
+
+  const session = await auth();
 
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
@@ -49,7 +47,7 @@ export default function RootLayout({
               <RootProvider>
                 <Navbar
                   logo={<Calculator />}
-                  navigationLinks={links}
+                  navigationLinks={allowedLinks(session?.user)}
                   authSlot={<AuthButton />}
                   className="shrink-0"
                 />
