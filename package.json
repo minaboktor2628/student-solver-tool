@@ -24,6 +24,8 @@
     "test": "vitest",
     "test:ci": "vitest run --coverage=false --reporter=dot",
     "cypress:open": "cypress open",
+    "cypress:run": "cypress run --e2e --browser electron",
+    "cypress:install": "cypress run --e2e --browser electron",
     "prepare": "husky"
   },
   "lint-staged": {
