@@ -104,7 +104,7 @@ jobs:
 
       # Prepare DB schema
       - name: Prisma migrate
-        run: pnpm prisma migrate deploy
+        run: pnpm run db:push
 
       # Run Cypress via the official action; it will:
       # - cache / install the Cypress binary
