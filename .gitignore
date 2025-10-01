@@ -53,3 +53,5 @@ yarn-error.log*
 # Fumadocs generated
 .source
 
+# cypress 
+cypress/screenshots
