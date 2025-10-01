@@ -8,7 +8,6 @@ import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthButton } from "@/components/auth-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { env } from "@/env";
 import DevDock from "@/components/dev-dock";
 import { RootProvider } from "fumadocs-ui/provider";
 import { allowedLinks } from "@/server/auth/permissions";
@@ -33,8 +32,6 @@ const geist = Geist({
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const enableDevDock = env.NODE_ENV !== "production";
-
   const session = await auth();
 
   return (
@@ -52,7 +49,7 @@ export default async function RootLayout({
                   className="shrink-0"
                 />
                 <main className="min-h-0 flex-1">{children}</main>
-                {enableDevDock && <DevDock />}
+                <DevDock />
               </RootProvider>
             </TRPCReactProvider>
           </ThemeProvider>

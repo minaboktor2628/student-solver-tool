@@ -9,16 +9,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { auth, signIn } from "@/server/auth";
 import { testingPasswordMap } from "@/server/auth/config";
+import { env } from "@/env";
 
 export default async function DevDock() {
+  const enableDevDock = env.NODE_ENV !== "production";
+
+  if (!enableDevDock) return;
+
   const session = await auth();
+
   return (
     <Sheet>
       <SheetTrigger
         asChild
         className="fixed right-3 bottom-3 z-[9999] flex items-center gap-2"
       >
-        <Button>Dev</Button>
+        <Button>{session?.user.roles.join(", ")}</Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-[60vh] overflow-scroll p-0">
         <SheetHeader className="border-b px-4 py-3">
