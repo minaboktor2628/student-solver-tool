@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import * as XLSX from "xlsx";
 import {
   ExcelFileToJsonInputSchema,
@@ -14,7 +14,7 @@ import { excelFileToWorkbook, sanitizeSheet, usedRange } from "@/lib/xlsx";
 import { mergeAllocationsAndAssignments } from "@/lib/validation";
 
 export const excelRoute = createTRPCRouter({
-  parseExcelWorkbooks: publicProcedure
+  parseExcelWorkbooks: coordinatorProcedure
     .input(
       z
         .instanceof(FormData)

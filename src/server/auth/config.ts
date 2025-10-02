@@ -1,8 +1,18 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
-
+import Credentials from "next-auth/providers/credentials";
 import { db } from "@/server/db";
+import { env } from "@/env";
+import type { Role } from "@prisma/client";
+import { rolesFromProfile } from "./auth-utils";
+
+export const testingPasswordMap: Record<string, Role[]> = {
+  testpla: ["PLA"],
+  testta: ["TA"],
+  testprof: ["PROFESSOR"],
+  testcoordinator: ["PROFESSOR", "COORDINATOR"],
+} as const;
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -14,15 +24,25 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
-      // ...other properties
-      // role: UserRole;
+      roles: Role[];
     } & DefaultSession["user"];
   }
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    roles: Role[];
+  }
+}
+
+/**
+ * Extends the shape of the `profile` param in MicrosoftEntraID({ profile(...) })
+ * since we get extra info from IT.
+ * */
+declare module "next-auth/providers/microsoft-entra-id" {
+  interface MicrosoftEntraIDProfile {
+    department?: string;
+    title?: string;
+    major?: string;
+  }
 }
 
 /**
@@ -30,16 +50,98 @@ declare module "next-auth" {
  *
  * @see https://next-auth.js.org/configuration/options
  */
+const providers: NextAuthConfig["providers"] = [
+  MicrosoftEntraID({
+    async profile(profile, tokens) {
+      // https://learn.microsoft.com/en-us/graph/api/profilephoto-get?view=graph-rest-1.0&tabs=http#examples
+      const response = await fetch(
+        `https://graph.microsoft.com/v1.0/me/photos/120x120/$value`,
+        { headers: { Authorization: `Bearer ${tokens.access_token}` } },
+      );
+
+      // Confirm that profile photo was returned
+      let image: string | null = null;
+      // TODO: Do this without Buffer
+      if (response.ok && typeof Buffer !== "undefined") {
+        try {
+          const pictureBuffer = await response.arrayBuffer();
+          const pictureBase64 = Buffer.from(pictureBuffer).toString("base64");
+          image = `data:image/jpeg;base64, ${pictureBase64}`;
+        } catch {}
+      }
+
+      return {
+        id: profile.sub,
+        name: profile.name,
+        email: profile.email,
+        image,
+        roles: rolesFromProfile(profile, env.COORDINATOR_EMAILS),
+      };
+    },
+  }),
+  ...(env.NODE_ENV === "development"
+    ? [
+        Credentials({
+          id: "credentials",
+          name: "credentials",
+          credentials: {
+            password: { label: "Password", type: "password" },
+          },
+
+          async authorize(credentials) {
+            const pwd = (credentials?.password ?? "") as string;
+            if (!pwd) return null;
+
+            if (!(pwd in testingPasswordMap)) return null;
+            const roles = testingPasswordMap[pwd];
+            if (!roles) return null;
+
+            const email = `${pwd}@wpi.edu`;
+
+            const user = await db.user.upsert({
+              where: { email },
+              update: { roles: { set: roles } },
+              create: {
+                email,
+                name: pwd,
+                image:
+                  "https://avatars.githubusercontent.com/u/67470890?s=200&v=4",
+                roles,
+              },
+            });
+
+            return user;
+          },
+        }),
+      ]
+    : []),
+];
+
 export const authConfig = {
-  providers: [MicrosoftEntraID],
+  providers,
+  debug: env.NODE_ENV === "development",
+  session: { strategy: env.NODE_ENV === "development" ? "jwt" : "database" },
   adapter: PrismaAdapter(db),
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    async signIn({ user }) {
+      // Only allow users with at least one role
+      return Array.isArray(user.roles) && user.roles.length > 0;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.roles = user.roles ?? [];
+      }
+      return token;
+    },
+    async session({ session, token, user }) {
+      const id = user?.id ?? token?.id;
+      const roles = user?.roles ?? token?.roles ?? [];
+      if (session.user) {
+        session.user.id = id;
+        session.user.roles = roles;
+      }
+      return session;
+    },
   },
 } satisfies NextAuthConfig;
