@@ -1,0 +1,61 @@
+\section{Methods}
+
+\subsection{Development Process}
+
+We employed an Agile development methodology using Scrum practices, adapted to the timeline of an academic project. Development was organized into one week sprints, with tasks tracked through GitHub Issues and grouped into milestone based iterations. This ensured that work was incremental, reviewable, and continuously deployable.
+
+\subsubsection{Issue Driven Development}
+
+Development tasks were divided into small, self contained issues representing individual features, bug fixes, or technical refinements. Each issue was scoped to be achievable within a single sprint, ensuring steady progress. Issues were labeled by component (frontend, backend, validation) and priority, which enabled parallel work streams and clear allocation of responsibilities.
+
+\subsubsection{Version Control and Collaboration}
+
+All development was managed through GitHub using a structured branching strategy. Feature branches were created for each issue and merged into the main branch only after pull request review. This process enforced peer review, maintained code quality, and ensured that the main branch remained stable and demonstrable at all times.
+
+\subsubsection{Iterative Refinement}
+
+The Agile approach proved particularly valuable because project requirements evolved through ongoing interaction with domain experts. Early sprints focused on basic data parsing and validation, while later sprints added advanced constraint checking and interface refinements. Each sprint produced a deployable version that stakeholders could evaluate, enabling rapid iteration on both functional features and validation logic.
+
+\subsection{Constraint Validation System}
+
+We developed a rule based validation framework to automatically assess allocation quality against departmental constraints. Unlike generation approaches that attempt to directly produce allocations, our framework validates human generated assignments by systematically checking them against formalized rules. The system ingests allocation and preference data and produces structured reports distinguishing between \textbf{errors} (hard constraint violations that must be corrected) and \textbf{warnings} (soft constraint violations that may be tolerated if necessary).
+
+\subsubsection{Requirements Analysis}
+
+To identify relevant rules, we analyzed historical allocation spreadsheets, documented informal administrative practices, and consulted with domain experts. This revealed that the allocation problem involves both hard constraints (such as availability and coverage) and soft constraints (such as workload equity). Encoding these explicitly allowed us to transform tacit knowledge into reproducible, data driven checks.
+
+\subsubsection{Rule Formalization}
+
+Constraints were grouped into five primary categories:
+
+\begin{enumerate}
+    \item \textbf{Existence and availability}: Assigned assistants must appear in preference data and be marked as available. Availability is aggregated across multiple term specific columns to ensure all applicable entries are considered.
+    \item \textbf{Qualification}: Assistants should only be assigned to courses for which they indicated interest or prior experience. We maintain a mapping of courses to qualified assistants to efficiently verify assignments.
+    \item \textbf{Uniqueness}: Assistants should not be double booked across multiple courses, with severity determined by role type (e.g., TAs vs PLAs).
+    \item \textbf{Coverage}: Staffing levels must meet course hour requirements within specified margins of error. Each course's total assigned hours is compared to its calculated requirement, producing errors for critical understaffing and warnings for minor overstaffing.
+    \item \textbf{Utilization}: Available assistants should be assigned to at least one course to maximize equity and resource use.
+\end{enumerate}
+
+Each constraint category is implemented as a validation function that returns structured results. The system leverages hash based data structures such as sets and maps to achieve linear time checks, rather than nested iteration, improving scalability for larger datasets.
+
+\subsubsection{Special Cases}
+
+Certain courses have unique requirements. For example, a course requiring assistants to be physically present during specific time slots uses a mapping from meeting patterns to assistants. This demonstrates the system's extensibility: new time specific constraints can be incorporated without modifying core validation logic.
+
+\subsubsection{Error Classification}
+
+Violations are classified by operational impact:
+\begin{itemize}
+    \item \textbf{Errors}: Violations that would cause operational failure or break policy (e.g., unqualified assistants, double booked TAs, critical understaffing).
+    \item \textbf{Warnings}: Suboptimal but tolerable conditions (e.g., minor overstaffing, unassigned PLAs).
+\end{itemize}
+
+This classification allows automated quality gating: allocations with errors can be rejected, while allocations with only warnings may proceed after review.
+
+\subsubsection{Performance Considerations}
+
+All validation functions record execution time in metadata. The framework processes the current dataset (approx. 50 courses and 100 assistants) efficiently and can scale to larger departments or multi term batch processing due to linear time complexity of core checks.
+
+\subsubsection{Executable Documentation}
+
+Beyond enforcement, the framework functions as \textit{executable documentation} of departmental policy. By encoding rules explicitly, the system ensures consistent application of constraints, facilitates onboarding of new coordinators, and supports future automation efforts.
