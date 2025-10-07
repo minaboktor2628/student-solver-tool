@@ -100,17 +100,26 @@ const providers: NextAuthConfig["providers"] = [
 
             const user = await db.user.upsert({
               where: { email },
-              update: { roles: { set: roles } },
+              update: {
+                roles: {
+                  deleteMany: {},
+                  create: roles.map((role) => ({ role })),
+                },
+              },
               create: {
                 email,
                 name: pwd,
                 image:
                   "https://avatars.githubusercontent.com/u/67470890?s=200&v=4",
-                roles,
+                roles: { create: roles.map((role) => ({ role })) },
               },
+              include: { roles: true },
             });
 
-            return user;
+            return {
+              ...user,
+              roles: user.roles.map((r) => r.role),
+            };
           },
         }),
       ]

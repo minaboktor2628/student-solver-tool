@@ -1,5 +1,4 @@
 // validation router
-import { makeMeetingToAssistantMap, personKey } from "@/lib/validation";
 import {
   ensureCourseNeedsAreMet,
   ensureAssignedAssistantsAreQualified,
