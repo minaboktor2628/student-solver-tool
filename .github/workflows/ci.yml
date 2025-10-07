@@ -52,39 +52,21 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
 
-    # Postgres for PrismaAdapter + upsert in Credentials authorize()
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: app
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     env:
       CI: true
       SKIP_ENV_VALIDATION: true
       NEXT_TELEMETRY_DISABLED: 1
 
       # Make NextAuth happy in CI
-      NODE_ENV: development # enables Credentials provider
+      NODE_ENV: development
       NEXTAUTH_URL: http://localhost:3000
-      AUTH_TRUST_HOST: true # for Auth.js/NextAuth v5 behind proxies
+      AUTH_TRUST_HOST: true
       NEXTAUTH_SECRET: testtesttesttest
 
-      # Coordinator emails used in role derivation
       COORDINATOR_EMAILS: testcoordinator@wpi.edu
 
-      # Prisma connection to the service container
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app?schema=public
-      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/app?schema=public
+      # Prisma SQLite connection (file-backed)
+      DATABASE_URL: file:./tmp/ci.db
 
     steps:
       - uses: actions/checkout@v4
@@ -102,15 +84,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Prepare DB schema
-      - name: Prisma migrate
+      - name: Prepare SQLite dir
+        run: mkdir -p tmp
+
+      # Prepare DB schema (idempotent for SQLite in CI)
+      - name: Prisma db push
         run: pnpm run db:push
 
-      # Run Cypress via the official action; it will:
-      # - cache / install the Cypress binary
-      # - start dev server
-      # - wait for it
-      # - run tests headlessly
+      # - name: Seed
+      #   run: pnpm run prisma:seed
+
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
