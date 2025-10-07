@@ -58,7 +58,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
 
       # Make NextAuth happy in CI
-      NODE_ENV: development
+      NODE_ENV: test
       NEXTAUTH_URL: http://localhost:3000
       AUTH_TRUST_HOST: true
       NEXTAUTH_SECRET: testtesttesttest

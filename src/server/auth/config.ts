@@ -79,7 +79,7 @@ const providers: NextAuthConfig["providers"] = [
       };
     },
   }),
-  ...(env.NODE_ENV === "development"
+  ...(env.NODE_ENV !== "production"
     ? [
         Credentials({
           id: "credentials",
