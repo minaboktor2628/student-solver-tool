@@ -53,3 +53,4 @@ yarn-error.log*
 # Fumadocs generated
 .source
 
+paper/main.pdf
