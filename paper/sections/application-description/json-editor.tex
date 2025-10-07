@@ -1,0 +1,14 @@
+\subsection{JSON Editor} \
+
+To enable the course staff coordinator to easily work with structured data, we implemented a JSON editor within the application.
+Upon upload of the necessary excel input files, three JSON files are created. These files represent the assignments of course staff
+to specific courses, and the preferences of PLAs and TAs. We use JSON to store this data because it is a widely supported, human-readable 
+format that allows for easy manipulation and validation.
+\\
+The JSON editor is in the form of a common code editor interface, with line numbering, syntax highlighting, and error checking. This interface provides a familiar environment
+for technical users, such as the course staff coordinator. The editor also includes auto-completion, which helps to provide options for fields and values, reducing the chance of errors and increasing speed.
+The auto-completion also is able to suggest best fits for course staff, based on their preferences and availability. When solving the assignments, the course staff coordinator can at any time locate
+a specific course, enter the PLAs or TAs field, and press ctrl+space to see a list of course staff that are both qualified for the course and available for the term.
+These features help to ensure data integrity and make the solving process more efficient. In a test run of the application, the course staff coordinator was able to complete the solving process in
+approximately one hour, a significant improvement over the previous manual process.
+\\
