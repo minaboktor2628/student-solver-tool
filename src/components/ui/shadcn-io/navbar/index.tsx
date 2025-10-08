@@ -87,7 +87,7 @@ export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
           {/* Left side */}
           <div className="flex items-center gap-2">
             {/* Mobile menu trigger */}
-            {isMobile && (
+            {isMobile && navigationLinks.length > 0 && (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button

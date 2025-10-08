@@ -1,11 +1,15 @@
 import { auth } from "@/server/auth";
 import { hasPermission, ROUTE_TO_PERMISSION } from "@/server/auth/permissions";
+import { NextResponse } from "next/server";
 
 export default auth((req) => {
-  const { origin, pathname } = req.nextUrl;
+  const { origin, pathname, href } = req.nextUrl;
 
-  if (pathname === "/login") return;
-  if (!req.auth) return Response.redirect(new URL("/login", origin));
+  if (!req.auth) {
+    const url = new URL("/login", origin);
+    url.searchParams.set("callbackUrl", href);
+    return NextResponse.redirect(url);
+  }
 
   const match = ROUTE_TO_PERMISSION.find((r) => r.pattern.test(pathname));
   if (!match) return;

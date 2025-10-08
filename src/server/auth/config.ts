@@ -4,6 +4,8 @@ import { db } from "@/server/db";
 import { env } from "@/env";
 import type { Role } from "@prisma/client";
 import { providers } from "./providers";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { JWT } from "next-auth/jwt";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -21,7 +23,14 @@ declare module "next-auth" {
 
   interface User {
     id: string;
-    roles: Role[];
+    roles?: Role[];
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    roles?: Role[];
   }
 }
 
@@ -45,98 +54,93 @@ declare module "next-auth/providers/microsoft-entra-id" {
 export const authConfig = {
   providers,
   pages: {
-    signIn: "/signin",
+    signIn: "/login",
     error: "/error",
   },
   debug: env.NODE_ENV === "development",
   session: { strategy: env.NODE_ENV !== "production" ? "jwt" : "database" },
   adapter: PrismaAdapter(db),
   callbacks: {
-    async signIn({ user }) {
-      if (!user.email) {
-        return false;
-      }
-
-      // Pull the roles this email is allowed to have from db
-      const allowed = await db.allowedEmail
-        .findMany({
-          where: { email: user.email },
-          select: { role: true },
-        })
-        .then((entries) => entries.map((entry) => entry.role));
-
-      // Append coordinator role (from env, not in db)
-      if (env.COORDINATOR_EMAILS.includes(user.email)) {
-        allowed.push("COORDINATOR");
-      }
-
-      await db.$transaction([
-        db.userRole.deleteMany({
-          where: { userId: user.id, NOT: { role: { in: allowed } } },
-        }),
-        db.userRole.createMany({
-          data: allowed.map((role) => ({ userId: user.id, role })),
-          // skipDuplicates: true,
-        }),
-      ]);
-
-      return allowed.length > 0;
-    },
-
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.roles = user.roles ?? [];
+      if (user?.id) token.id = user.id;
+      if (user?.email) {
+        token.roles = await getAllowedRolesForEmail(user.email);
       }
       return token;
     },
 
-    async session({ session, token, user }) {
-      const id = user?.id ?? token?.id;
-      const roles = user?.roles ?? token?.roles ?? [];
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = id;
-        session.user.roles = roles;
+        if (token.id) session.user.id = token.id;
+        session.user.roles = token.roles ?? [];
       }
       return session;
     },
+
+    async signIn({ user, profile }) {
+      const email = user?.email ?? profile?.email;
+      if (!email) return false;
+      const allowed = await getAllowedRolesForEmail(email);
+      return allowed.length > 0;
+    },
   },
-  // events: {
-  //   async createUser({ user }) {
-  //     if (!user.email) return;
-  //     await syncRoles(user.id, user.email);
-  //   },
-  //   async signIn({ user }) {
-  //     if (!user.email) return;
-  //     await syncRoles(user.id, user.email);
-  //   },
-  // },
+
+  events: {
+    async createUser({ user }) {
+      const email = user.email;
+      if (!email) return;
+      await syncUserRoles(user.id, email);
+    },
+    // async signIn({ user, profile }) {
+    //   const email = user.email ?? profile?.email ?? "";
+    //   if (!email) return;
+    //   await syncUserRoles(user.id, email);
+    // },
+  },
 } satisfies NextAuthConfig;
 
-// async function syncRoles(userId: string, email: string) {
-//   const allowedDb = await db.allowedEmail.findMany({
-//     where: { email },
-//     select: { role: true },
-//   });
-//
-//   const allowedFromDb = allowedDb.map((a) => a.role);
-//
-//   const allowedFromEnv: Role[] = env.COORDINATOR_EMAILS.includes(email)
-//     ? ["COORDINATOR"]
-//     : [];
-//
-//   // de-dupe
-//   const desired: Role[] = Array.from(
-//     new Set([...allowedFromDb, ...allowedFromEnv]),
-//   );
-//
-//   await db.$transaction([
-//     db.userRole.deleteMany({
-//       where: { userId, NOT: { role: { in: desired } } },
-//     }),
-//     db.userRole.createMany({
-//       data: desired.map((role) => ({ userId, role })),
-//       skipDuplicates: true,
-//     }),
-//   ]);
-// }
+export async function getAllowedRolesForEmail(email: string) {
+  // Pull the roles this email is allowed to have from db
+  const allowed = await db.allowedEmail
+    .findMany({
+      where: { email },
+      select: { role: true },
+    })
+    .then((entries) => entries.map((entry) => entry.role));
+
+  // Append coordinator role (from env, not in db)
+  if (env.COORDINATOR_EMAILS.includes(email)) {
+    allowed.push("COORDINATOR");
+  }
+
+  // dedupe
+  return [...new Set(allowed)];
+}
+
+/** Assign roles to a user (create missing, remove extras) */
+export async function syncUserRoles(userId: string, email: string) {
+  const allowed = await getAllowedRolesForEmail(email);
+  if (allowed.length === 0) return allowed;
+
+  await db.$transaction(async (tx) => {
+    // remove roles no longer allowed
+    await tx.userRole.deleteMany({
+      where: { userId, NOT: { role: { in: allowed } } },
+    });
+
+    // add missing roles
+    const existing = await tx.userRole.findMany({
+      where: { userId },
+      select: { role: true },
+    });
+    const existingSet = new Set(existing.map((e) => e.role));
+    const toAdd = allowed.filter((r) => !existingSet.has(r));
+    if (toAdd.length) {
+      await tx.userRole.createMany({
+        data: toAdd.map((role) => ({ userId, role })),
+      });
+    }
+  });
+
+  return allowed;
+}

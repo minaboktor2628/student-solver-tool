@@ -19,20 +19,35 @@ const devCredentialsProvider = Credentials({
 
     const email = `${pwd}@wpi.edu`;
 
-    const user = await db.user.upsert({
-      where: { email },
-      update: {
-        roles: {
-          deleteMany: {},
-          create: roles.map((role) => ({ role })),
+    const user = await db.$transaction(async (tx) => {
+      for (const role of roles) {
+        await tx.allowedEmail.upsert({
+          where: { email_role: { email, role } },
+          create: { email, role },
+          update: {},
+        });
+      }
+      await tx.allowedEmail.deleteMany({
+        where: { email, role: { notIn: roles } },
+      });
+
+      const u = await tx.user.upsert({
+        where: { email },
+        create: {
+          email,
+          name: pwd,
+          roles: { create: roles.map((role) => ({ role })) },
         },
-      },
-      create: {
-        email,
-        name: pwd,
-        roles: { create: roles.map((role) => ({ role })) },
-      },
-      include: { roles: true },
+        update: {
+          roles: {
+            deleteMany: {},
+            create: roles.map((role) => ({ role })),
+          },
+        },
+        include: { roles: true },
+      });
+
+      return u;
     });
 
     return {
@@ -46,6 +61,13 @@ const microsoftProvider = MicrosoftEntraID({
   clientId: env.AUTH_MICROSOFT_ENTRA_ID_ID,
   clientSecret: env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
   issuer: env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
+  async profile(profile) {
+    return {
+      id: profile.sub,
+      name: profile.name,
+      email: profile.email,
+    };
+  },
 });
 
 export const providers: Provider[] =
