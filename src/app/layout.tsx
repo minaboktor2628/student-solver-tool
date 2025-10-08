@@ -36,7 +36,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
-      <body className="flex h-dvh flex-col pt-[calc(var(--fd-nav-height)+env(safe-area-inset-top))]">
+      <body className="flex h-dvh flex-col">
         <TooltipProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors toastOptions={{ duration: 5000 }} />
@@ -48,7 +48,9 @@ export default async function RootLayout({
                   authSlot={<AuthButton />}
                   className="shrink-0"
                 />
-                <main className="min-h-0 flex-1">{children}</main>
+                <div className="mt-[calc(var(--fd-nav-height)+env(safe-area-inset-top))]">
+                  <main className="min-h-0 flex-1">{children}</main>
+                </div>
                 <DevDock />
               </RootProvider>
             </TRPCReactProvider>

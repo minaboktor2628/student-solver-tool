@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { auth, signIn } from "@/server/auth";
-import { testingPasswordMap } from "@/server/auth/config";
+import { testingPasswordMap } from "@/server/auth/testing-helpers";
 import { env } from "@/env";
 
 export default async function DevDock() {

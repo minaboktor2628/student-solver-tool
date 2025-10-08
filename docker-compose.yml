@@ -12,4 +12,4 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    image: t3-app
+    image: sts
