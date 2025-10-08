@@ -42,7 +42,11 @@ const devCredentialsProvider = Credentials({
   },
 });
 
-const microsoftProvider = MicrosoftEntraID({});
+const microsoftProvider = MicrosoftEntraID({
+  clientId: env.AUTH_MICROSOFT_ENTRA_ID_ID,
+  clientSecret: env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
+  issuer: env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
+});
 
 export const providers: Provider[] =
   env.NODE_ENV !== "production"

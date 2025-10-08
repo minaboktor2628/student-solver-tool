@@ -35,6 +35,24 @@ model UserRole {
   @@id([userId, role])
 }
 
+model TermConfig {
+  id         String         @id @default(cuid())
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  allowlists AllowedEmail[]
+}
+
+model AllowedEmail {
+  id           String      @id @default(cuid())
+  termConfigId String?
+  termConfig   TermConfig? @relation(fields: [termConfigId], references: [id], onDelete: Cascade)
+
+  email String @unique
+  role  Role
+
+  @@index([email])
+}
+
 model Account {
   id                       String  @id @default(cuid())
   userId                   String
