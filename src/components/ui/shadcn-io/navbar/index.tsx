@@ -121,7 +121,7 @@ export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               >
                 <div className="text-2xl">{logo}</div>
                 <span className="hidden text-xl font-bold sm:inline-block">
-                  SST
+                  STS
                 </span>
               </Link>
               {/* Navigation menu */}
