@@ -85,7 +85,7 @@ export default async function LoginPage({
   }
 
   return (
-    <div className="bg-background/70 flex h-max flex-col items-center justify-center gap-6 p-6 md:p-10">
+    <div className="bg-background/70 -mt-16 flex h-screen flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="w-full max-w-sm">
         <div className="flex flex-col gap-6">
           <FieldGroup>
@@ -94,9 +94,9 @@ export default async function LoginPage({
                 href="#"
                 className="flex flex-col items-center gap-2 font-medium"
               >
-                <div className="flex size-8 items-center justify-center rounded-md">
-                  <GalleryVerticalEnd className="size-6" />
-                </div>
+                {/* <div className="flex size-8 items-center justify-center rounded-md"> */}
+                {/*   <GalleryVerticalEnd className="size-6" /> */}
+                {/* </div> */}
                 <span className="sr-only">STS</span>
               </a>
               <h1 className="text-xl font-bold">Welcome to STS</h1>
