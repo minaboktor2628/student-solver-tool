@@ -91,11 +91,11 @@ export const authConfig = {
       if (!email) return;
       await syncUserRoles(user.id, email);
     },
-    // async signIn({ user, profile }) {
-    //   const email = user.email ?? profile?.email ?? "";
-    //   if (!email) return;
-    //   await syncUserRoles(user.id, email);
-    // },
+    async signIn({ user, profile }) {
+      const email = user.email ?? profile?.email ?? "";
+      if (!email) return;
+      await syncUserRoles(user.id, email);
+    },
   },
 } satisfies NextAuthConfig;
 
