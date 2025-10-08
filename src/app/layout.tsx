@@ -14,8 +14,9 @@ import { allowedLinks } from "@/server/auth/permissions";
 import { auth } from "@/server/auth";
 
 export const metadata: Metadata = {
-  title: "SST",
-  description: "Student Solver Tool - match WPI students assistants to classes",
+  title: "STS",
+  description:
+    "Student Teaching Staff - match WPI students assistants to classes",
   icons: [
     {
       rel: "icon",

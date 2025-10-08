@@ -135,125 +135,47 @@ export default async function LoginPage({
             <form action={microsoftSignin}>
               <Field>
                 <Button variant="outline" type="submit">
-                  <svg
-                    width="256px"
-                    height="256px"
-                    viewBox="0 0 256 256"
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    preserveAspectRatio="xMidYMid"
-                  >
-                    <title>Microsoft</title>
-                    <g>
-                      <polygon
-                        fill="#F1511B"
-                        points="121.666095 121.666095 0 121.666095 0 0 121.666095 0"
-                      />
-                      <polygon
-                        fill="#80CC28"
-                        points="256 121.666095 134.335356 121.666095 134.335356 0 256 0"
-                      />
-                      <polygon
-                        fill="#00ADEF"
-                        points="121.663194 256.002188 0 256.002188 0 134.336095 121.663194 134.336095"
-                      />
-                      <polygon
-                        fill="#FBBC09"
-                        points="256 256.002188 134.335356 256.002188 134.335356 134.336095 256 134.336095"
-                      />
-                    </g>
-                  </svg>
+                  <MicrosoftIcon />
                   Continue with Microsoft
                 </Button>
               </Field>
             </form>
           </FieldGroup>
-          <FieldDescription className="px-6 text-center">hey</FieldDescription>
         </div>
       </div>
     </div>
   );
+}
 
+function MicrosoftIcon() {
   return (
-    <div className="bg-background flex h-max flex-col items-center justify-center gap-6 p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <Card className="w-full max-w-md shadow-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Sign in</CardTitle>
-            <CardDescription>
-              Choose a dev profile or use Microsoft Entra ID.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {/* Microsoft Entra ID */}
-            <form action={microsoftSignin}>
-              <Button type="submit" className="w-full gap-2">
-                Sign in with Microsoft Entra ID
-              </Button>
-            </form>
-
-            <div className="relative">
-              <Separator />
-              <span className="bg-background text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded px-2 text-xs">
-                or
-              </span>
-            </div>
-
-            {/* Dev credentials */}
-            <form action={devSignin} className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="profile">Dev profile</Label>
-                <Select name="profile" defaultValue={profiles[0]?.id}>
-                  <SelectTrigger id="profile" aria-label="Dev profile selector">
-                    <SelectValue placeholder="Select a profile…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profiles.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button type="submit" variant="secondary" className="w-full">
-                Sign in as selected profile
-              </Button>
-            </form>
-          </CardContent>
-
-          <CardFooter className="justify-center">
-            <p className="text-muted-foreground text-xs">
-              This environment is for development and testing only.
-            </p>
-          </CardFooter>
-        </Card>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-2">
-      <form action={devSignin} className="flex items-end gap-2">
-        <Label htmlFor="profile" className="flex flex-col gap-1">
-          <span>Dev profile</span>
-          <select id="profile" name="profile" defaultValue={profiles[0]?.id}>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </Label>
-        <button type="submit">Sign in</button>
-      </form>
-      <form action={microsoftSignin}>
-        <Button type="submit">
-          <span>Sign in with Microsoft Entra ID</span>
-        </Button>
-      </form>
-    </div>
+    <svg
+      width="256px"
+      height="256px"
+      viewBox="0 0 256 256"
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="xMidYMid"
+    >
+      <title>Microsoft</title>
+      <g>
+        <polygon
+          fill="#F1511B"
+          points="121.666095 121.666095 0 121.666095 0 0 121.666095 0"
+        />
+        <polygon
+          fill="#80CC28"
+          points="256 121.666095 134.335356 121.666095 134.335356 0 256 0"
+        />
+        <polygon
+          fill="#00ADEF"
+          points="121.663194 256.002188 0 256.002188 0 134.336095 121.663194 134.336095"
+        />
+        <polygon
+          fill="#FBBC09"
+          points="256 256.002188 134.335356 256.002188 134.335356 134.336095 256 134.336095"
+        />
+      </g>
+    </svg>
   );
 }
