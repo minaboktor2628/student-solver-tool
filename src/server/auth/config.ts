@@ -58,7 +58,7 @@ export const authConfig = {
     error: "/error",
   },
   debug: env.NODE_ENV === "development",
-  session: { strategy: env.NODE_ENV !== "production" ? "jwt" : "database" },
+  session: { strategy: "jwt" },
   adapter: PrismaAdapter(db),
   callbacks: {
     async jwt({ token, user }) {

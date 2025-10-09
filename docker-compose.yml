@@ -12,4 +12,11 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=file:/app/data/prod.db
     image: sts
+    volumes:
+      - sqlite-data:/app/data
+
+volumes:
+  sqlite-data:
