@@ -51,6 +51,12 @@ export const ROUTE_TO_PERMISSION: Array<{
     href: "/docs" as Route,
     allowed: ["COORDINATOR"],
   },
+  {
+    pattern: /^\/dashboard(?:\/.*)?$/,
+    label: "Dashboard",
+    href: "/dashboard",
+    allowed: ["COORDINATOR"],
+  },
 ];
 
 export const canViewPage: PermissionCheck<"pages"> = (user, href) => {

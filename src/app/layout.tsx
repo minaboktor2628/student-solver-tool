@@ -49,7 +49,7 @@ export default async function RootLayout({
                   authSlot={<AuthButton />}
                   className="shrink-0"
                 />
-                <main className="flex-1 overflow-auto pt-16">{children}</main>
+                <div className="flex-1 overflow-auto pt-16">{children}</div>
                 <DevDock />
               </RootProvider>
             </TRPCReactProvider>
