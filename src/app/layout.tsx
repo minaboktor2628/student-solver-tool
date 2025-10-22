@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DevDock from "@/components/dev-dock";
-import { allowedLinks } from "@/lib/permissions";
 import { auth } from "@/server/auth";
 import {
   SidebarInset,
