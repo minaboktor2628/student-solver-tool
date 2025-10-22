@@ -4,17 +4,7 @@ import { AuthError } from "next-auth";
 import { signIn } from "@/server/auth";
 import { env } from "@/env";
 import { testingPasswordMap } from "@/server/auth/testing-helpers";
-
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 import {
   Select,
   SelectTrigger,
@@ -29,8 +19,6 @@ import {
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
-import { GalleryVerticalEnd } from "lucide-react";
 
 export default async function LoginPage({
   searchParams,

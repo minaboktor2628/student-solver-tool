@@ -46,12 +46,6 @@ export const ROUTE_TO_PERMISSION: Array<{
     allowed: ["COORDINATOR"],
   },
   {
-    pattern: /^\/docs(?:\/.*)?$/,
-    label: "Docs",
-    href: "/docs" as Route,
-    allowed: ["COORDINATOR"],
-  },
-  {
     pattern: /^\/dashboard(?:\/.*)?$/,
     label: "Dashboard",
     href: "/dashboard",

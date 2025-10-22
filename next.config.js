@@ -3,7 +3,6 @@
  * for Docker builds.
  */
 import "./src/env.js";
-import { createMDX } from "fumadocs-mdx/next";
 
 /** @type {import("next").NextConfig} */
 const config = {
@@ -15,8 +14,4 @@ const config = {
   eslint: { ignoreDuringBuilds: true },
 };
 
-const withMDX = createMDX({
-  configPath: "source.config.ts",
-});
-
-export default withMDX(config);
+export default config;
