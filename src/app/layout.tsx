@@ -9,7 +9,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthButton } from "@/components/auth-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DevDock from "@/components/dev-dock";
-import { RootProvider } from "fumadocs-ui/provider";
 import { allowedLinks } from "@/server/auth/permissions";
 import { auth } from "@/server/auth";
 
@@ -42,16 +41,14 @@ export default async function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors toastOptions={{ duration: 5000 }} />
             <TRPCReactProvider>
-              <RootProvider>
-                <Navbar
-                  logo={<Calculator />}
-                  navigationLinks={allowedLinks(session?.user)}
-                  authSlot={<AuthButton />}
-                  className="shrink-0"
-                />
-                <div className="flex-1 overflow-auto pt-16">{children}</div>
-                <DevDock />
-              </RootProvider>
+              <Navbar
+                logo={<Calculator />}
+                navigationLinks={allowedLinks(session?.user)}
+                authSlot={<AuthButton />}
+                className="shrink-0"
+              />
+              <div className="flex-1 overflow-auto pt-16">{children}</div>
+              <DevDock />
             </TRPCReactProvider>
           </ThemeProvider>
         </TooltipProvider>
