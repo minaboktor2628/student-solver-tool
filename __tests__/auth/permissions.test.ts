@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { User } from "next-auth";
-import { hasPermission, allowedLinks } from "@/server/auth/permissions";
+import { hasPermission, allowedLinks } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 
 const U = (roles: Role[]): User => ({ id: "u", email: "t@wpi.edu", roles });

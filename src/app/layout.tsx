@@ -3,14 +3,21 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { TRPCReactProvider } from "@/trpc/react";
 import { Toaster } from "@/components/ui/sonner";
-import { Navbar } from "@/components/ui/shadcn-io/navbar";
-import { Calculator } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthButton } from "@/components/auth-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DevDock from "@/components/dev-dock";
-import { allowedLinks } from "@/server/auth/permissions";
+import { allowedLinks } from "@/lib/permissions";
 import { auth } from "@/server/auth";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+
+import { Separator } from "@/components/ui/separator";
+import { AppSidebar } from "@/components/app-sidebar";
+import { HeaderBreadcrumbs } from "@/components/header-breadcrumbs";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export const metadata: Metadata = {
   title: "STS",
@@ -19,7 +26,7 @@ export const metadata: Metadata = {
   icons: [
     {
       rel: "icon",
-      url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWNhbGN1bGF0b3ItaWNvbiBsdWNpZGUtY2FsY3VsYXRvciI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjIwIiB4PSI0IiB5PSIyIiByeD0iMiIvPjxsaW5lIHgxPSI4IiB4Mj0iMTYiIHkxPSI2IiB5Mj0iNiIvPjxsaW5lIHgxPSIxNiIgeDI9IjE2IiB5MT0iMTQiIHkyPSIxOCIvPjxwYXRoIGQ9Ik0xNiAxMGguMDEiLz48cGF0aCBkPSJNMTIgMTBoLjAxIi8+PHBhdGggZD0iTTggMTBoLjAxIi8+PHBhdGggZD0iTTEyIDE0aC4wMSIvPjxwYXRoIGQ9Ik04IDE0aC4wMSIvPjxwYXRoIGQ9Ik0xMiAxOGguMDEiLz48cGF0aCBkPSJNOCAxOGguMDEiLz48L3N2Zz4=",
+      url: "/square-sigma.png",
     },
   ],
 };
@@ -36,19 +43,31 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
-      <body className="flex h-screen flex-col">
+      <body>
         <TooltipProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors toastOptions={{ duration: 5000 }} />
             <TRPCReactProvider>
-              <Navbar
-                logo={<Calculator />}
-                navigationLinks={allowedLinks(session?.user)}
-                authSlot={<AuthButton />}
-                className="shrink-0"
-              />
-              <div className="flex-1 overflow-auto pt-16">{children}</div>
-              <DevDock />
+              <SidebarProvider>
+                <AppSidebar user={session?.user} />
+                <SidebarInset>
+                  <header className="flex h-16 w-full shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+                    <div className="flex items-center gap-2 px-4">
+                      <SidebarTrigger className="-ml-1" />
+                      <Separator
+                        orientation="vertical"
+                        className="mr-2 data-[orientation=vertical]:h-4"
+                      />
+                      <HeaderBreadcrumbs />
+                    </div>
+                    <div className="px-2">
+                      <ModeToggle />
+                    </div>
+                  </header>
+                  <div className="flex flex-1 flex-col">{children}</div>
+                </SidebarInset>
+                <DevDock />
+              </SidebarProvider>
             </TRPCReactProvider>
           </ThemeProvider>
         </TooltipProvider>
