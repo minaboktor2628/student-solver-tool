@@ -23,6 +23,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const links = user ? allowedTree(user) : [];
   const pathname = usePathname();
 
+  console.log({ links, pathname });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -46,7 +48,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           <SidebarMenu>
             {links.map((item) => (
               <SidebarMenuItem key={item.label}>
-                <SidebarMenuButton asChild tooltip={item.label}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.label}
+                  isActive={pathname === item.href}
+                >
                   <Link href={item.href} className="font-medium">
                     <item.icon />
                     {item.label}
