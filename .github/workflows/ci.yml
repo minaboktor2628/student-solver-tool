@@ -47,6 +47,71 @@ jobs:
       - name: Unit tests
         run: pnpm run test:ci
 
+  e2e:
+    name: E2E (Cypress)
+    needs: check
+    runs-on: ubuntu-latest
+
+    env:
+      CI: true
+      SKIP_ENV_VALIDATION: true
+      NEXT_TELEMETRY_DISABLED: 1
+
+      # Make NextAuth happy in CI
+      NODE_ENV: test
+      NEXTAUTH_URL: http://localhost:3000
+      AUTH_TRUST_HOST: true
+      NEXTAUTH_SECRET: testtesttesttest
+
+      COORDINATOR_EMAILS: testcoordinator@wpi.edu
+
+      # Prisma SQLite connection (file-backed)
+      DATABASE_URL: file:./tmp/ci.db
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare SQLite dir
+        run: mkdir -p tmp
+
+      # Prepare DB schema (idempotent for SQLite in CI)
+      - name: Prisma db push
+        run: pnpm run db:push
+
+      # - name: Seed
+      #   run: pnpm run prisma:seed
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          start: pnpm dev
+          wait-on: "http://localhost:3000"
+          browser: electron
+          spec: "cypress/e2e/**/*.cy.{ts,tsx,js,jsx}"
+
+      # Upload videos/screenshots on failure
+      - name: Upload Cypress artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-artifacts
+          path: |
+            cypress/screenshots
+            cypress/videos
+
   docker:
     name: Build & Push Docker image
     runs-on: ubuntu-latest
