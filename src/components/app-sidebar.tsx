@@ -23,8 +23,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const links = user ? allowedTree(user) : [];
   const pathname = usePathname();
 
-  console.log({ links, pathname });
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
