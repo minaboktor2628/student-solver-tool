@@ -1,11 +1,9 @@
-import Link from "next/link";
 import {
   CheckCircle,
   Shield,
   BookOpen,
   Code,
   Database,
-  ArrowRight,
   User,
   Calendar,
 } from "lucide-react";
@@ -48,14 +46,6 @@ export default async function AboutPage() {
             </p>
 
             <div className="mb-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                href="/validate"
-                className="group bg-primary text-primary-foreground flex items-center gap-2 rounded-lg px-8 py-4 text-lg font-semibold shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl"
-              >
-                Try the Validator
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-
               <a
                 href="https://github.com/minaboktor2628/student-solver-tool"
                 target="_blank"
@@ -256,16 +246,6 @@ export default async function AboutPage() {
                   <li>• Component-based architecture</li>
                 </ul>
               </div>
-            </div>
-
-            <div className="text-center">
-              <Link
-                href="/validate"
-                className="group bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-8 py-4 text-lg font-semibold shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl"
-              >
-                Explore the Application
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
             </div>
           </div>
         </div>
