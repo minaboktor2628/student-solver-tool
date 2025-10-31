@@ -12,7 +12,6 @@ import type { Route } from "next";
 import type { ForwardRefExoticComponent, RefAttributes } from "react";
 
 export type NavItem = {
-  pattern: RegExp;
   label: string;
   href: Route;
   icon: ForwardRefExoticComponent<
@@ -24,34 +23,29 @@ export type NavItem = {
 
 export const ROUTES: NavItem[] = [
   {
-    pattern: /^\/$/,
     label: "Home",
     href: "/",
     allowed: ["COORDINATOR", "PLA", "TA", "PROFESSOR"],
     icon: HomeIcon,
   },
   {
-    pattern: /^\/about$/,
     label: "About",
     href: "/about",
     allowed: ["COORDINATOR", "PLA", "TA", "PROFESSOR"],
     icon: InfoIcon,
   },
   {
-    pattern: /^\/dashboard(?:\/.*)?$/,
     label: "Dashboard",
     href: "/dashboard",
     allowed: ["COORDINATOR"],
     icon: UserStarIcon,
     children: [
       {
-        pattern: /^\/dashboard\/solver(?:\/.*)?$/,
         label: "Solver",
         href: "/dashboard/solver",
         icon: ComputerIcon,
       },
       {
-        pattern: /^\/dashboard\/permissions(?:\/.*)?$/,
         label: "Permissions",
         href: "/dashboard/permissions",
         icon: ScanFaceIcon,
@@ -59,6 +53,19 @@ export const ROUTES: NavItem[] = [
     ],
   },
 ];
+
+function matchesRoute(path: string, node: NavItem) {
+  if (node.href === "/") {
+    return path === "/";
+  }
+
+  if (path === node.href) {
+    return true;
+  }
+
+  const normalized = node.href.endsWith("/") ? node.href : `${node.href}/`;
+  return path.startsWith(normalized);
+}
 
 function flattenRoutes(nodes: NavItem[], parentAllowed?: Role[]): NavItem[] {
   const out: NavItem[] = [];
@@ -84,7 +91,7 @@ export function findRouteForPath(
     const childHit = n.children && findRouteForPath(path, n.children, allowed);
     if (childHit) return childHit;
 
-    if (n.pattern.test(path)) {
+    if (matchesRoute(path, n)) {
       return { route: n, allowed };
     }
   }
