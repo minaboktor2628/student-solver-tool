@@ -51,6 +51,13 @@ export const ROUTE_TO_PERMISSION: Array<{
     href: "/docs" as Route,
     allowed: ["COORDINATOR"],
   },
+  {
+    // match the actual path (lowercase, hyphenated)
+    pattern: /^\/preferences-form(?:\/.*)?$/,
+    label: "Preferences Form",
+    href: "/preferences-form" as Route,
+    allowed: ["PLA", "TA"],
+  },
 ];
 
 export const canViewPage: PermissionCheck<"pages"> = (user, href) => {
