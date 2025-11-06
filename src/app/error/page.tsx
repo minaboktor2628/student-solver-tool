@@ -19,10 +19,10 @@ export default async function ErrorPage({
   const error = (await searchParams).error as keyof typeof errorMap;
 
   return (
-    <div className="-mt-16 flex h-screen min-h-0 flex-1 flex-col items-center justify-center space-y-4">
+    <div className="flex h-full w-full flex-col items-center justify-center space-y-4">
       <Alert variant="destructive" className="max-w-lg">
         <AlertCircleIcon />
-        <AlertTitle>Something went wrong</AlertTitle>
+        <AlertTitle>Something went wrong. Code: {error}</AlertTitle>
         <AlertDescription>
           {errorMap[error] ?? "Please contact us if this error persists."}
         </AlertDescription>
