@@ -23,7 +23,7 @@ export function SectionSolverStatus({
 
   return (
     <Tooltip>
-      <TooltipTrigger className="ml-auto">
+      <TooltipTrigger className="ml-auto" asChild>
         <Badge
           variant={
             isAssignedExactlyNumberOfHoursNeeded
