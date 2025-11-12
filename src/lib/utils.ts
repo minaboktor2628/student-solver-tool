@@ -6,6 +6,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function calculateRequiredAssistantHours(
+  enrolledStudents: number,
+): number {
+  // Ceiling to nearest multiple of 5
+  const ceiling = Math.ceil(enrolledStudents / 5) * 5;
+
+  // Divide by 2
+  const half = ceiling / 2;
+
+  // Floor to nearest multiple of 10
+  const result = Math.floor(half / 10) * 10;
+
+  return result;
+}
+
 export const isExcelName = (name: string) => /\.xlsx?$/i.test(name);
 export const isExcelType = (type: string) =>
   type ===
