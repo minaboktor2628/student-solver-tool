@@ -9,16 +9,11 @@ export function cn(...inputs: ClassValue[]) {
 export function calculateRequiredAssistantHours(
   enrolledStudents: number,
 ): number {
-  // Ceiling to nearest multiple of 5
-  const ceiling = Math.ceil(enrolledStudents / 5) * 5;
+  if (enrolledStudents < 15) return 0;
 
-  // Divide by 2
-  const half = ceiling / 2;
-
-  // Floor to nearest multiple of 10
-  const result = Math.floor(half / 10) * 10;
-
-  return result;
+  // Each 20 students (after the first 15) adds 10 hours
+  const blocks = Math.floor((enrolledStudents - 15) / 20) + 1;
+  return blocks * 10;
 }
 
 export const isExcelName = (name: string) => /\.xlsx?$/i.test(name);
