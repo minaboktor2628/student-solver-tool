@@ -32,113 +32,127 @@ enum TermLetter {
 
 model Term {
   letter TermLetter
-  year Int
+  year   Int
+
   @@id([letter, year])
 }
 
 model Staff {
-  email String @id
-  name String?
-  role Role?
-  hours Int
-  staffFormInputs StaffFormInput[]
+  email                String                @id
+  name                 String?
+  role                 Role?
+  hours                Int
+  staffFormInputs      StaffFormInput[]
+  assignments          Assignment[]
   professorPreferences ProfessorPreference[]
-  assignments Assignment[]
+  users                User[]
 }
 
 model Professor {
-  email String @id
-  name String?
+  email               String               @id
+  name                String?
   professorFormInputs ProfessorFormInput[]
-  sections Section[]
+  sections            Section[]
+  users               User[]
 }
 
 model StaffFormInput {
-  email String
-  staff Staff @relation(fields: [email], references:[email])
-  term TermLetter
-  year Int
-  times String
-  comments String
-  locked Boolean
+  email          String
+  staff          Staff           @relation(fields: [email], references: [email])
+  term           TermLetter
+  year           Int
+  times          String
+  comments       String
+  locked         Boolean
   qualifications QualifiedFor[]
-  preferences PreferenceFor[]
+  preferences    PreferenceFor[]
+
   @@id([email, term, year])
 }
 
 model ProfessorFormInput {
-  email String
-  term TermLetter
-  year Int
-  times String
-  comments String
-  professor Professor @relation(fields: [email], references:[email])
+  email       String
+  term        TermLetter
+  year        Int
+  times       String
+  comments    String
+  professor   Professor             @relation(fields: [email], references: [email])
   preferences ProfessorPreference[]
+
   @@id([email, term, year])
 }
 
 model ProfessorPreference {
-  professorEmail String
-  staffEmail String
-  term TermLetter
-  year Int
-  antiPreference Boolean
+  professorEmail     String
+  staffEmail         String
+  term               TermLetter
+  year               Int
+  antiPreference     Boolean
   professorFormInput ProfessorFormInput @relation(fields: [professorEmail, term, year], references: [email, term, year])
-  staff Staff @relation(fields: [staffEmail], references: [email])
+  staff              Staff              @relation(fields: [staffEmail], references: [email])
+
   @@id([professorEmail, staffEmail, term, year])
 }
 
 model Section {
-  courseCode String
-  term TermLetter
-  year Int
-  name String
-  description String
+  courseCode     String
+  term           TermLetter
+  year           Int
+  name           String
+  description    String
   professorEmail String
-  enrollment Int
-  capacity Int
-  professor Professor @relation(fields: [professorEmail], references: [email])
-  assignments Assignment[]
+  enrollment     Int
+  capacity       Int
+  professor      Professor    @relation(fields: [professorEmail], references: [email])
+  assignments    Assignment[]
+
   @@id([courseCode, term, year])
 }
 
 model QualifiedFor {
-  email String
-  term TermLetter
-  year Int
+  email      String
+  term       TermLetter
+  year       Int
   courseCode String
-  form StaffFormInput @relation(fields: [email, term, year], references: [email, term, year])
+  form       StaffFormInput @relation(fields: [email, term, year], references: [email, term, year])
+
   @@id([email, term, year, courseCode])
 }
 
 model PreferenceFor {
-  email String
-  term TermLetter
-  year Int
+  email      String
+  term       TermLetter
+  year       Int
   courseCode String
-  form StaffFormInput @relation(fields: [email, term, year], references: [email, term, year])
+  form       StaffFormInput @relation(fields: [email, term, year], references: [email, term, year])
+
   @@id([email, term, year, courseCode])
 }
 
 model Assignment {
-  email String
-  term TermLetter
-  year Int
+  email      String
+  term       TermLetter
+  year       Int
   courseCode String
-  staff Staff @relation(fields: [email], references: [email])
-  section Section @relation(fields: [courseCode, term, year], references: [courseCode, term, year])
+  staff      Staff      @relation(fields: [email], references: [email])
+  section    Section    @relation(fields: [courseCode, term, year], references: [courseCode, term, year])
+
   @@id([email, term, year, courseCode])
 }
 
 model User {
-  id            String     @id @default(cuid())
-  name          String?
-  email         String?    @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  roles         UserRole[]
+  id             String     @id @default(cuid())
+  name           String?
+  email          String?    @unique
+  emailVerified  DateTime?
+  image          String?
+  accounts       Account[]
+  sessions       Session[]
+  roles          UserRole[]
+  professor      Professor? @relation(fields: [professorEmail], references: [email])
+  staff          Staff?     @relation(fields: [staffEmail], references: [email])
+  professorEmail String?
+  staffEmail     String?
 }
 
 model UserRole {
