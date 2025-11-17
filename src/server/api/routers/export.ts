@@ -1,11 +1,11 @@
 import type { EditorFile } from "@/types/editor";
 import * as XLSX from "xlsx";
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import type { Assignment, Assistant } from "@/types/excel";
 
 export const exportRoute = createTRPCRouter({
-  exportSolutionToExcel: publicProcedure
+  exportSolutionToExcel: coordinatorProcedure
     .input(
       z.object({
         filename: z.string(),
