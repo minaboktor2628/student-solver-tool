@@ -16,20 +16,186 @@ enum Role {
   PROFESSOR
 }
 
+enum StaffRole {
+  PLA
+  TA
+}
+
+enum TermLetter {
+  A
+  B
+  C
+  D
+  F
+  S
+}
+
+model Term {
+  letter               TermLetter
+  year                 Int
+  startDate            DateTime
+  endDate              DateTime
+  professorFormInputs  ProfessorFormInput[]
+  professorPreferences ProfessorPreference[]
+  sections             Section[]
+  staffFormInputs      StaffFormInput[]
+  qualifiedFors        QualifiedFor[]
+  preferenceFors       PreferenceFor[]
+  assignments          Assignment[]
+
+  @@id([letter, year])
+}
+
+model Staff {
+  id                   String                @id
+  user                 User                  @relation(fields: [id], references: [id])
+  email                String?               @unique
+  name                 String?
+  role                 Role?
+  hours                Int
+  staffFormInputs      StaffFormInput[]
+  assignments          Assignment[]
+  professorPreferences ProfessorPreference[]
+
+  qualifiedFors QualifiedFor[]
+
+  preferenceFors PreferenceFor[]
+}
+
+model Professor {
+  id                  String               @id
+  user                User                 @relation(fields: [id], references: [id])
+  email               String?              @unique
+  name                String?
+  professorFormInputs ProfessorFormInput[]
+  sections            Section[]
+
+  professorPreferences ProfessorPreference[]
+}
+
+model StaffFormInput {
+  staffId        String
+  staff          Staff           @relation(fields: [staffId], references: [id])
+  term           Term            @relation(fields: [termLetter, year], references: [letter, year])
+  year           Int
+  termLetter     TermLetter
+  times          String
+  comments       String
+  locked         Boolean
+  qualifications QualifiedFor[]
+  preferences    PreferenceFor[]
+
+  @@id([staffId, termLetter, year])
+}
+
+model ProfessorFormInput {
+  professorId String
+  professor   Professor             @relation(fields: [professorId], references: [id])
+  courseCode  String
+  section     Section               @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
+  term        Term                  @relation(fields: [termLetter, year], references: [letter, year])
+  termLetter  TermLetter
+  year        Int
+  times       String
+  comments    String
+  preferences ProfessorPreference[]
+
+  @@id([professorId, courseCode, termLetter, year])
+  @@unique([professorId, termLetter, year])
+}
+
+model ProfessorPreference {
+  professorId        String
+  professor          Professor          @relation(fields: [professorId], references: [id])
+  staffId            String
+  staff              Staff              @relation(fields: [staffId], references: [id])
+  term               Term               @relation(fields: [termLetter, year], references: [letter, year])
+  termLetter         TermLetter
+  year               Int
+  antiPreference     Boolean
+  professorFormInput ProfessorFormInput @relation(fields: [professorId, termLetter, year], references: [professorId, termLetter, year])
+
+  @@id([professorId, staffId, termLetter, year])
+}
+
+model Section {
+  courseCode          String
+  termLetter          TermLetter
+  year                Int
+  term                Term                 @relation(fields: [termLetter, year], references: [letter, year])
+  name                String
+  description         String
+  professorId         String
+  professor           Professor            @relation(fields: [professorId], references: [id])
+  enrollment          Int
+  capacity            Int
+  requiredHours       Int
+  assignments         Assignment[]
+  professorFormInputs ProfessorFormInput[]
+  qualifiedFors       QualifiedFor[]
+  preferenceFors      PreferenceFor[]
+
+  @@id([courseCode, termLetter, year])
+}
+
+model QualifiedFor {
+  staffId    String
+  staff      Staff      @relation(fields: [staffId], references: [id])
+  termLetter TermLetter
+  year       Int
+  term       Term       @relation(fields: [termLetter, year], references: [letter, year])
+  courseCode String
+  section    Section    @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
+
+  form StaffFormInput @relation(fields: [staffId, termLetter, year], references: [staffId, termLetter, year])
+
+  @@id([staffId, termLetter, year, courseCode])
+}
+
+model PreferenceFor {
+  staffId    String
+  staff      Staff          @relation(fields: [staffId], references: [id])
+  termLetter TermLetter
+  year       Int
+  term       Term           @relation(fields: [termLetter, year], references: [letter, year])
+  courseCode String
+  section    Section        @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
+  form       StaffFormInput @relation(fields: [staffId, termLetter, year], references: [staffId, termLetter, year])
+
+  @@id([staffId, termLetter, year, courseCode])
+}
+
+model Assignment {
+  staffId    String
+  termLetter TermLetter
+  year       Int
+  term       Term       @relation(fields: [termLetter, year], references: [letter, year])
+  courseCode String
+  staff      Staff      @relation(fields: [staffId], references: [id])
+  section    Section    @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
+
+  @@id([staffId, termLetter, year, courseCode])
+}
+
 model User {
-  id            String     @id @default(cuid())
-  name          String?
-  email         String?    @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  roles         UserRole[]
+  id             String     @id @default(cuid())
+  name           String?
+  email          String?    @unique
+  emailVerified  DateTime?
+  image          String?
+  accounts       Account[]
+  sessions       Session[]
+  roles          UserRole[]
+  professorEmail String?
+  staffEmail     String?
+
+  staff      Staff?
+  professor Professor?
 }
 
 model UserRole {
   role   Role
-  User   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
   @@id([userId, role])
