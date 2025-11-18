@@ -16,186 +16,185 @@ enum Role {
   PROFESSOR
 }
 
-enum StaffRole {
-  PLA
-  TA
-}
-
 enum TermLetter {
   A
   B
   C
   D
-  F
-  S
+}
+
+enum AcademicLevel {
+  UNDERGRADUATE
+  GRADUATE
 }
 
 model Term {
-  letter               TermLetter
-  year                 Int
-  startDate            DateTime
-  endDate              DateTime
-  professorFormInputs  ProfessorFormInput[]
-  professorPreferences ProfessorPreference[]
-  sections             Section[]
-  staffFormInputs      StaffFormInput[]
-  qualifiedFors        QualifiedFor[]
-  preferenceFors       PreferenceFor[]
-  assignments          Assignment[]
+  id         String     @id @default(cuid())
+  termLetter TermLetter // Fall semester gets combined with A term, Spring with C term
+  year       Int
 
-  @@id([letter, year])
+  staffPreferences StaffPreference[]
+  sections         Section[]
+  allowedEmails    AllowedEmail[] // This term's available PLAs/TAs/Professors
+
+  termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
+  termProfessorDueDate DateTime // When professors should have their preferences submitted by
+  createdAt            DateTime @default(now())
+
+  @@unique([termLetter, year])
 }
 
-model Staff {
-  id                   String                @id
-  user                 User                  @relation(fields: [id], references: [id])
-  email                String?               @unique
-  name                 String?
-  role                 Role?
-  hours                Int
-  staffFormInputs      StaffFormInput[]
-  assignments          Assignment[]
-  professorPreferences ProfessorPreference[]
+model StaffPreference {
+  id String @id @default(cuid())
 
-  qualifiedFors QualifiedFor[]
+  // Associated staff
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 
-  preferenceFors PreferenceFor[]
+  // Associated term
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String
+
+  timesAvailable String // temp for now
+  canEdit        Boolean @default(true) // Has ability to still modify their preferences or not
+  comments       String? // Any additional comments that the staff has
+
+  qualifiedForSections StaffPreferenceQualifiedSection[]
+  preferredSections    StaffPreferencePreferredSection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // one staff preference per user per term
+  @@unique([userId, termId])
 }
 
-model Professor {
-  id                  String               @id
-  user                User                 @relation(fields: [id], references: [id])
-  email               String?              @unique
-  name                String?
-  professorFormInputs ProfessorFormInput[]
-  sections            Section[]
+// Courses the staff can be assigned to
+model StaffPreferenceQualifiedSection {
+  staffPreference   StaffPreference @relation(fields: [staffPreferenceId], references: [id], onDelete: Cascade)
+  staffPreferenceId String
 
-  professorPreferences ProfessorPreference[]
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+
+  @@id([staffPreferenceId, sectionId])
 }
 
-model StaffFormInput {
-  staffId        String
-  staff          Staff           @relation(fields: [staffId], references: [id])
-  term           Term            @relation(fields: [termLetter, year], references: [letter, year])
-  year           Int
-  termLetter     TermLetter
-  times          String
-  comments       String
-  locked         Boolean
-  qualifications QualifiedFor[]
-  preferences    PreferenceFor[]
+// Ordered list of preferred sections
+model StaffPreferencePreferredSection {
+  rank Int // 1 | 2 | 3
 
-  @@id([staffId, termLetter, year])
+  staffPreference   StaffPreference @relation(fields: [staffPreferenceId], references: [id], onDelete: Cascade)
+  staffPreferenceId String
+
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+
+  @@id([staffPreferenceId, sectionId])
+  @@unique([staffPreferenceId, rank])
 }
 
-model ProfessorFormInput {
-  professorId String
-  professor   Professor             @relation(fields: [professorId], references: [id])
-  courseCode  String
-  section     Section               @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
-  term        Term                  @relation(fields: [termLetter, year], references: [letter, year])
-  termLetter  TermLetter
-  year        Int
-  times       String
-  comments    String
-  preferences ProfessorPreference[]
+// Which staff (users) are actually assigned to a section
+model SectionAssignment {
+  id String @id @default(cuid())
 
-  @@id([professorId, courseCode, termLetter, year])
-  @@unique([professorId, termLetter, year])
-}
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
 
-model ProfessorPreference {
-  professorId        String
-  professor          Professor          @relation(fields: [professorId], references: [id])
-  staffId            String
-  staff              Staff              @relation(fields: [staffId], references: [id])
-  term               Term               @relation(fields: [termLetter, year], references: [letter, year])
-  termLetter         TermLetter
-  year               Int
-  antiPreference     Boolean
-  professorFormInput ProfessorFormInput @relation(fields: [professorId, termLetter, year], references: [professorId, termLetter, year])
+  staff   User   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
 
-  @@id([professorId, staffId, termLetter, year])
+  // Prevent duplicate assignments
+  @@unique([sectionId, staffId])
 }
 
 model Section {
-  courseCode          String
-  termLetter          TermLetter
-  year                Int
-  term                Term                 @relation(fields: [termLetter, year], references: [letter, year])
-  name                String
-  description         String
-  professorId         String
-  professor           Professor            @relation(fields: [professorId], references: [id])
-  enrollment          Int
-  capacity            Int
-  requiredHours       Int
-  assignments         Assignment[]
-  professorFormInputs ProfessorFormInput[]
-  qualifiedFors       QualifiedFor[]
-  preferenceFors      PreferenceFor[]
+  id String @id @default(cuid())
 
-  @@id([courseCode, termLetter, year])
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String
+
+  courseTitle String // Ex: "Discrete Mathematics"
+  courseCode  String // Ex: "CS 2022"
+  description String // Course description
+
+  professor   User   @relation("TeachesSections", fields: [professorId], references: [id])
+  professorId String
+
+  enrollment    Int // Number of students enrolled in this course
+  capacity      Int // Max number of students allowed to enroll in this course
+  requiredHours Int // Number of staff hours required to fulfill this course's needs
+  academicLevel AcademicLevel // Undergraduate or Graduate
+
+  assignments          SectionAssignment[]
+  qualifiedPreferences StaffPreferenceQualifiedSection[]
+  preferredPreferences StaffPreferencePreferredSection[]
+  professorPreference  ProfessorPreference?
 }
 
-model QualifiedFor {
-  staffId    String
-  staff      Staff      @relation(fields: [staffId], references: [id])
-  termLetter TermLetter
-  year       Int
-  term       Term       @relation(fields: [termLetter, year], references: [letter, year])
-  courseCode String
-  section    Section    @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
+model ProfessorPreference {
+  id String @id @default(cuid())
 
-  form StaffFormInput @relation(fields: [staffId, termLetter, year], references: [staffId, termLetter, year])
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String  @unique
 
-  @@id([staffId, termLetter, year, courseCode])
+  canEdit       Boolean @default(true) // Has ability to still modify their preferences or not
+  timesRequired String? // temp for now
+  comments      String?
+
+  preferredStaff ProfessorPreferencePreferredStaff[]
+  avoidedStaff   ProfessorPreferenceAvoidedStaff[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model PreferenceFor {
-  staffId    String
-  staff      Staff          @relation(fields: [staffId], references: [id])
-  termLetter TermLetter
-  year       Int
-  term       Term           @relation(fields: [termLetter, year], references: [letter, year])
-  courseCode String
-  section    Section        @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
-  form       StaffFormInput @relation(fields: [staffId, termLetter, year], references: [staffId, termLetter, year])
+// Which staff the professor prefers for this course
+model ProfessorPreferencePreferredStaff {
+  professorPreference   ProfessorPreference @relation(fields: [professorPreferenceId], references: [id], onDelete: Cascade)
+  professorPreferenceId String
 
-  @@id([staffId, termLetter, year, courseCode])
+  staff   User   @relation("ProfPrefPreferredStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
+
+  @@id([professorPreferenceId, staffId])
 }
 
-model Assignment {
-  staffId    String
-  termLetter TermLetter
-  year       Int
-  term       Term       @relation(fields: [termLetter, year], references: [letter, year])
-  courseCode String
-  staff      Staff      @relation(fields: [staffId], references: [id])
-  section    Section    @relation(fields: [courseCode, termLetter, year], references: [courseCode, termLetter, year])
+// Which staff the professor does NOT want for this course
+model ProfessorPreferenceAvoidedStaff {
+  professorPreference   ProfessorPreference @relation(fields: [professorPreferenceId], references: [id], onDelete: Cascade)
+  professorPreferenceId String
 
-  @@id([staffId, termLetter, year, courseCode])
+  staff   User   @relation("ProfPrefAvoidedStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
+
+  @@id([professorPreferenceId, staffId])
 }
 
 model User {
-  id             String     @id @default(cuid())
-  name           String?
-  email          String?    @unique
-  emailVerified  DateTime?
-  image          String?
-  accounts       Account[]
-  sessions       Session[]
-  roles          UserRole[]
-  professorEmail String?
-  staffEmail     String?
+  id            String     @id @default(cuid())
+  name          String?
+  email         String?    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  roles         UserRole[]
 
-  staff      Staff?
-  professor Professor?
+  // staff specific
+  hours              Int?
+  staffPreferences   StaffPreference[]
+  sectionAssignments SectionAssignment[]
+  preferredInCourses ProfessorPreferencePreferredStaff[] @relation("ProfPrefPreferredStaff")
+  avoidedInCourses   ProfessorPreferenceAvoidedStaff[]   @relation("ProfPrefAvoidedStaff")
+
+  // professor specific
+  teaches Section[] @relation("TeachesSections")
 }
 
 model UserRole {
   role   Role
-  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
   @@id([userId, role])
@@ -206,7 +205,10 @@ model AllowedEmail {
   email String
   role  Role
 
-  @@unique([email, role])
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String
+
+  @@unique([email, role, termId])
   @@index([email])
 }
 
