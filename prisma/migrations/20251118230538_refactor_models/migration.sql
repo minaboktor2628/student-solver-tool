@@ -24,7 +24,6 @@
   - You are about to drop the column `startDate` on the `Term` table. All the data in the column will be lost.
   - You are about to drop the column `professorEmail` on the `User` table. All the data in the column will be lost.
   - You are about to drop the column `staffEmail` on the `User` table. All the data in the column will be lost.
-  - Added the required column `termId` to the `AllowedEmail` table without a default value. This is not possible if the table is not empty.
   - The required column `id` was added to the `ProfessorPreference` table with a prisma-level default value. This is not possible if the table is not empty. Please add this column as optional, then populate it before making it required.
   - Added the required column `sectionId` to the `ProfessorPreference` table without a default value. This is not possible if the table is not empty.
   - Added the required column `updatedAt` to the `ProfessorPreference` table without a default value. This is not possible if the table is not empty.
@@ -153,7 +152,7 @@ CREATE TABLE "new_AllowedEmail" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "email" TEXT NOT NULL,
     "role" TEXT NOT NULL,
-    "termId" TEXT NOT NULL,
+    "termId" TEXT,
     CONSTRAINT "AllowedEmail_termId_fkey" FOREIGN KEY ("termId") REFERENCES "Term" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 INSERT INTO "new_AllowedEmail" ("email", "id", "role") SELECT "email", "id", "role" FROM "AllowedEmail";
@@ -161,6 +160,7 @@ DROP TABLE "AllowedEmail";
 ALTER TABLE "new_AllowedEmail" RENAME TO "AllowedEmail";
 CREATE INDEX "AllowedEmail_email_idx" ON "AllowedEmail"("email");
 CREATE UNIQUE INDEX "AllowedEmail_email_role_termId_key" ON "AllowedEmail"("email", "role", "termId");
+CREATE UNIQUE INDEX "AllowedEmail_email_role_key" ON "AllowedEmail"("email", "role");
 CREATE TABLE "new_ProfessorPreference" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "sectionId" TEXT NOT NULL,

@@ -205,10 +205,11 @@ model AllowedEmail {
   email String
   role  Role
 
-  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
-  termId String
+  term   Term?   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String?
 
   @@unique([email, role, termId])
+  @@unique([email, role])
   @@index([email])
 }
 
