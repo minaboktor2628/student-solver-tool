@@ -1,5 +1,5 @@
-import FormTriggerButton from "@/components/MultiStepForm/form-trigger-button";
 import React from "react";
+import MultiStepFormModal from "@/components/MultiStepForm/multi-step-form-modal";
 
 export const metadata = {
   title: "Preferences Form",
@@ -8,12 +8,12 @@ export const metadata = {
 
 export default function PreferencesFormPage() {
   return (
-    <div className="p-4">
+    <div className="p-6">
       <h1 className="mb-4 text-2xl font-bold">Preferences Form</h1>
-      <p>
-        This is where the preferences form for TAs and PLAs will be implemented.
+      <p className="text-muted-foreground mb-4">
+        Complete the steps to set your preferences.
       </p>
-      <FormTriggerButton />
+      <MultiStepFormModal inline />
     </div>
   );
 }
