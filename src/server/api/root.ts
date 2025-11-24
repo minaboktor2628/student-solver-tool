@@ -2,6 +2,9 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 import { excelRoute } from "./routers/excel";
 import { validateRoute } from "./routers/validate";
 import { exportRoute } from "./routers/export";
+import { staffAssignmentRoute } from "./routers/staff-assignment";
+import { courseRoute } from "./routers/courses";
+import { staffRoute } from "./routers/staff";
 
 /**
  * This is the primary router for your server.
@@ -12,6 +15,9 @@ export const appRouter = createTRPCRouter({
   excel: excelRoute,
   validate: validateRoute,
   export: exportRoute,
+  staffAssignment: staffAssignmentRoute,
+  courses: courseRoute,
+  staff: staffRoute,
 });
 
 // export type definition of API
