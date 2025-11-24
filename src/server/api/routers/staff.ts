@@ -35,6 +35,20 @@ export const staffRoute = createTRPCRouter({
           include: {
             staffPreference: {
               select: {
+                comments: true,
+                timesAvailable: true,
+                preferredSections: {
+                  select: {
+                    rank: true,
+                    section: {
+                      select: {
+                        id: true,
+                        courseTitle: true,
+                        courseCode: true,
+                      },
+                    },
+                  },
+                },
                 user: {
                   select: {
                     id: true,
@@ -58,6 +72,9 @@ export const staffRoute = createTRPCRouter({
             email: u.email,
             hours: u.hours,
             roles: u.roles.map((r) => r.role),
+            comments: staffPreference.comments,
+            timesAvailable: staffPreference.timesAvailable,
+            preferedSections: staffPreference.preferredSections,
           };
         });
 

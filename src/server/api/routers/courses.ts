@@ -51,6 +51,7 @@ export const courseRoute = createTRPCRouter({
           description: c.description,
           title: c.courseTitle,
           courseCode: c.courseCode,
+          academicLevel: c.academicLevel,
           professor: {
             id: c.professor.id,
             email: c.professor.email,
