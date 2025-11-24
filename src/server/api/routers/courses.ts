@@ -8,6 +8,23 @@ export const courseRoute = createTRPCRouter({
       const courses = await ctx.db.section.findMany({
         where: { term: { id: termId } },
         include: {
+          professorPreference: {
+            include: {
+              preferredStaff: {
+                include: {
+                  staff: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      hours: true,
+                      roles: { select: { role: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
           assignments: {
             include: {
               staff: {
@@ -21,7 +38,7 @@ export const courseRoute = createTRPCRouter({
               },
             },
           },
-          professor: { select: { name: true } },
+          professor: { select: { id: true, name: true, email: true } },
         },
       });
 
@@ -34,7 +51,17 @@ export const courseRoute = createTRPCRouter({
           description: c.description,
           title: c.courseTitle,
           courseCode: c.courseCode,
-          professor: c.professor.name,
+          professor: {
+            id: c.professor.id,
+            email: c.professor.email,
+            name: c.professor.name,
+            comments: c.professorPreference?.comments,
+            timesRequired: c.professorPreference?.timesRequired,
+            preferedStaff: c.professorPreference?.preferredStaff.map((s) => ({
+              ...s.staff,
+              roles: s.staff.roles.map((r) => r.role),
+            })),
+          },
           staff: c.assignments.map((s) => ({
             ...s.staff,
             roles: s.staff.roles.map((r) => r.role),
