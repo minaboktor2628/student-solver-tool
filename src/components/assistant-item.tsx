@@ -6,28 +6,36 @@ import {
 } from "@/components/ui/hover-card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import type { RouterOutputs } from "@/trpc/react";
+import { cn } from "@/lib/utils";
 
-export type AssistantItemProps = {
-  id: string;
-  name: string;
-  role: "PLA" | "TA";
-  hours: number;
-  comments: string;
-  preferences: [string, string, string];
-};
+export type AssistantItemProps =
+  RouterOutputs["staff"]["getQualifiedStaffForCourse"]["available"][0] & {
+    isAvailable: boolean;
+  };
 
 export function AssistantItem({
-  name,
-  role,
-  hours,
   id,
-  preferences,
+  name,
+  email,
+  hours,
+  roles,
   comments,
+  timesAvailable,
+  preferedSections,
+  isAvailable,
 }: AssistantItemProps) {
   return (
     <HoverCard>
-      <HoverCardTrigger>
-        <div className="bg-card hover:bg-muted/40 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md">
+      <HoverCardTrigger asChild>
+        <div
+          className={cn(
+            "bg-card hover:bg-muted/40 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md",
+            !isAvailable &&
+              "border-warning/60 bg-warning/5 dark:border-warning/40",
+          )}
+        >
+          {" "}
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -39,7 +47,7 @@ export function AssistantItem({
             </Button>
             <span className="font-medium">{name}</span>
           </div>
-          <Badge className="capitalize">{role}</Badge>
+          <Badge className="capitalize">{roles[0]}</Badge>
         </div>
       </HoverCardTrigger>
       <HoverCardContent>extra here</HoverCardContent>

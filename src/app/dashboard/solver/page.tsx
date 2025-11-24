@@ -14,32 +14,19 @@ import {
 } from "@/components/ui/button-group";
 import { Button } from "@/components/ui/button";
 import { api } from "@/trpc/react";
-
-const classes = [
-  {
-    capacity: 40,
-    sectionName: "CS 1004-CL01 - Introduction To Programming For Non-Majors",
-    enrollment: 40,
-    instructors: "Mathew Ahrens",
-    meetingPattern: "M-T-R-F | 4:00pm - 4:50pm",
-    students: [],
-  },
-  {
-    capacity: 40,
-    sectionName: "CS 1001-CL02 - Introduction To Programming",
-    enrollment: 50,
-    instructors: "Mathew Ahrens",
-    meetingPattern: "M-T-R-F | 4:00pm - 4:50pm",
-    students: [],
-  },
-];
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 export default function SolverPage() {
-  const [openedClass, setOpenedClass] = useState(classes[0]?.sectionName);
+  const [selectedSectionId, setSelectedSectionId] = useState<
+    string | undefined
+  >();
+
   const courses = api.courses.getAllCoursesForTerm.useQuery({
-    year: 2025,
-    termLetter: "A",
+    termId: "cmidsm56y0000v8vaqgdz42sc",
   });
+
+  if (courses.isError) return <>error</>; // TODO: make this better
+  if (courses.isPending) return <LoadingSpinner />;
 
   return (
     <div className="h-full px-4">
@@ -59,27 +46,15 @@ export default function SolverPage() {
       <ResizablePanelGroup direction="horizontal" className="h-full space-x-4">
         <ResizablePanel defaultSize={75}>
           <SectionAccordion
-            selected={openedClass}
-            onSelectedChange={setOpenedClass}
-            classes={classes}
+            selected={selectedSectionId}
+            onSelectedChange={setSelectedSectionId}
+            classes={courses.data.courses}
           />
         </ResizablePanel>
         <ResizableHandle withHandle className="my-2" />
         <ResizablePanel defaultSize={25} maxSize={50} minSize={12}>
           <aside className="pt-2">
-            <StudentSelectionSidebar
-              sectionName={openedClass}
-              students={[
-                {
-                  role: "PLA",
-                  id: "edsfas",
-                  comments: "i like cheese",
-                  hours: 10,
-                  name: "mina boktor",
-                  preferences: ["cs2303", "cs3034", "cs3733"],
-                },
-              ]}
-            />
+            <StudentSelectionSidebar sectionId={selectedSectionId} />
           </aside>
         </ResizablePanel>
       </ResizablePanelGroup>
