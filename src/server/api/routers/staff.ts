@@ -4,8 +4,12 @@ import { TRPCError } from "@trpc/server";
 
 export const staffRoute = createTRPCRouter({
   getQualifiedStaffForCourse: coordinatorProcedure
-    .input(z.object({ sectionId: z.string() }))
+    .input(z.object({ sectionId: z.string().nullish() }))
     .query(async ({ input: { sectionId }, ctx }) => {
+      if (!sectionId) {
+        return { available: [], alreadyAssigned: [], count: 0 };
+      }
+
       return ctx.db.$transaction(async (tx) => {
         // Get the term of this section
         const section = await tx.section.findUnique({

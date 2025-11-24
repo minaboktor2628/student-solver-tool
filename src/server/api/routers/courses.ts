@@ -5,6 +5,7 @@ export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
     .input(z.object({ termId: z.string() }))
     .query(async ({ input: { termId }, ctx }) => {
+      // TODO: add staff preference, comments, etc to return
       const courses = await ctx.db.section.findMany({
         where: { term: { id: termId } },
         include: {
