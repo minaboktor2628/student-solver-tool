@@ -14,19 +14,16 @@ import {
 } from "@/components/ui/button-group";
 import { Button } from "@/components/ui/button";
 import { api } from "@/trpc/react";
-import { LoadingSpinner } from "@/components/loading-spinner";
+import { GlobalSuspense } from "@/components/global-suspense";
 
 export default function SolverPage() {
   const [selectedSectionId, setSelectedSectionId] = useState<
     string | undefined
   >();
 
-  const courses = api.courses.getAllCoursesForTerm.useQuery({
+  const [{ courses }] = api.courses.getAllCoursesForTerm.useSuspenseQuery({
     termId: "cmidsm56y0000v8vaqgdz42sc",
   });
-
-  if (courses.isError) return <>error</>; // TODO: make this better
-  if (courses.isPending) return <LoadingSpinner />;
 
   return (
     <div className="h-full px-4">
@@ -45,16 +42,26 @@ export default function SolverPage() {
       <Separator className="my-2" />
       <ResizablePanelGroup direction="horizontal" className="h-full space-x-4">
         <ResizablePanel defaultSize={75}>
-          <SectionAccordion
-            selected={selectedSectionId}
-            onSelectedChange={setSelectedSectionId}
-            classes={courses.data.courses}
-          />
+          <GlobalSuspense>
+            <SectionAccordion
+              selected={selectedSectionId}
+              onSelectedChange={setSelectedSectionId}
+              classes={courses}
+            />
+          </GlobalSuspense>
         </ResizablePanel>
         <ResizableHandle withHandle className="my-2" />
         <ResizablePanel defaultSize={25} maxSize={50} minSize={12}>
           <aside className="pt-2">
-            <StudentSelectionSidebar sectionId={selectedSectionId} />
+            <GlobalSuspense>
+              {!selectedSectionId ? (
+                <h2 className="text-center text-lg font-semibold">
+                  No section selected!
+                </h2>
+              ) : (
+                <StudentSelectionSidebar sectionId={selectedSectionId} />
+              )}
+            </GlobalSuspense>
           </aside>
         </ResizablePanel>
       </ResizablePanelGroup>

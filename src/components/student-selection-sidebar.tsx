@@ -1,31 +1,20 @@
+"use client";
 import { useState } from "react";
 import { Input } from "./ui/input";
 import { AssistantItem } from "./assistant-item";
 import { api } from "@/trpc/react";
-import { LoadingSpinner } from "./loading-spinner";
-import { Separator } from "./ui/separator";
 
 export type StudentSelectionSidebarProps = {
-  sectionId: string | undefined;
+  sectionId: string;
 };
 
 export function StudentSelectionSidebar({
   sectionId,
 }: StudentSelectionSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const students = api.staff.getQualifiedStaffForCourse.useQuery({
+  const [{ staff }] = api.staff.getQualifiedStaffForCourse.useSuspenseQuery({
     sectionId,
   });
-
-  if (!sectionId)
-    return (
-      <h2 className="text-center text-lg font-semibold">
-        No section selected!
-      </h2>
-    );
-
-  if (students.isPending) return <LoadingSpinner />;
-  if (students.isError) return <>error</>;
 
   return (
     <div className="mx-0.5">
@@ -35,17 +24,12 @@ export function StudentSelectionSidebar({
         placeholder="Search assistants..."
       />
       <p className="text-muted-foreground p-1 text-sm">
-        {students.data.count} qualified staff
+        {staff.length} qualified staff
       </p>
       <ul className="space-y-1 py-4">
-        {students.data.available.map((s) => (
+        {staff.map((s) => (
           <li key={s.id}>
-            <AssistantItem {...s} isAvailable={true} />
-          </li>
-        ))}
-        {students.data.alreadyAssigned.map((s) => (
-          <li key={s.id}>
-            <AssistantItem {...s} isAvailable={false} />
+            <AssistantItem {...s} />
           </li>
         ))}
       </ul>

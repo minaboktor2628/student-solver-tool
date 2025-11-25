@@ -6,9 +6,7 @@ export const staffRoute = createTRPCRouter({
   getQualifiedStaffForCourse: coordinatorProcedure
     .input(z.object({ sectionId: z.string().nullish() }))
     .query(async ({ input: { sectionId }, ctx }) => {
-      if (!sectionId) {
-        return { available: [], alreadyAssigned: [], count: 0 };
-      }
+      if (!sectionId) return { staff: [] };
 
       return ctx.db.$transaction(async (tx) => {
         // Get the term of this section
@@ -83,7 +81,7 @@ export const staffRoute = createTRPCRouter({
         });
 
         if (users.length === 0) {
-          return { available: [], alreadyAssigned: [], count: 0 };
+          return { staff: [] };
         }
 
         const userIds = users.map((u) => u.id);
@@ -92,19 +90,43 @@ export const staffRoute = createTRPCRouter({
         const assignedRows = await tx.sectionAssignment.findMany({
           where: {
             staffId: { in: userIds },
-            section: { termId }, // assignment's section belongs to this term
+            section: { termId },
           },
-          select: { staffId: true },
-          distinct: ["staffId"], // one row per staffId
+          select: {
+            staffId: true,
+            sectionId: true,
+            // section: { select: { courseCode: true, courseTitle: true } },
+          },
         });
 
-        const assignedSet = new Set(assignedRows.map((r) => r.staffId));
+        // Map staffId -> (one) sectionId
+        const assignedByStaffId = new Map<string, string>();
+        for (const row of assignedRows) {
+          // If they can only be assigned once per term, first one wins.
+          if (!assignedByStaffId.has(row.staffId)) {
+            assignedByStaffId.set(row.staffId, row.sectionId);
+          }
+        }
 
-        // Split into buckets
-        const available = users.filter((u) => !assignedSet.has(u.id));
-        const alreadyAssigned = users.filter((u) => assignedSet.has(u.id));
+        // Single list with metadata
+        const staff = users
+          .map((u) => {
+            const assignedSectionId = assignedByStaffId.get(u.id);
+            const isAvailable = !assignedSectionId;
 
-        return { available, alreadyAssigned, count: users.length };
+            return {
+              ...u,
+              isAvailable,
+              assignedSectionId,
+            };
+          })
+          .sort((a, b) => {
+            // Sort so that true (available) comes before false (not available)
+            if (a.isAvailable === b.isAvailable) return 0;
+            return a.isAvailable ? -1 : 1;
+          });
+
+        return { staff };
       });
     }),
 });

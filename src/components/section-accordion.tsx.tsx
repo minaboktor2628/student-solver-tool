@@ -7,9 +7,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionSolverStatus } from "./section-solver-status";
 import { AssistantItem } from "./assistant-item";
-import type { RouterOutputs } from "@/trpc/react";
+import { type RouterOutputs } from "@/trpc/react";
 
-type Props = {
+type SectionAccordionProps = {
   selected: string | undefined;
   onSelectedChange: (val: string) => void;
   classes: RouterOutputs["courses"]["getAllCoursesForTerm"]["courses"];
@@ -19,7 +19,7 @@ export function SectionAccordion({
   classes,
   onSelectedChange,
   selected,
-}: Props) {
+}: SectionAccordionProps) {
   return (
     <Accordion
       type="single"

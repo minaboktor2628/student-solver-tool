@@ -5,7 +5,6 @@ export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
     .input(z.object({ termId: z.string() }))
     .query(async ({ input: { termId }, ctx }) => {
-      // TODO: add staff preference, comments, etc to return
       const courses = await ctx.db.section.findMany({
         where: { term: { id: termId } },
         include: {
@@ -35,6 +34,27 @@ export const courseRoute = createTRPCRouter({
                   email: true,
                   hours: true,
                   roles: { select: { role: true } },
+                  // Pull the single preference row for this term (unique per user/term)
+                  staffPreferences: {
+                    where: { termId },
+                    select: {
+                      comments: true,
+                      timesAvailable: true,
+                      preferredSections: {
+                        select: {
+                          rank: true,
+                          section: {
+                            select: {
+                              id: true,
+                              courseTitle: true,
+                              courseCode: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                    take: 1,
+                  },
                 },
               },
             },
@@ -66,6 +86,12 @@ export const courseRoute = createTRPCRouter({
           },
           staff: c.assignments.map((s) => ({
             ...s.staff,
+            assignedSectionId: c.id,
+            isAvailable: false,
+            timesAvailable: s.staff.staffPreferences[0]?.timesAvailable ?? "",
+            comments: s.staff.staffPreferences[0]?.comments ?? null,
+            preferedSections:
+              s.staff.staffPreferences[0]?.preferredSections ?? [],
             roles: s.staff.roles.map((r) => r.role),
           })),
         })),

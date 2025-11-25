@@ -17,6 +17,8 @@ import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/app-sidebar";
 import { HeaderBreadcrumbs } from "@/components/header-breadcrumbs";
 import { ModeToggle } from "@/components/mode-toggle";
+import { GlobalErrorBoundary } from "@/components/global-error-boundry";
+import { GlobalSuspense } from "@/components/global-suspense";
 
 export const metadata: Metadata = {
   title: "STS",
@@ -63,7 +65,11 @@ export default async function RootLayout({
                       <ModeToggle />
                     </div>
                   </header>
-                  <div className="flex flex-1 flex-col">{children}</div>
+                  <div className="flex flex-1 flex-col">
+                    <GlobalErrorBoundary>
+                      <GlobalSuspense>{children}</GlobalSuspense>
+                    </GlobalErrorBoundary>
+                  </div>
                 </SidebarInset>
                 <DevDock />
               </SidebarProvider>
