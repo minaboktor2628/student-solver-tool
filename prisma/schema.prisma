@@ -53,6 +53,7 @@ model Term {
   termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
   termProfessorDueDate DateTime // When professors should have their preferences submitted by
   createdAt            DateTime @default(now())
+  active               Boolean  @default(false)
 
   @@unique([termLetter, year])
 }

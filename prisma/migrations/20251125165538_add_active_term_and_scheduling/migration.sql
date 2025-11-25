@@ -88,5 +88,18 @@ INSERT INTO "new_StaffPreferencePreferredSection" ("rank", "sectionId", "staffPr
 DROP TABLE "StaffPreferencePreferredSection";
 ALTER TABLE "new_StaffPreferencePreferredSection" RENAME TO "StaffPreferencePreferredSection";
 CREATE UNIQUE INDEX "StaffPreferencePreferredSection_staffPreferenceId_rank_key" ON "StaffPreferencePreferredSection"("staffPreferenceId", "rank");
+CREATE TABLE "new_Term" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "termLetter" TEXT NOT NULL,
+    "year" INTEGER NOT NULL,
+    "termStaffDueDate" DATETIME NOT NULL,
+    "termProfessorDueDate" DATETIME NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "active" BOOLEAN NOT NULL DEFAULT false
+);
+INSERT INTO "new_Term" ("createdAt", "id", "termLetter", "termProfessorDueDate", "termStaffDueDate", "year") SELECT "createdAt", "id", "termLetter", "termProfessorDueDate", "termStaffDueDate", "year" FROM "Term";
+DROP TABLE "Term";
+ALTER TABLE "new_Term" RENAME TO "Term";
+CREATE UNIQUE INDEX "Term_termLetter_year_key" ON "Term"("termLetter", "year");
 PRAGMA foreign_keys=ON;
 PRAGMA defer_foreign_keys=OFF;
