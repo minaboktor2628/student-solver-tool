@@ -87,14 +87,19 @@ export const courseRoute = createTRPCRouter({
             })),
           },
           staff: c.assignments.map((s) => ({
-            ...s.staff,
-            assignedSection: c.courseCode + c.courseSection,
-            isAvailable: false,
+            // ...s.staff,
+            id: s.staff.id,
+            name: s.staff.name,
+            email: s.staff.email,
+            hours: s.staff.hours,
+            roles: s.staff.roles.map((r) => r.role),
+            assignedSection: (c.courseCode + c.courseSection) as
+              | string
+              | undefined,
             timesAvailable: s.staff.staffPreferences[0]?.timesAvailable ?? [],
             comments: s.staff.staffPreferences[0]?.comments ?? null,
             preferedSections:
               s.staff.staffPreferences[0]?.preferredSections ?? [],
-            roles: s.staff.roles.map((r) => r.role),
           })),
         })),
       };

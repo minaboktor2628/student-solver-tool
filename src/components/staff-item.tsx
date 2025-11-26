@@ -1,3 +1,4 @@
+"use client";
 import { GripVertical } from "lucide-react";
 import {
   HoverCard,
@@ -8,7 +9,6 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { cn, toFullCourseName } from "@/lib/utils";
-
 export type StaffItemProps =
   RouterOutputs["staff"]["getQualifiedStaffForCourse"]["staff"][0];
 
@@ -28,9 +28,9 @@ export function StaffItem({
       <HoverCardTrigger asChild>
         <div
           className={cn(
-            "bg-card hover:bg-muted/40 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md",
-            assignedSection &&
-              "border-warning/60 bg-warning/5 dark:border-warning/40",
+            "bg-card hover:bg-muted/40 z-10000 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md",
+            // assignedSection &&
+            //   "border-warning/60 bg-warning/5 dark:border-warning/40",
           )}
         >
           <div className="flex items-center gap-3">

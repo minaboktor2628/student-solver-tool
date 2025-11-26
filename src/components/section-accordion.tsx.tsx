@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionSolverStatus } from "./section-solver-status";
 import { StaffItem } from "./staff-item";
 import { type RouterOutputs } from "@/trpc/react";
+import { Droppable } from "./droppable";
+import { Draggable } from "./draggable";
 
 type SectionAccordionProps = {
   selected: string | undefined;
@@ -56,14 +58,18 @@ export function SectionAccordion({
               <CardHeader>
                 <CardTitle>Assigned Assistants</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1 text-sm">
-                <ul className="space-y-1">
-                  {section.staff.map((s) => (
-                    <li key={s.id}>
-                      <StaffItem {...s} />
-                    </li>
-                  ))}
-                </ul>
+              <CardContent className="h-full space-y-1 text-sm">
+                <Droppable id={section.id} className="z-1 h-full">
+                  <ul className="space-y-1">
+                    {section.staff.map((s) => (
+                      <li key={s.id}>
+                        <Draggable id={s.id} data={{ staff: s }}>
+                          <StaffItem {...s} />
+                        </Draggable>
+                      </li>
+                    ))}
+                  </ul>
+                </Droppable>
               </CardContent>
             </Card>
           </AccordionContent>
