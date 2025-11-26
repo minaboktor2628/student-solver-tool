@@ -120,10 +120,12 @@ async function main() {
         courseCode: "CS 2022",
         description: "Intro to discrete math: sets, logic, relations, graphs.",
         professorId: professor.id,
+        courseSection: "LO2",
         enrollment: 40,
         capacity: 45,
         requiredHours: 20,
         academicLevel: AcademicLevel.UNDERGRADUATE,
+        meetingPattern: "m t r",
       },
     }),
     prisma.section.create({
@@ -131,12 +133,14 @@ async function main() {
         termId: term.id,
         courseTitle: "Algorithms",
         courseCode: "CS 3013",
+        courseSection: "LO2",
         description: "Design and analysis of algorithms.",
         professorId: professor.id,
         enrollment: 30,
         capacity: 35,
         requiredHours: 10,
         academicLevel: AcademicLevel.UNDERGRADUATE,
+        meetingPattern: "m t r",
       },
     }),
   ]);
@@ -146,15 +150,14 @@ async function main() {
     data: {
       userId: ta.id,
       termId: term.id,
-      timesAvailable: "MWF 9–11, T 2–4",
       comments: "Prefer morning labs.",
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }, { sectionId: algorithms.id }],
       },
       preferredSections: {
         create: [
-          { sectionId: discrete.id, rank: 1 },
-          { sectionId: algorithms.id, rank: 2 },
+          { sectionId: discrete.id, rank: "PREFER" },
+          { sectionId: algorithms.id, rank: "STRONGLY_PREFER" },
         ],
       },
     },
@@ -169,13 +172,12 @@ async function main() {
     data: {
       userId: pla.id,
       termId: term.id,
-      timesAvailable: "TR 10–12",
       comments: "Cannot work Fridays.",
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }],
       },
       preferredSections: {
-        create: [{ sectionId: discrete.id, rank: 1 }],
+        create: [{ sectionId: discrete.id, rank: "STRONGLY_PREFER" }],
       },
     },
   });
@@ -183,13 +185,12 @@ async function main() {
     data: {
       userId: pla2.id,
       termId: term.id,
-      timesAvailable: "TR 10–12",
       comments: "Cannot work Fridays.",
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }],
       },
       preferredSections: {
-        create: [{ sectionId: discrete.id, rank: 1 }],
+        create: [{ sectionId: discrete.id, rank: "PREFER" }],
       },
     },
   });
@@ -198,7 +199,6 @@ async function main() {
   const profPref = await prisma.professorPreference.create({
     data: {
       sectionId: discrete.id,
-      timesRequired: "At least 8 hours/week of staff",
       comments: "Need strong discrete background.",
       preferredStaff: {
         create: [
