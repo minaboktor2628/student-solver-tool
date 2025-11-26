@@ -31,6 +31,10 @@ export const staffRoute = createTRPCRouter({
                 avoidedInCourses: {
                   none: { professorPreference: { sectionId } },
                 },
+                //  Exclude users already assigned to this exact section
+                sectionAssignments: {
+                  none: { sectionId },
+                },
               },
             },
           },
