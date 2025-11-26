@@ -1,16 +1,16 @@
 "use client";
 import { useState } from "react";
 import { Input } from "./ui/input";
-import { AssistantItem } from "./assistant-item";
+import { StaffItem } from "./staff-item";
 import { api } from "@/trpc/react";
 
-export type StudentSelectionSidebarProps = {
+export type StaffSelectionSidebarProps = {
   sectionId: string;
 };
 
-export function StudentSelectionSidebar({
+export function StaffSelectionSidebar({
   sectionId,
-}: StudentSelectionSidebarProps) {
+}: StaffSelectionSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [{ staff }] = api.staff.getQualifiedStaffForCourse.useSuspenseQuery({
     sectionId,
@@ -29,7 +29,7 @@ export function StudentSelectionSidebar({
       <ul className="space-y-1 py-4">
         {staff.map((s) => (
           <li key={s.id}>
-            <AssistantItem {...s} />
+            <StaffItem {...s} />
           </li>
         ))}
       </ul>

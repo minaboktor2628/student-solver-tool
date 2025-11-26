@@ -7,7 +7,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useState } from "react";
-import { StudentSelectionSidebar } from "@/components/student-selection-sidebar";
+import { StaffSelectionSidebar } from "@/components/staff-selection-sidebar";
 import {
   ButtonGroup,
   ButtonGroupSeparator,
@@ -59,7 +59,7 @@ export default function SolverPage() {
                   No section selected!
                 </h2>
               ) : (
-                <StudentSelectionSidebar sectionId={selectedSectionId} />
+                <StaffSelectionSidebar sectionId={selectedSectionId} />
               )}
             </GlobalSuspense>
           </aside>

@@ -48,6 +48,7 @@ export const courseRoute = createTRPCRouter({
                               id: true,
                               courseTitle: true,
                               courseCode: true,
+                              courseSection: true,
                             },
                           },
                         },
@@ -72,13 +73,14 @@ export const courseRoute = createTRPCRouter({
           description: c.description,
           title: c.courseTitle,
           courseCode: c.courseCode,
+          courseSection: c.courseSection,
+          meetingPattern: c.meetingPattern,
           academicLevel: c.academicLevel,
           professor: {
             id: c.professor.id,
             email: c.professor.email,
             name: c.professor.name,
             comments: c.professorPreference?.comments,
-            timesRequired: c.professorPreference?.timesRequired,
             preferedStaff: c.professorPreference?.preferredStaff.map((s) => ({
               ...s.staff,
               roles: s.staff.roles.map((r) => r.role),
@@ -86,9 +88,9 @@ export const courseRoute = createTRPCRouter({
           },
           staff: c.assignments.map((s) => ({
             ...s.staff,
-            assignedSectionId: c.id,
+            assignedSection: c.courseCode + c.courseSection,
             isAvailable: false,
-            timesAvailable: s.staff.staffPreferences[0]?.timesAvailable ?? "",
+            timesAvailable: s.staff.staffPreferences[0]?.timesAvailable ?? [],
             comments: s.staff.staffPreferences[0]?.comments ?? null,
             preferedSections:
               s.staff.staffPreferences[0]?.preferredSections ?? [],

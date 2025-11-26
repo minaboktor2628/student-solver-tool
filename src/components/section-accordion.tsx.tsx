@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionSolverStatus } from "./section-solver-status";
-import { AssistantItem } from "./assistant-item";
+import { StaffItem } from "./staff-item";
 import { type RouterOutputs } from "@/trpc/react";
 
 type SectionAccordionProps = {
@@ -60,7 +60,7 @@ export function SectionAccordion({
                 <ul className="space-y-1">
                   {section.staff.map((s) => (
                     <li key={s.id}>
-                      <AssistantItem {...s} />
+                      <StaffItem {...s} />
                     </li>
                   ))}
                 </ul>

@@ -7,12 +7,12 @@ import {
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import type { RouterOutputs } from "@/trpc/react";
-import { cn } from "@/lib/utils";
+import { cn, toFullCourseName } from "@/lib/utils";
 
-export type AssistantItemProps =
+export type StaffItemProps =
   RouterOutputs["staff"]["getQualifiedStaffForCourse"]["staff"][0];
 
-export function AssistantItem({
+export function StaffItem({
   id,
   name,
   email,
@@ -21,16 +21,15 @@ export function AssistantItem({
   comments,
   timesAvailable,
   preferedSections,
-  isAvailable,
-  assignedSectionId,
-}: AssistantItemProps) {
+  assignedSection,
+}: StaffItemProps) {
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
         <div
           className={cn(
             "bg-card hover:bg-muted/40 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md",
-            !isAvailable &&
+            assignedSection &&
               "border-warning/60 bg-warning/5 dark:border-warning/40",
           )}
         >
@@ -45,21 +44,18 @@ export function AssistantItem({
             </Button>
             <span className="font-medium">{name}</span>
           </div>
-          <Badge className="capitalize">{roles[0]}</Badge>
+          <div className="gap-1">
+            {roles.map((role) => (
+              <Badge key={role} className="capitalize">
+                {role}
+              </Badge>
+            ))}
+          </div>
         </div>
       </HoverCardTrigger>
       <HoverCardContent className="w-100 space-y-2 text-sm">
         <div>
-          <p className="flex justify-between font-semibold">
-            {name}{" "}
-            <div className="gap-1">
-              {roles.map((role) => (
-                <Badge key={role} className="capitalize">
-                  {role}
-                </Badge>
-              ))}
-            </div>
-          </p>
+          <p className="flex justify-between font-semibold">{name}</p>
           <p className="text-muted-foreground">{email}</p>
         </div>
 
@@ -68,30 +64,34 @@ export function AssistantItem({
             <span className="font-medium">Hours: </span> {hours ?? "N/A"}
           </p>
           <p>
-            <span className="font-medium">Available: </span>
-            {isAvailable ? "Yes" : "No"}
+            <span className="font-medium">Assigned Section: </span>
+            {assignedSection ?? "N/A"}
           </p>
-          {assignedSectionId && (
-            <p>
-              <span className="font-medium">Assigned Section: </span>
-              {assignedSectionId}
-            </p>
-          )}
         </div>
 
-        {timesAvailable && (
-          <div>
-            <p className="font-medium">Times Available: {timesAvailable}</p>
-          </div>
-        )}
+        <div className="font-medium">
+          Times Available:
+          {timesAvailable.length === 0 ? (
+            " N/A"
+          ) : (
+            <pre>
+              <code>{JSON.stringify(timesAvailable, null, 2)}</code>
+            </pre>
+          )}
+        </div>
 
         {preferedSections && preferedSections.length > 0 && (
           <div>
             <p className="font-medium">Preferred Sections:</p>
-            <ol>
+            <ol className="mx-4 list-disc">
               {preferedSections.map((s) => (
                 <li key={s.section.id}>
-                  {s.section.courseCode} - {s.section.courseTitle}
+                  {toFullCourseName(
+                    s.section.courseCode,
+                    s.section.courseSection,
+                    s.section.courseTitle,
+                  )}{" "}
+                  <span className="text-sm font-medium">({s.rank})</span>
                 </li>
               ))}
             </ol>

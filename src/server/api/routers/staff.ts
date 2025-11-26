@@ -47,6 +47,7 @@ export const staffRoute = createTRPCRouter({
                         id: true,
                         courseTitle: true,
                         courseCode: true,
+                        courseSection: true,
                       },
                     },
                   },
@@ -94,36 +95,36 @@ export const staffRoute = createTRPCRouter({
           },
           select: {
             staffId: true,
-            sectionId: true,
-            // section: { select: { courseCode: true, courseTitle: true } },
+            section: { select: { courseCode: true, courseSection: true } },
           },
         });
 
-        // Map staffId -> (one) sectionId
+        // Map staffId -> (one) section
         const assignedByStaffId = new Map<string, string>();
         for (const row of assignedRows) {
           // If they can only be assigned once per term, first one wins.
           if (!assignedByStaffId.has(row.staffId)) {
-            assignedByStaffId.set(row.staffId, row.sectionId);
+            assignedByStaffId.set(
+              row.staffId,
+              row.section.courseCode + "-" + row.section.courseSection,
+            );
           }
         }
 
         // Single list with metadata
         const staff = users
           .map((u) => {
-            const assignedSectionId = assignedByStaffId.get(u.id);
-            const isAvailable = !assignedSectionId;
+            const assignedSection = assignedByStaffId.get(u.id);
 
             return {
               ...u,
-              isAvailable,
-              assignedSectionId,
+              assignedSection,
             };
           })
           .sort((a, b) => {
             // Sort so that true (available) comes before false (not available)
-            if (a.isAvailable === b.isAvailable) return 0;
-            return a.isAvailable ? -1 : 1;
+            if (a.assignedSection === b.assignedSection) return 0;
+            return a.assignedSection ? 1 : -1;
           });
 
         return { staff };

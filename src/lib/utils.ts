@@ -33,3 +33,7 @@ export function isStudent(session: Session | null) {
 export function isProfessor(session: Session | null) {
   return session?.user.roles.some((r) => r === "PROFESSOR");
 }
+
+export function toFullCourseName(section: string, code: string, title: string) {
+  return `${section}-${code} - ${title}`;
+}
