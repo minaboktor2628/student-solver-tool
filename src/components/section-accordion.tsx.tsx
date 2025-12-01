@@ -81,8 +81,9 @@ export function SectionAccordion({
                         className="flex flex-row items-center space-x-2"
                       >
                         <Toggle
+                          variant="outline"
                           aria-label="Toggle lock"
-                          title={`Toggle loc`}
+                          title={`Lock/unlock ${staff.name} to ${section.courseCode}`}
                           pressed={staff.locked}
                           onPressedChange={() =>
                             onToggleAssignmentLock({

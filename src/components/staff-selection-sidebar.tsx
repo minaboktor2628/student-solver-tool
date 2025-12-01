@@ -43,10 +43,10 @@ export function StaffSelectionSidebar({
       <Input
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Search assistants..."
+        placeholder="Search staff..."
       />
       <p className="text-muted-foreground p-1 text-sm">
-        {filteredStaff.length} of {staff.length} qualified staff{" "}
+        {filteredStaff.length} of {staff.length} qualified staff
       </p>
 
       <Droppable
