@@ -40,7 +40,7 @@ export function StaffItem({
               <span className="sr-only">Drag to reorder</span>
             </Button>
             <span className="font-medium">{name}</span>
-            {children && <div>{children}</div>}
+            {children && <div className="flex items-center">{children}</div>}
           </div>
           <div className="gap-1">
             {roles.map((role) => (

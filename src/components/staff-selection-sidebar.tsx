@@ -72,11 +72,11 @@ export function StaffSelectionSidebar({
                 <StaffItem {...s}>
                   {s.assignedSection && (
                     <Tooltip>
-                      <TooltipTrigger>
-                        <TriangleAlertIcon className="text-warning size-5" />
+                      <TooltipTrigger className="self-center">
+                        <TriangleAlertIcon className="text-warning size-4" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Staff already assigned to another section.</p>
+                        <p>Staff is assigned to {s.assignedSection.code}</p>
                       </TooltipContent>
                     </Tooltip>
                   )}
