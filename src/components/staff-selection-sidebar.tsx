@@ -21,7 +21,7 @@ export function StaffSelectionSidebar({
   });
 
   return (
-    <div className="mx-0.5">
+    <div className="mx-0.5 flex h-full flex-col">
       <Input
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
@@ -31,8 +31,12 @@ export function StaffSelectionSidebar({
         {staff.length} qualified staff
       </p>
 
-      <Droppable id={STAFF_SIDEBAR_ID} data={{ action: "remove" }}>
-        <ul className="space-y-1 py-4">
+      <Droppable
+        id={STAFF_SIDEBAR_ID}
+        data={{ action: "remove" }}
+        className="flex-1 overflow-y-auto"
+      >
+        <ul className="space-y-1">
           {staff.map((s) => (
             <li key={s.id}>
               <Draggable id={s.id} data={{ staff: s }}>

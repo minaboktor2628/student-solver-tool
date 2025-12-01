@@ -7,19 +7,23 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionSolverStatus } from "./section-solver-status";
 import { StaffItem } from "./staff-item";
-import { type RouterOutputs } from "@/trpc/react";
+import { type RouterInputs, type RouterOutputs } from "@/trpc/react";
 import { Droppable } from "./droppable";
 import { Draggable } from "./draggable";
+import { Button } from "./ui/button";
+import { XIcon } from "lucide-react";
 
 type SectionAccordionProps = {
   selected: string | undefined;
   onSelectedChange: (val: string) => void;
+  onUnassign: (input: RouterInputs["staffAssignment"]["remove"]) => void;
   classes: RouterOutputs["courses"]["getAllCoursesForTerm"]["courses"];
 };
 
 export function SectionAccordion({
   classes,
   onSelectedChange,
+  onUnassign,
   selected,
 }: SectionAccordionProps) {
   return (
@@ -58,14 +62,31 @@ export function SectionAccordion({
               <CardHeader>
                 <CardTitle>Assigned Assistants</CardTitle>
               </CardHeader>
-              <CardContent className="h-full space-y-1 text-sm">
-                <Droppable id={section.id} className="z-1 h-full">
-                  <ul className="space-y-1">
+              <CardContent className="h-full">
+                <Droppable id={section.id} className="h-full">
+                  <ul className="space-y-2">
                     {section.staff.map((s) => (
-                      <li key={s.id}>
-                        <Draggable id={s.id} data={{ staff: s }}>
+                      <li
+                        key={s.id}
+                        className="flex flex-row items-center space-x-2"
+                      >
+                        <Draggable
+                          id={s.id}
+                          data={{ staff: s }}
+                          className="flex-1"
+                        >
                           <StaffItem {...s} />
                         </Draggable>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          title={`Unassign ${s.name}`}
+                          onClick={() =>
+                            onUnassign({ sectionId: section.id, staffId: s.id })
+                          }
+                        >
+                          <XIcon />
+                        </Button>
                       </li>
                     ))}
                   </ul>

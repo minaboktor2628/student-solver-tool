@@ -204,7 +204,7 @@ export default function SolverPage() {
   }
 
   return (
-    <div className="h-full px-4">
+    <div className="h-full min-h-96 px-4">
       <div className="flex items-center">
         <h1>Solver for term: {}</h1>
         <ButtonGroup className="ml-auto">
@@ -232,13 +232,14 @@ export default function SolverPage() {
               <SectionAccordion
                 selected={selectedSectionId}
                 onSelectedChange={setSelectedSectionId}
+                onUnassign={unassignApi.mutate}
                 classes={courses}
               />
             </GlobalSuspense>
           </ResizablePanel>
           <ResizableHandle withHandle className="my-2" />
           <ResizablePanel defaultSize={25} maxSize={50} minSize={12}>
-            <aside className="pt-2">
+            <aside className="h-full pt-2">
               <GlobalSuspense>
                 {!selectedSectionId ? (
                   <h2 className="text-center text-lg font-semibold">
