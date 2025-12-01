@@ -35,6 +35,49 @@ export default function SolverPage() {
   });
 
   const utils = api.useUtils();
+
+  const toggleLock = api.staffAssignment.toggleAssignmentLock.useMutation({
+    onMutate: async ({ sectionId, staffId }) => {
+      await utils.courses.getAllCoursesForTerm.cancel({ termId });
+      const previous = utils.courses.getAllCoursesForTerm.getData({ termId });
+
+      utils.courses.getAllCoursesForTerm.setData({ termId }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          courses: old.courses.map((course) => {
+            if (course.id !== sectionId) return course;
+
+            return {
+              ...course,
+              staff: course.staff.map((s) =>
+                s.id === staffId ? { ...s, locked: !s.locked } : s,
+              ),
+            };
+          }),
+        };
+      });
+
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        utils.courses.getAllCoursesForTerm.setData(
+          { termId },
+          context.previous,
+        );
+      }
+    },
+
+    onSettled: async () => {
+      await Promise.all([
+        utils.courses.getAllCoursesForTerm.invalidate({ termId }),
+        utils.staff.getQualifiedStaffForCourse.invalidate(),
+      ]);
+    },
+  });
+
   const assignApi = api.staffAssignment.set.useMutation({
     onMutate: async ({ sectionId, staffId }) => {
       await utils.courses.getAllCoursesForTerm.cancel({ termId });
@@ -105,6 +148,7 @@ export default function SolverPage() {
       ]);
     },
   });
+
   const unassignApi = api.staffAssignment.remove.useMutation({
     onMutate: async ({ sectionId, staffId }) => {
       await utils.courses.getAllCoursesForTerm.cancel({ termId });
@@ -147,6 +191,7 @@ export default function SolverPage() {
 
       return { prevCourses, prevStaff };
     },
+
     onError: (_e, { sectionId }, ctx) => {
       if (ctx?.prevStaff)
         utils.staff.getQualifiedStaffForCourse.setData(
@@ -156,6 +201,7 @@ export default function SolverPage() {
       if (ctx?.prevCourses)
         utils.courses.getAllCoursesForTerm.setData({ termId }, ctx.prevCourses);
     },
+
     onSettled: async (_data, _err, { sectionId }) => {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
@@ -233,6 +279,7 @@ export default function SolverPage() {
                 selected={selectedSectionId}
                 onSelectedChange={setSelectedSectionId}
                 onUnassign={unassignApi.mutate}
+                onToggleAssignmentLock={toggleLock.mutate}
                 classes={courses}
               />
             </GlobalSuspense>

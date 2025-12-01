@@ -11,12 +11,17 @@ import { type RouterInputs, type RouterOutputs } from "@/trpc/react";
 import { Droppable } from "./droppable";
 import { Draggable } from "./draggable";
 import { Button } from "./ui/button";
-import { XIcon } from "lucide-react";
+import { LockIcon, UnlockIcon, XIcon } from "lucide-react";
+import { Toggle } from "./ui/toggle";
+import { toFullCourseName } from "@/lib/utils";
 
 type SectionAccordionProps = {
   selected: string | undefined;
   onSelectedChange: (val: string) => void;
   onUnassign: (input: RouterInputs["staffAssignment"]["remove"]) => void;
+  onToggleAssignmentLock: (
+    input: RouterInputs["staffAssignment"]["toggleAssignmentLock"],
+  ) => void;
   classes: RouterOutputs["courses"]["getAllCoursesForTerm"]["courses"];
 };
 
@@ -24,6 +29,7 @@ export function SectionAccordion({
   classes,
   onSelectedChange,
   onUnassign,
+  onToggleAssignmentLock,
   selected,
 }: SectionAccordionProps) {
   return (
@@ -37,7 +43,11 @@ export function SectionAccordion({
       {classes.map((section) => (
         <AccordionItem value={section.id} key={section.id}>
           <AccordionTrigger className="flex flex-row items-center text-xl">
-            {section.courseCode} - {section.title}
+            {toFullCourseName(
+              section.courseCode,
+              section.courseSection,
+              section.title,
+            )}
             <SectionSolverStatus
               marginOfError={10} // TODO: not hardcode this
               hoursRequired={section.requiredHours}
@@ -65,24 +75,40 @@ export function SectionAccordion({
               <CardContent className="h-full">
                 <Droppable id={section.id} className="h-full">
                   <ul className="space-y-2">
-                    {section.staff.map((s) => (
+                    {section.staff.map((staff) => (
                       <li
-                        key={s.id}
+                        key={staff.id}
                         className="flex flex-row items-center space-x-2"
                       >
+                        <Toggle
+                          aria-label="Toggle lock"
+                          title={`Toggle loc`}
+                          pressed={staff.locked}
+                          onPressedChange={() =>
+                            onToggleAssignmentLock({
+                              sectionId: section.id,
+                              staffId: staff.id,
+                            })
+                          }
+                        >
+                          {staff.locked ? <LockIcon /> : <UnlockIcon />}
+                        </Toggle>
                         <Draggable
-                          id={s.id}
-                          data={{ staff: s }}
+                          id={staff.id}
+                          data={{ staff: staff }}
                           className="flex-1"
                         >
-                          <StaffItem {...s} />
+                          <StaffItem {...staff} />
                         </Draggable>
                         <Button
                           size="icon"
                           variant="destructive"
-                          title={`Unassign ${s.name}`}
+                          title={`Unassign ${staff.name} from ${section.courseCode}`}
                           onClick={() =>
-                            onUnassign({ sectionId: section.id, staffId: s.id })
+                            onUnassign({
+                              sectionId: section.id,
+                              staffId: staff.id,
+                            })
                           }
                         >
                           <XIcon />

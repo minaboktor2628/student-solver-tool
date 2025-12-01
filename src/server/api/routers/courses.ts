@@ -100,6 +100,7 @@ export const courseRoute = createTRPCRouter({
             comments: s.staff.staffPreferences[0]?.comments ?? null,
             preferedSections:
               s.staff.staffPreferences[0]?.preferredSections ?? [],
+            locked: s.locked,
           })),
         })),
       };

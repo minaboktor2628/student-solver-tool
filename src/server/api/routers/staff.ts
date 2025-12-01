@@ -31,9 +31,14 @@ export const staffRoute = createTRPCRouter({
                 avoidedInCourses: {
                   none: { professorPreference: { sectionId } },
                 },
-                //  Exclude users already assigned to this exact section
+                //  Exclude users already assigned to this exact section and users who are locked to another section
                 sectionAssignments: {
-                  none: { sectionId },
+                  none: {
+                    OR: [
+                      { sectionId }, // already assigned to this section
+                      { AND: [{ locked: true }, { NOT: { sectionId } }] }, // locked on a different section
+                    ],
+                  },
                 },
               },
             },
@@ -82,6 +87,7 @@ export const staffRoute = createTRPCRouter({
             comments: staffPreference.comments,
             timesAvailable: staffPreference.timesAvailable,
             preferedSections: staffPreference.preferredSections,
+            locked: false,
           };
         });
 
