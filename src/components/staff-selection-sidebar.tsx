@@ -5,6 +5,12 @@ import { StaffItem } from "./staff-item";
 import { api } from "@/trpc/react";
 import { Draggable } from "./draggable";
 import { Droppable } from "./droppable";
+import { TriangleAlertIcon } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const STAFF_SIDEBAR_ID = "StaffSelectionSidebar" as const;
 
@@ -43,6 +49,7 @@ export function StaffSelectionSidebar({
       <Input
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
+        type="search"
         placeholder="Search staff..."
       />
       <p className="text-muted-foreground p-1 text-sm">
@@ -56,9 +63,20 @@ export function StaffSelectionSidebar({
       >
         <ul className="space-y-1">
           {filteredStaff.map((s) => (
-            <li key={s.id}>
-              <Draggable id={s.id} data={{ staff: s }}>
-                <StaffItem {...s} />
+            <li key={s.id} className="flex flex-row items-center space-x-2">
+              <Draggable id={s.id} data={{ staff: s }} className="flex-1">
+                <StaffItem {...s}>
+                  {s.assignedSection && (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <TriangleAlertIcon className="text-warning size-5" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Staff already assigned to another section.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </StaffItem>
               </Draggable>
             </li>
           ))}

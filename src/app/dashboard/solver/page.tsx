@@ -141,10 +141,10 @@ export default function SolverPage() {
       }
     },
 
-    onSettled: async (_data, _err, { sectionId }) => {
+    onSettled: async (_data, _err) => {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-        utils.staff.getQualifiedStaffForCourse.invalidate({ sectionId }),
+        utils.staff.getQualifiedStaffForCourse.invalidate(),
       ]);
     },
   });
@@ -202,10 +202,10 @@ export default function SolverPage() {
         utils.courses.getAllCoursesForTerm.setData({ termId }, ctx.prevCourses);
     },
 
-    onSettled: async (_data, _err, { sectionId }) => {
+    onSettled: async (_data, _err) => {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-        utils.staff.getQualifiedStaffForCourse.invalidate({ sectionId }),
+        utils.staff.getQualifiedStaffForCourse.invalidate(),
       ]);
     },
   });
@@ -273,7 +273,7 @@ export default function SolverPage() {
           direction="horizontal"
           className="h-full space-x-4"
         >
-          <ResizablePanel defaultSize={75}>
+          <ResizablePanel defaultSize={70}>
             <GlobalSuspense>
               <SectionAccordion
                 selected={selectedSectionId}
@@ -285,7 +285,7 @@ export default function SolverPage() {
             </GlobalSuspense>
           </ResizablePanel>
           <ResizableHandle withHandle className="my-2" />
-          <ResizablePanel defaultSize={25} maxSize={50} minSize={12}>
+          <ResizablePanel defaultSize={30} maxSize={50} minSize={12}>
             <aside className="h-full pt-2">
               <GlobalSuspense>
                 {!selectedSectionId ? (

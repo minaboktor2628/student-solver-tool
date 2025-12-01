@@ -10,7 +10,9 @@ import { Button } from "./ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { cn, toFullCourseName } from "@/lib/utils";
 export type StaffItemProps =
-  RouterOutputs["staff"]["getQualifiedStaffForCourse"]["staff"][0];
+  RouterOutputs["staff"]["getQualifiedStaffForCourse"]["staff"][0] & {
+    children?: React.ReactNode;
+  };
 
 export function StaffItem({
   id,
@@ -22,6 +24,7 @@ export function StaffItem({
   timesAvailable,
   preferedSections,
   assignedSection,
+  children,
 }: StaffItemProps) {
   return (
     <HoverCard>
@@ -43,6 +46,7 @@ export function StaffItem({
               <span className="sr-only">Drag to reorder</span>
             </Button>
             <span className="font-medium">{name}</span>
+            {children && <div>{children}</div>}
           </div>
           <div className="gap-1">
             {roles.map((role) => (
