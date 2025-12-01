@@ -64,7 +64,11 @@ export function StaffSelectionSidebar({
         <ul className="space-y-1">
           {filteredStaff.map((s) => (
             <li key={s.id} className="flex flex-row items-center space-x-2">
-              <Draggable id={s.id} data={{ staff: s }} className="flex-1">
+              <Draggable
+                id={s.id}
+                data={{ staff: s, isAlreadyAssigned: !!s.assignedSection }}
+                className="flex-1"
+              >
                 <StaffItem {...s}>
                   {s.assignedSection && (
                     <Tooltip>

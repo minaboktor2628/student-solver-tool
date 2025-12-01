@@ -8,7 +8,7 @@ import {
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import type { RouterOutputs } from "@/trpc/react";
-import { cn, toFullCourseName } from "@/lib/utils";
+import { toFullCourseName } from "@/lib/utils";
 export type StaffItemProps =
   RouterOutputs["staff"]["getQualifiedStaffForCourse"]["staff"][0] & {
     children?: React.ReactNode;
@@ -29,13 +29,7 @@ export function StaffItem({
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
-        <div
-          className={cn(
-            "bg-card hover:bg-muted/40 z-10000 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md",
-            // assignedSection &&
-            //   "border-warning/60 bg-warning/5 dark:border-warning/40",
-          )}
-        >
+        <div className="bg-card hover:bg-muted/40 z-10000 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -69,7 +63,7 @@ export function StaffItem({
           </p>
           <p>
             <span className="font-medium">Assigned Section: </span>
-            {assignedSection ?? "N/A"}
+            {assignedSection ? assignedSection.code : "N/A"}
           </p>
         </div>
 

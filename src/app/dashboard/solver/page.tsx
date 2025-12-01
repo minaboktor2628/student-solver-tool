@@ -22,10 +22,27 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { StaffItem, type StaffItemProps } from "@/components/staff-item";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { AleadyAssignedAlert } from "@/components/already-assigned-alert";
+import { toast } from "sonner";
+
+type PendingAssign = {
+  toSectionId: string;
+  staffId: string;
+  toSectionCode: string;
+  fromSectionCode: string;
+  fromSectionId: string;
+} | null;
 
 export default function SolverPage() {
   const termId = "cmidsm56y0000v8vaqgdz42sc";
   const [activeStaff, setActiveStaff] = useState<StaffItemProps | null>(null);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [pendingAssign, setPendingAssign] = useState<PendingAssign>(null);
+  const [showAssignWarning, setShowAssignWarning] = useLocalStorage(
+    "showassignwarning",
+    true,
+  );
   const [selectedSectionId, setSelectedSectionId] = useState<
     string | undefined
   >();
@@ -212,7 +229,6 @@ export default function SolverPage() {
 
   function handleDragEnd(event: DragEndEvent) {
     const { over, active } = event;
-    console.log(event);
     if (!over || typeof over.id !== "string" || typeof active.id !== "string") {
       setActiveStaff(null);
       return;
@@ -227,12 +243,45 @@ export default function SolverPage() {
         sectionId: selectedSectionId,
         staffId: active.id,
       });
-    } else {
-      assignApi.mutate({
-        sectionId: over.id,
-        staffId: active.id,
-      });
+      setActiveStaff(null);
+      return;
     }
+
+    if (over.data.current?.action === "assign") {
+      const isAlreadyAssigned = !!active.data.current?.isAlreadyAssigned;
+      const toSectionId = over.id;
+      const staffId = active.id;
+
+      if (isAlreadyAssigned && showAssignWarning) {
+        setPendingAssign({
+          toSectionId,
+          staffId,
+          toSectionCode: (over.data.current?.code as string) ?? "",
+          fromSectionCode: activeStaff?.assignedSection?.code ?? "",
+          fromSectionId: activeStaff?.assignedSection?.id ?? "",
+        });
+        setWarningDialogOpen(true);
+        return;
+      }
+
+      if (isAlreadyAssigned && activeStaff?.assignedSection?.id) {
+        try {
+          unassignApi.mutate({
+            sectionId: activeStaff.assignedSection.id,
+            staffId,
+          });
+        } catch {
+          setActiveStaff(null);
+          return;
+        }
+      }
+
+      assignApi.mutate({ sectionId: toSectionId, staffId });
+      setActiveStaff(null);
+      return;
+    }
+
+    toast.error("Unexpected drag action");
     setActiveStaff(null);
   }
 
@@ -251,8 +300,36 @@ export default function SolverPage() {
 
   return (
     <div className="h-full min-h-96 px-4">
+      <AleadyAssignedAlert
+        open={warningDialogOpen}
+        fromCourse={pendingAssign?.fromSectionCode ?? ""}
+        toCourse={pendingAssign?.toSectionCode ?? ""}
+        staffName={activeStaff?.name ?? ""}
+        onOpenChange={(open) => setWarningDialogOpen(open)}
+        onDontShowAgain={() => setShowAssignWarning(false)}
+        onCancel={() => {
+          setWarningDialogOpen(false);
+          setPendingAssign(null);
+          setActiveStaff(null);
+        }}
+        onConfirm={() => {
+          if (pendingAssign) {
+            unassignApi.mutate({
+              sectionId: pendingAssign.fromSectionId,
+              staffId: pendingAssign.staffId,
+            });
+            assignApi.mutate({
+              sectionId: pendingAssign.toSectionId,
+              staffId: pendingAssign.staffId,
+            });
+          }
+          setWarningDialogOpen(false);
+          setPendingAssign(null);
+          setActiveStaff(null);
+        }}
+      />
       <div className="flex items-center">
-        <h1>Solver for term: {}</h1>
+        <h1>Solver for term: TODO</h1>
         <ButtonGroup className="ml-auto">
           <Button size="sm" disabled>
             Solve Next

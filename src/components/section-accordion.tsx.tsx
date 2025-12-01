@@ -73,7 +73,14 @@ export function SectionAccordion({
                 <CardTitle>Assigned Assistants</CardTitle>
               </CardHeader>
               <CardContent className="h-full">
-                <Droppable id={section.id} className="h-full">
+                <Droppable
+                  id={section.id}
+                  className="h-full"
+                  data={{
+                    action: "assign",
+                    code: section.courseCode + "-" + section.courseSection,
+                  }}
+                >
                   <ul className="space-y-2">
                     {section.staff.map((staff) => (
                       <li
@@ -96,7 +103,7 @@ export function SectionAccordion({
                         </Toggle>
                         <Draggable
                           id={staff.id}
-                          data={{ staff: staff }}
+                          data={{ staff }}
                           className="flex-1"
                         >
                           <StaffItem {...staff} />

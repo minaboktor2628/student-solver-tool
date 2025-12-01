@@ -93,9 +93,10 @@ export const courseRoute = createTRPCRouter({
             email: s.staff.email,
             hours: s.staff.hours,
             roles: s.staff.roles.map((r) => r.role),
-            assignedSection: (c.courseCode + "-" + c.courseSection) as
-              | string
-              | undefined,
+            assignedSection: {
+              id: c.id,
+              code: c.courseCode + "-" + c.courseSection,
+            } as { id: string; code: string } | undefined,
             timesAvailable: s.staff.staffPreferences[0]?.timesAvailable ?? [],
             comments: s.staff.staffPreferences[0]?.comments ?? null,
             preferedSections:

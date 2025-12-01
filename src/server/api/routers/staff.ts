@@ -105,19 +105,24 @@ export const staffRoute = createTRPCRouter({
           },
           select: {
             staffId: true,
-            section: { select: { courseCode: true, courseSection: true } },
+            section: {
+              select: { id: true, courseCode: true, courseSection: true },
+            },
           },
         });
 
         // Map staffId -> (one) section
-        const assignedByStaffId = new Map<string, string>();
+        const assignedByStaffId = new Map<
+          string,
+          { id: string; code: string }
+        >();
         for (const row of assignedRows) {
           // If they can only be assigned once per term, first one wins.
           if (!assignedByStaffId.has(row.staffId)) {
-            assignedByStaffId.set(
-              row.staffId,
-              row.section.courseCode + "-" + row.section.courseSection,
-            );
+            assignedByStaffId.set(row.staffId, {
+              id: row.section.id,
+              code: row.section.courseCode + "-" + row.section.courseSection,
+            });
           }
         }
 
