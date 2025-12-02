@@ -5,14 +5,13 @@ export type Section = { id: string; code: string; instructor?: string };
 export type Course = { code: string; title: string; sections: Section[] };
 
 interface FormEntryQualificationsProps {
-  courses?: Course[]; // if omitted, a small example dataset will be used
+  courses: Course[];
   initialSelectedSections?: string[];
   onChange?: (selectedSectionIds: string[]) => void;
   onNext?: () => void;
   onExit?: () => void;
 }
 
-// TODO - replace with API get-courses/term
 const exampleCourses: Course[] = [
   {
     code: "CS 1101",
@@ -47,12 +46,20 @@ const exampleCourses: Course[] = [
 ];
 
 const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
-  courses = exampleCourses,
+  courses: coursesProp,
   initialSelectedSections = [],
   onChange,
   onNext,
   onExit,
 }) => {
+  // The modal (parent) is responsible for fetching sections and passing them
+  // into this component via the optional `courses` prop. If no prop is
+  // provided this component will fall back to a small example dataset so the
+  // UI can render in isolation or in storybook/tests.
+  const courses: Course[] = useMemo(() => {
+    return coursesProp ?? exampleCourses;
+  }, [coursesProp]);
+
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
     new Set(initialSelectedSections),
   );
@@ -107,7 +114,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-4">
+    <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
         Select courses and sections
       </h2>

@@ -46,19 +46,45 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
     () => ({}),
   );
 
+  const originalNumStrongTokens = 1;
+  const originalNumPreferTokens = 3;
+
+  // derive token usage from mapping so counts cannot drift out of sync
+  const usedStrong = Object.values(mapping).filter(
+    (v) => v === "strong",
+  ).length;
+  const usedPrefer = Object.values(mapping).filter(
+    (v) => v === "prefer",
+  ).length;
+  const numStrongTokens = Math.max(0, originalNumStrongTokens - usedStrong);
+  const numPreferTokens = Math.max(0, originalNumPreferTokens - usedPrefer);
+
   function handleDrop(course: string, token: TokenType) {
     setMapping((prev) => {
-      // set or replace the token for this course — ensures mutual exclusivity
+      const existing = prev[course];
+      // No-op if dropping same token onto same course
+      if (existing === token) return prev;
+
+      // Prevent consuming a token if none are available
+      if (token === "prefer" && numPreferTokens <= 0) return prev;
+      if (token === "strong" && numStrongTokens <= 0) return prev;
+
+      // Build next mapping
       const next = { ...prev, [course]: token };
+
       onChange?.(next);
       return next;
     });
   }
 
-  function handleRemoveToken(course: string) {
+  function handleRemoveToken(course: string, token: TokenType) {
     setMapping((prev) => {
+      const existing = prev[course];
+      if (!existing) return prev;
+
       const next = { ...prev };
       delete next[course];
+
       onChange?.(next);
       return next;
     });
@@ -66,21 +92,38 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
 
   return (
     <div className="space-y-4">
+      <h2 className="mb-4 text-xl font-semibold">
+        Set your course preferences
+      </h2>
       <div className="flex items-center gap-3">
-        <div
-          draggable
-          onDragStart={(e) => e.dataTransfer?.setData("text/plain", "prefer")}
-          className="cursor-grab rounded-full bg-blue-100 px-3 py-1 text-sm font-medium"
-        >
-          Prefer
-        </div>
-        <div
-          draggable
-          onDragStart={(e) => e.dataTransfer?.setData("text/plain", "strong")}
-          className="cursor-grab rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium"
-        >
-          Strongly Prefer
-        </div>
+        {numPreferTokens > 0 && (
+          <div
+            draggable
+            onDragStart={(e) => e.dataTransfer?.setData("text/plain", "prefer")}
+            className="cursor-grab rounded-full bg-blue-100 px-3 py-1 text-sm font-medium"
+          >
+            Prefer
+          </div>
+        )}
+
+        <label className="text-muted-foreground text-sm">
+          {numPreferTokens}/{originalNumPreferTokens}
+        </label>
+
+        {numStrongTokens > 0 && (
+          <div
+            draggable
+            onDragStart={(e) => e.dataTransfer?.setData("text/plain", "strong")}
+            className="cursor-grab rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium"
+          >
+            Strongly Prefer
+          </div>
+        )}
+
+        <label className="text-muted-foreground text-sm">
+          {numStrongTokens}/{originalNumStrongTokens}
+        </label>
+
         <div className="text-muted-foreground text-sm">
           Drag a preference onto a course card
         </div>
@@ -116,7 +159,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
               <div className="flex gap-2">
                 {mapping[course] ? (
                   <button
-                    onClick={() => handleRemoveToken(course)}
+                    onClick={() => handleRemoveToken(course, mapping[course]!)}
                     className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${mapping[course] === "strong" ? "bg-indigo-200 text-indigo-800" : "bg-blue-200 text-blue-800"}`}
                     title="Remove preference"
                     aria-label={`Remove preference for ${course}`}
