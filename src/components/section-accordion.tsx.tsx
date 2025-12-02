@@ -63,9 +63,18 @@ export function SectionAccordion({
                 <CardTitle>Section Info</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
-                <p>Instructor: {section.professor.name}</p>
-                <p>Capacity: {section.capacity}</p>
-                <p>Enrollment: {section.enrollment}</p>
+                <p>
+                  <span className="font-medium">Instructor: </span>
+                  {section.professor.name}
+                </p>
+                <p>
+                  <span className="font-medium">Capacity: </span>
+                  {section.capacity}
+                </p>
+                <p>
+                  <span className="font-medium">Enrollment: </span>
+                  {section.enrollment}
+                </p>
               </CardContent>
             </Card>
             <Card className="flex-2">
