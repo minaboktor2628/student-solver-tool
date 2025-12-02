@@ -16,6 +16,19 @@ enum Role {
   PROFESSOR
 }
 
+enum PreferenceLevel {
+  PREFER
+  STRONGLY_PREFER
+}
+
+enum Day {
+  M
+  T
+  W
+  R
+  F
+}
+
 enum TermLetter {
   A
   B
@@ -40,6 +53,7 @@ model Term {
   termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
   termProfessorDueDate DateTime // When professors should have their preferences submitted by
   createdAt            DateTime @default(now())
+  active               Boolean  @default(false)
 
   @@unique([termLetter, year])
 }
@@ -55,8 +69,8 @@ model StaffPreference {
   term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
   termId String
 
-  timesAvailable String // temp for now
-  canEdit        Boolean @default(true) // Has ability to still modify their preferences or not
+  timesAvailable StaffAvailableHour[]
+  canEdit        Boolean              @default(true) // Has ability to still modify their preferences or not
   comments       String? // Any additional comments that the staff has
 
   qualifiedForSections StaffPreferenceQualifiedSection[]
@@ -82,7 +96,7 @@ model StaffPreferenceQualifiedSection {
 
 // Ordered list of preferred sections
 model StaffPreferencePreferredSection {
-  rank Int // 1 | 2 | 3
+  rank PreferenceLevel
 
   staffPreference   StaffPreference @relation(fields: [staffPreferenceId], references: [id], onDelete: Cascade)
   staffPreferenceId String
@@ -114,9 +128,11 @@ model Section {
   term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
   termId String
 
-  courseTitle String // Ex: "Discrete Mathematics"
-  courseCode  String // Ex: "CS 2022"
-  description String // Course description
+  courseTitle    String // Ex: "Discrete Mathematics"
+  courseCode     String // Ex: "CS 2022"
+  courseSection  String // Ex: "LO1"
+  meetingPattern String // Ex: "M-R | 2:00pm - 3:50pm"
+  description    String // Course description
 
   professor   User   @relation("TeachesSections", fields: [professorId], references: [id])
   professorId String
@@ -138,8 +154,8 @@ model ProfessorPreference {
   section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   sectionId String  @unique
 
-  canEdit       Boolean @default(true) // Has ability to still modify their preferences or not
-  timesRequired String? // temp for now
+  canEdit       Boolean             @default(true) // Has ability to still modify their preferences or not
+  timesRequired SectionNeededHour[]
   comments      String?
 
   preferredStaff ProfessorPreferencePreferredStaff[]
@@ -169,6 +185,22 @@ model ProfessorPreferenceAvoidedStaff {
   staffId String
 
   @@id([professorPreferenceId, staffId])
+}
+
+model StaffAvailableHour {
+  id                String           @id @default(uuid())
+  hour              Int
+  day               Day
+  StaffPreference   StaffPreference? @relation(fields: [staffPreferenceId], references: [id])
+  staffPreferenceId String?
+}
+
+model SectionNeededHour {
+  id                    String               @id @default(uuid())
+  hour                  Int
+  day                   Day
+  ProfessorPreference   ProfessorPreference? @relation(fields: [professorPreferenceId], references: [id])
+  professorPreferenceId String?
 }
 
 model User {
