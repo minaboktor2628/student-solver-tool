@@ -5,7 +5,7 @@ import { StaffItem } from "./staff-item";
 import { api } from "@/trpc/react";
 import { Draggable } from "./draggable";
 import { Droppable } from "./droppable";
-import { TriangleAlertIcon } from "lucide-react";
+import { TriangleAlertIcon, XIcon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -46,12 +46,25 @@ export function StaffSelectionSidebar({
 
   return (
     <div className="mx-0.5 flex h-full flex-col">
-      <Input
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        type="search"
-        placeholder="Search staff..."
-      />
+      <div className="relative">
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          type="search"
+          placeholder="Search staff..."
+          className="pr-8"
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm("")}
+            aria-label="Clear search"
+            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+        )}
+      </div>
       <p className="text-muted-foreground p-1 text-sm">
         {filteredStaff.length} of {staff.length} qualified staff
       </p>
