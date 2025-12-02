@@ -3,15 +3,21 @@
  * @link https://www.youtube.com/watch?v=5GG-VUvruzE
  * */
 
+import {
+  canViewPage,
+  findRouteForPath,
+  FLAT_ROUTES,
+  ROUTES,
+  type NavItem,
+} from "@/lib/routes-to-permissions";
 import type { Role } from "@prisma/client";
-import type { Route } from "next";
 import type { User } from "next-auth";
 
-type PermissionCheck<Key extends keyof Permissions> =
+export type PermissionCheck<Key extends keyof Permissions> =
   | boolean
   | ((user: User, data: Permissions[Key]["dataType"]) => boolean);
 
-type RolesWithPermissions = Record<
+export type RolesWithPermissions = Record<
   Role,
   Partial<{
     [Key in keyof Permissions]: Partial<
@@ -25,46 +31,6 @@ type Permissions = {
     dataType: string;
     action: "view";
   };
-};
-
-export const ROUTE_TO_PERMISSION: Array<{
-  pattern: RegExp;
-  label: string;
-  href: Route;
-  allowed: Role[];
-}> = [
-  {
-    pattern: /^\/$/,
-    label: "Home",
-    href: "/",
-    allowed: ["COORDINATOR", "PLA", "TA", "PROFESSOR"],
-  },
-  {
-    pattern: /^\/validate(?:\/.*)?$/,
-    label: "Validate",
-    href: "/validate",
-    allowed: ["COORDINATOR"],
-  },
-  {
-    pattern: /^\/docs(?:\/.*)?$/,
-    label: "Docs",
-    href: "/docs" as Route,
-    allowed: ["COORDINATOR"],
-  },
-  {
-    // match the actual path (lowercase, hyphenated)
-    pattern: /^\/preferences-form(?:\/.*)?$/,
-    label: "Preferences Form",
-    href: "/preferences-form" as Route,
-    allowed: ["PLA", "TA"],
-  },
-];
-
-export const canViewPage: PermissionCheck<"pages"> = (user, href) => {
-  const route = ROUTE_TO_PERMISSION.find((r) => r.pattern.test(href));
-  if (!route) return false;
-  const roles = user.roles ?? [];
-  return route.allowed.some((a) => roles.includes(a));
 };
 
 const ROLES = {
@@ -101,10 +67,43 @@ export function hasPermission<Resource extends keyof Permissions>(
     return data != null && permission(user, data);
   });
 }
+export function matchRoute(path: string) {
+  return findRouteForPath(path, ROUTES) ?? undefined;
+}
 
 export function allowedLinks(user: User | undefined) {
   if (!user) return [];
-  return ROUTE_TO_PERMISSION.filter((r) =>
+  // We evaluate permission against each item's own href.
+  return FLAT_ROUTES.filter((r) =>
     hasPermission(user, "pages", "view", r.href),
-  ).map(({ href, label }) => ({ href, label }));
+  );
+}
+export function allowedTree(user: User): NavItem[] {
+  if (!user) return [];
+
+  function filterNodes(nodes: NavItem[], parentAllowed?: Role[]): NavItem[] {
+    const out: NavItem[] = [];
+
+    for (const n of nodes) {
+      const effectiveAllowed = n.allowed ?? parentAllowed ?? [];
+      const canSeeThis = hasPermission(user, "pages", "view", n.href);
+
+      const filteredChildren = n.children?.length
+        ? filterNodes(n.children, effectiveAllowed)
+        : [];
+
+      // include node if user can see it OR any child is visible
+      if (canSeeThis || filteredChildren.length > 0) {
+        out.push({
+          ...n,
+          allowed: effectiveAllowed,
+          children: filteredChildren,
+        });
+      }
+    }
+
+    return out;
+  }
+
+  return filterNodes(ROUTES);
 }
