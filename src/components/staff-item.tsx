@@ -29,7 +29,7 @@ export function StaffItem({
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
-        <div className="bg-card hover:bg-muted/40 z-10000 flex items-center justify-between rounded-lg border p-3 shadow-sm transition hover:shadow-md">
+        <div className="bg-card hover:bg-muted/40 z-10000 flex items-center justify-between rounded-lg border p-2 shadow-sm transition hover:shadow-md">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -39,7 +39,10 @@ export function StaffItem({
               <GripVertical className="size-4" />
               <span className="sr-only">Drag to reorder</span>
             </Button>
-            <span className="font-medium">{name}</span>
+            <div className="p-0">
+              <p className="font-semibold">{name}</p>
+              <p className="text-muted-foreground text-sm">{email}</p>
+            </div>
             {children && <div className="flex items-center">{children}</div>}
           </div>
           <div className="gap-1">
