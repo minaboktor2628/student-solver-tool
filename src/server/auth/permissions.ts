@@ -58,6 +58,18 @@ export const ROUTE_TO_PERMISSION: Array<{
     href: "/preferences-form" as Route,
     allowed: ["PLA", "TA"],
   },
+  {
+    pattern: /^\/professor(?:\/.*)?$/,
+    label: "Professor Home",
+    href: "/professor" as Route,
+    allowed: ["PROFESSOR"],
+  },
+  {
+    pattern: /^\/professor\/preferences(?:\/.*)?$/,
+    label: "Professor Preferences",
+    href: "/professor/preferences" as Route,
+    allowed: ["PROFESSOR"],
+  },
 ];
 
 export const canViewPage: PermissionCheck<"pages"> = (user, href) => {

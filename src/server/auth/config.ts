@@ -80,8 +80,46 @@ export const authConfig = {
     async signIn({ user, profile }) {
       const email = user?.email ?? profile?.email;
       if (!email) return false;
+
+      // For dev credentials, check if user already has roles assigned
+      // (they were just created in authorize())
+      if (user && "id" in user && typeof user.id === "string") {
+        const userWithRoles = await db.user.findUnique({
+          where: { id: user.id },
+          include: { roles: true },
+        });
+        if (userWithRoles?.roles && userWithRoles.roles.length > 0) {
+          return true;
+        }
+      }
+
+      // Also check AllowedEmail table directly (in case of timing issues)
+      const allowedEmails = await db.allowedEmail.findMany({
+        where: { email },
+        select: { role: true },
+      });
+      if (allowedEmails.length > 0) {
+        return true;
+      }
+
+      // Fallback to getAllowedRolesForEmail (includes coordinator check)
       const allowed = await getAllowedRolesForEmail(email);
       return allowed.length > 0;
+    },
+
+    async redirect({ url, baseUrl }) {
+      // If url is a relative path, make it absolute
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      // If url is on the same origin, allow it
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // Invalid URL, fall back to baseUrl
+      }
+      // Otherwise redirect to baseUrl
+      return baseUrl;
     },
   },
 

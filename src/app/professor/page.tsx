@@ -1,5 +1,4 @@
-import { auth } from "@/server/auth";
-import { redirect } from "next/navigation";
+// TEMPORARY: Auth bypassed for mockup demo
 import { Calendar, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,11 +11,7 @@ import {
 import Link from "next/link";
 
 export default async function ProfessorHomePage() {
-  const session = await auth();
-  if (!session?.user || !session.user.roles?.includes("PROFESSOR")) {
-    redirect("/login");
-  }
-
+  // TEMPORARY: Auth bypassed for mockup
   const mockUserName = "Professor Smith";
 
   const deadlineDate = new Date("2025-12-15");
@@ -154,21 +149,20 @@ export default async function ProfessorHomePage() {
               {
                 code: "CS 1102",
                 name: "Introduction to Program Design",
-                assistants: 2,
+                hours: 20,
               },
               {
                 code: "CS 2103",
                 name: "Accelerated Object-Oriented Design Concepts",
-                assistants: 2,
+                hours: 20,
               },
-              { code: "CS 3733", name: "Software Engineering", assistants: 1 },
+              { code: "CS 3733", name: "Software Engineering", hours: 20 },
             ].map((course) => (
               <div key={course.code} className="rounded-lg border p-4">
                 <h3 className="font-semibold">{course.code}</h3>
                 <p className="text-muted-foreground text-sm">{course.name}</p>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  {course.assistants} assistant
-                  {course.assistants !== 1 ? "s" : ""} needed
+                  {course.hours} hours needed
                 </p>
               </div>
             ))}

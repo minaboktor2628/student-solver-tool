@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/server/auth";
 import {
   CheckCircle,
   Shield,
@@ -11,6 +13,13 @@ import {
 } from "lucide-react";
 
 export default async function Home() {
+  const session = await auth();
+
+  // Redirect professors to their dashboard
+  if (session?.user?.roles?.includes("PROFESSOR")) {
+    redirect("/professor");
+  }
+
   return (
     <div className="bg-background min-h-screen">
       {/* Hero Section */}

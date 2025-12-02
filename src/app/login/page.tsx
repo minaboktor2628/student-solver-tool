@@ -58,9 +58,10 @@ export default async function LoginPage({
       const password = formData.get("profile") ?? "";
       if (!password) throw new Error("No profile selected");
 
+      const redirectUrl = callbackUrl && callbackUrl !== "" ? callbackUrl : "/";
       await signIn("credentials", {
         password,
-        redirectTo: callbackUrl ?? "",
+        redirectTo: redirectUrl,
       });
     } catch (error) {
       if (error instanceof AuthError) {
@@ -73,8 +74,9 @@ export default async function LoginPage({
   async function microsoftSignin() {
     "use server";
     try {
+      const redirectUrl = callbackUrl && callbackUrl !== "" ? callbackUrl : "/";
       await signIn("microsoft-entra-id", {
-        redirectTo: callbackUrl ?? "",
+        redirectTo: redirectUrl,
       });
     } catch (error) {
       if (error instanceof AuthError) {

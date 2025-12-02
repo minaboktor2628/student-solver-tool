@@ -5,6 +5,11 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const { origin, pathname, href } = req.nextUrl;
 
+  // TEMPORARY: Skip auth for professor pages (mockup demo)
+  if (pathname.startsWith("/professor")) {
+    return NextResponse.next();
+  }
+
   if (!req.auth) {
     const url = new URL("/login", origin);
     url.searchParams.set("callbackUrl", href);
