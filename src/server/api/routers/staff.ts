@@ -3,7 +3,7 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 export const staffRoute = createTRPCRouter({
-  getQualifiedStaffForCourse: coordinatorProcedure
+  getStaffForSection: coordinatorProcedure
     .input(z.object({ sectionId: z.string().nullish() }))
     .query(async ({ input: { sectionId }, ctx }) => {
       if (!sectionId) return { staff: [] };
@@ -22,53 +22,48 @@ export const staffRoute = createTRPCRouter({
         }
         const { termId } = section;
 
-        // Qualified + not avoided for this section
-        const qualified = await tx.staffPreferenceQualifiedSection.findMany({
+        // Qualified (by existence in this table) + dynamic user filters
+        const staffPreferences = await tx.staffPreference.findMany({
           where: {
-            sectionId,
-            staffPreference: {
-              user: {
-                avoidedInCourses: {
-                  none: { professorPreference: { sectionId } },
-                },
-                //  Exclude users already assigned to this exact section and users who are locked to another section
-                sectionAssignments: {
-                  none: {
-                    OR: [
-                      { sectionId }, // already assigned to this section
-                      { AND: [{ locked: true }, { NOT: { sectionId } }] }, // locked on a different section
-                    ],
-                  },
+            termId,
+            user: {
+              sectionAssignments: {
+                none: {
+                  OR: [
+                    { sectionId }, // already assigned to this section
+                    { AND: [{ locked: true }, { NOT: { sectionId } }] }, // locked on a different section
+                  ],
                 },
               },
             },
           },
           include: {
-            staffPreference: {
+            qualifiedForSections: {
+              select: { sectionId: true },
+            },
+            preferredSections: {
               select: {
-                comments: true,
-                timesAvailable: true,
-                preferredSections: {
-                  select: {
-                    rank: true,
-                    section: {
-                      select: {
-                        id: true,
-                        courseTitle: true,
-                        courseCode: true,
-                        courseSection: true,
-                      },
-                    },
-                  },
-                },
-                user: {
+                rank: true,
+                section: {
                   select: {
                     id: true,
-                    name: true,
-                    email: true,
-                    hours: true,
-                    roles: { select: { role: true } },
+                    courseTitle: true,
+                    courseCode: true,
+                    courseSection: true,
                   },
+                },
+              },
+            },
+            timesAvailable: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                hours: true,
+                roles: { select: { role: true } },
+                avoidedInCourses: {
+                  where: { professorPreference: { sectionId } },
                 },
               },
             },
@@ -76,18 +71,29 @@ export const staffRoute = createTRPCRouter({
         });
 
         // Flatten users + roles
-        const users = qualified.map(({ staffPreference }) => {
-          const u = staffPreference.user;
+        const users = staffPreferences.map((sp) => {
+          const u = sp.user;
+          const qualifiedForThisSection = sp.qualifiedForSections.some(
+            (q) => q.sectionId === sectionId,
+          );
+          const avoidedByProfessor = u.avoidedInCourses.length > 0;
+
           return {
             id: u.id,
             name: u.name,
             email: u.email,
             hours: u.hours,
             roles: u.roles.map((r) => r.role),
-            comments: staffPreference.comments,
-            timesAvailable: staffPreference.timesAvailable,
-            preferedSections: staffPreference.preferredSections,
+            comments: sp.comments,
+            timesAvailable: sp.timesAvailable,
+            preferedSections: sp.preferredSections,
             locked: false,
+            flags: {
+              qualifiedForThisSection,
+              notAvoidedByProfessor: !avoidedByProfessor,
+              // we'll fill availableThisTerm after we know assignments
+              availableThisTerm: true,
+            },
           };
         });
 
@@ -126,7 +132,7 @@ export const staffRoute = createTRPCRouter({
           }
         }
 
-        // Single list with metadata
+        // Build single list with metadata
         const staff = users
           .map((u) => {
             const assignedSection = assignedByStaffId.get(u.id);
@@ -134,6 +140,10 @@ export const staffRoute = createTRPCRouter({
             return {
               ...u,
               assignedSection,
+              flags: {
+                ...u.flags,
+                availableThisTerm: !assignedSection,
+              },
             };
           })
           .sort((a, b) => {

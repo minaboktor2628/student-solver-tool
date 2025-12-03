@@ -53,6 +53,9 @@ export const courseRoute = createTRPCRouter({
                     select: {
                       comments: true,
                       timesAvailable: true,
+                      qualifiedForSections: {
+                        select: { sectionId: true },
+                      },
                       preferredSections: {
                         select: {
                           rank: true,
@@ -103,23 +106,42 @@ export const courseRoute = createTRPCRouter({
               roles: s.staff.roles.map((r) => r.role),
             })),
           },
-          staff: c.assignments.map((s) => ({
-            // ...s.staff,
-            id: s.staff.id,
-            name: s.staff.name,
-            email: s.staff.email,
-            hours: s.staff.hours,
-            roles: s.staff.roles.map((r) => r.role),
-            assignedSection: {
-              id: c.id,
-              code: c.courseCode + "-" + c.courseSection,
-            } as { id: string; code: string } | undefined,
-            timesAvailable: s.staff.staffPreferences[0]?.timesAvailable ?? [],
-            comments: s.staff.staffPreferences[0]?.comments ?? null,
-            preferedSections:
-              s.staff.staffPreferences[0]?.preferredSections ?? [],
-            locked: s.locked,
-          })),
+
+          staff: c.assignments.map((s) => {
+            const sp = s.staff.staffPreferences[0]; // the single preference row for this term (or undefined)
+
+            const qualifiedForThisSection =
+              sp?.qualifiedForSections.some((q) => q.sectionId === c.id) ??
+              false;
+
+            const avoidedByProfessor = Boolean(
+              c.professorPreference?.avoidedStaff.some(
+                (a) => a.staff.id === s.staff.id,
+              ),
+            );
+
+            return {
+              id: s.staff.id,
+              name: s.staff.name,
+              email: s.staff.email,
+              hours: s.staff.hours,
+              roles: s.staff.roles.map((r) => r.role),
+              assignedSection: {
+                id: c.id,
+                code: c.courseCode + "-" + c.courseSection,
+              } as { id: string; code: string } | undefined,
+              timesAvailable: sp?.timesAvailable ?? [],
+              comments: sp?.comments ?? null,
+              preferedSections: sp?.preferredSections ?? [],
+              locked: s.locked,
+              flags: {
+                qualifiedForThisSection,
+                notAvoidedByProfessor: !avoidedByProfessor,
+                // they are assigned to *this* section, so not "available"
+                availableThisTerm: false,
+              },
+            };
+          }),
         })),
       };
     }),

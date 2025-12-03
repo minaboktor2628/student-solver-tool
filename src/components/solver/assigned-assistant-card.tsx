@@ -3,10 +3,11 @@ import type { SectionAccordionProps } from "./section-accordion.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Droppable } from "../droppable";
 import { Toggle } from "../ui/toggle";
-import { LockIcon, UnlockIcon, XIcon } from "lucide-react";
+import { CircleAlertIcon, LockIcon, UnlockIcon, XIcon } from "lucide-react";
 import { Draggable } from "../draggable";
 import { StaffItem } from "./staff-item";
 import { Button } from "../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 export function AssignedAssistantsCard({
   section,
@@ -56,7 +57,34 @@ export function AssignedAssistantsCard({
                 <Draggable id={staff.id} data={{ staff }} className="flex-1">
                   {/* <ContextMenu> */}
                   {/*   <ContextMenuTrigger> */}
-                  <StaffItem {...staff} />
+                  <StaffItem {...staff}>
+                    {!staff.flags.notAvoidedByProfessor && (
+                      <Tooltip>
+                        <TooltipTrigger className="self-center">
+                          <CircleAlertIcon className="text-destructive size-6" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Staff is an anti-preference of the professor
+                            teaching this section.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {!staff.flags.qualifiedForThisSection && (
+                      <Tooltip>
+                        <TooltipTrigger className="self-center">
+                          <CircleAlertIcon className="text-destructive size-6" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Staff has reported that they are unqualified for
+                            this section.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </StaffItem>
                   {/*   </ContextMenuTrigger> */}
                   {/*   <ContextMenuContent className="w-52"> */}
                   {/*     <ContextMenuItem>dfjs</ContextMenuItem> */}

@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { toFullCourseName } from "@/lib/utils";
 export type StaffItemProps =
-  RouterOutputs["staff"]["getQualifiedStaffForCourse"]["staff"][0] & {
+  RouterOutputs["staff"]["getStaffForSection"]["staff"][0] & {
     children?: React.ReactNode;
   };
 

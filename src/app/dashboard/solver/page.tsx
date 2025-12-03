@@ -90,7 +90,7 @@ export default function SolverPage() {
     onSettled: async () => {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-        utils.staff.getQualifiedStaffForCourse.invalidate(),
+        utils.staff.getStaffForSection.invalidate(),
       ]);
     },
   });
@@ -102,7 +102,7 @@ export default function SolverPage() {
       const prevCourses = utils.courses.getAllCoursesForTerm.getData({
         termId,
       });
-      const prevStaff = utils.staff.getQualifiedStaffForCourse.getData({
+      const prevStaff = utils.staff.getStaffForSection.getData({
         sectionId,
       });
 
@@ -119,7 +119,7 @@ export default function SolverPage() {
       }
 
       // Remove from qualified list for this section (sidebar)
-      utils.staff.getQualifiedStaffForCourse.setData({ sectionId }, (old) => {
+      utils.staff.getStaffForSection.setData({ sectionId }, (old) => {
         if (!old) return old;
         return {
           ...old,
@@ -148,10 +148,7 @@ export default function SolverPage() {
 
     onError: (_err, { sectionId }, ctx) => {
       if (ctx?.prevStaff) {
-        utils.staff.getQualifiedStaffForCourse.setData(
-          { sectionId },
-          ctx.prevStaff,
-        );
+        utils.staff.getStaffForSection.setData({ sectionId }, ctx.prevStaff);
       }
       if (ctx?.prevCourses) {
         utils.courses.getAllCoursesForTerm.setData({ termId }, ctx.prevCourses);
@@ -161,7 +158,7 @@ export default function SolverPage() {
     onSettled: async (_data, _err) => {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-        utils.staff.getQualifiedStaffForCourse.invalidate(),
+        utils.staff.getStaffForSection.invalidate(),
       ]);
     },
   });
@@ -173,7 +170,7 @@ export default function SolverPage() {
       const prevCourses = utils.courses.getAllCoursesForTerm.getData({
         termId,
       });
-      const prevStaff = utils.staff.getQualifiedStaffForCourse.getData({
+      const prevStaff = utils.staff.getStaffForSection.getData({
         sectionId,
       });
 
@@ -197,7 +194,7 @@ export default function SolverPage() {
         };
       });
 
-      utils.staff.getQualifiedStaffForCourse.setData({ sectionId }, (old) => {
+      utils.staff.getStaffForSection.setData({ sectionId }, (old) => {
         if (!old || !staff) return old;
         if (old.staff.some((s) => s.id === staffId)) return old;
         return {
@@ -211,10 +208,7 @@ export default function SolverPage() {
 
     onError: (_e, { sectionId }, ctx) => {
       if (ctx?.prevStaff)
-        utils.staff.getQualifiedStaffForCourse.setData(
-          { sectionId },
-          ctx.prevStaff,
-        );
+        utils.staff.getStaffForSection.setData({ sectionId }, ctx.prevStaff);
       if (ctx?.prevCourses)
         utils.courses.getAllCoursesForTerm.setData({ termId }, ctx.prevCourses);
     },
@@ -222,7 +216,7 @@ export default function SolverPage() {
     onSettled: async (_data, _err) => {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-        utils.staff.getQualifiedStaffForCourse.invalidate(),
+        utils.staff.getStaffForSection.invalidate(),
       ]);
     },
   });
