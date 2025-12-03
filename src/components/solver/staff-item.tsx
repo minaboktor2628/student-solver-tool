@@ -5,8 +5,8 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { toFullCourseName } from "@/lib/utils";
 export type StaffItemProps =

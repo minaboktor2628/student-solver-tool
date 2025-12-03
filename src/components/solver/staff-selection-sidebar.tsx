@@ -1,16 +1,17 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Input } from "./ui/input";
+import { Input } from "../ui/input";
 import { StaffItem } from "./staff-item";
 import { api } from "@/trpc/react";
-import { Draggable } from "./draggable";
-import { Droppable } from "./droppable";
+import { Draggable } from "../draggable";
+import { Droppable } from "../droppable";
 import { TriangleAlertIcon, XIcon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { normalize } from "@/lib/utils";
 
 export const STAFF_SIDEBAR_ID = "StaffSelectionSidebar" as const;
 
@@ -18,12 +19,6 @@ export type StaffSelectionSidebarProps = {
   sectionId: string;
 };
 
-function normalize(str: string) {
-  return str
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, ""); // strip accents
-}
 export function StaffSelectionSidebar({
   sectionId,
 }: StaffSelectionSidebarProps) {
@@ -86,7 +81,7 @@ export function StaffSelectionSidebar({
                   {s.assignedSection && (
                     <Tooltip>
                       <TooltipTrigger className="self-center">
-                        <TriangleAlertIcon className="text-warning size-4" />
+                        <TriangleAlertIcon className="text-warning size-6" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Staff is assigned to {s.assignedSection.code}</p>

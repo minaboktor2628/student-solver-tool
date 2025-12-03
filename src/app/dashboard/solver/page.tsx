@@ -1,5 +1,5 @@
 "use client";
-import { SectionAccordion } from "@/components/section-accordion.tsx";
+import { SectionAccordion } from "@/components/solver/section-accordion.tsx";
 import { Separator } from "@/components/ui/separator";
 import {
   ResizableHandle,
@@ -7,7 +7,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useState } from "react";
-import { StaffSelectionSidebar } from "@/components/staff-selection-sidebar";
+import { StaffSelectionSidebar } from "@/components/solver/staff-selection-sidebar";
 import {
   ButtonGroup,
   ButtonGroupSeparator,
@@ -21,9 +21,9 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { StaffItem, type StaffItemProps } from "@/components/staff-item";
+import { StaffItem, type StaffItemProps } from "@/components/solver/staff-item";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { AleadyAssignedAlert } from "@/components/already-assigned-alert";
+import { AleadyAssignedAlert } from "@/components/solver/already-assigned-alert";
 import { toast } from "sonner";
 
 type PendingAssign = {

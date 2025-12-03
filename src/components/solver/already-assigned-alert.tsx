@@ -8,8 +8,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Checkbox } from "./ui/checkbox";
-import { Label } from "./ui/label";
+import { Checkbox } from "../ui/checkbox";
+import { Label } from "../ui/label";
 
 export type AlreadyAssignedAlertProps = {
   staffName: string;

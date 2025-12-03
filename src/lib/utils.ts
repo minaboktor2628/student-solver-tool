@@ -37,3 +37,10 @@ export function isProfessor(session: Session | null) {
 export function toFullCourseName(section: string, code: string, title: string) {
   return `${section}-${code} - ${title}`;
 }
+
+export function normalize(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, ""); // strip accents
+}

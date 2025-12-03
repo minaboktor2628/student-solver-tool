@@ -4,6 +4,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ClockIcon } from "lucide-react";
 
 export type SectionSolverStatusProps = {
   marginOfError: number;
@@ -33,7 +34,7 @@ export function SectionSolverStatus({
                 : "destructive"
           }
         >
-          {hoursAssigned}/{hoursRequired}
+          {hoursAssigned}/{hoursRequired}hrs <ClockIcon />
         </Badge>
       </TooltipTrigger>
       <TooltipContent>
