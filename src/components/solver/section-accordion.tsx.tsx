@@ -4,11 +4,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { SectionSolverStatus } from "./section-solver-status";
+import { SectionSolverHourCoverage } from "./section-solver-hour-coverage";
 import { type RouterInputs, type RouterOutputs } from "@/trpc/react";
 import { toFullCourseName } from "@/lib/utils";
 import { SectionInfoCard } from "./section-info-card";
 import { AssignedAssistantsCard } from "./assigned-assistant-card";
+import { calculateCoverage } from "@/lib/schedul-selector";
+import { SectionSolverScheduleCoverage } from "./section-solver-schedule-coverage";
 
 export type SectionAccordionProps = {
   selected: string | undefined;
@@ -43,14 +45,20 @@ export function SectionAccordion({
               section.courseSection,
               section.title,
             )}
-            <SectionSolverStatus
-              marginOfError={10} // TODO: not hardcode this
-              hoursRequired={section.requiredHours}
-              hoursAssigned={section.staff.reduce(
-                (accumulator, currVal) => accumulator + (currVal.hours ?? 0),
-                0,
-              )}
-            />
+            <div className="ml-auto flex space-x-2">
+              <SectionSolverScheduleCoverage
+                needed={section.professor.timesRequired}
+                assigned={section.staff.flatMap((s) => s.timesAvailable)}
+              />
+              <SectionSolverHourCoverage
+                marginOfError={10} // TODO: not hardcode this
+                hoursRequired={section.requiredHours}
+                hoursAssigned={section.staff.reduce(
+                  (accumulator, currVal) => accumulator + (currVal.hours ?? 0),
+                  0,
+                )}
+              />
+            </div>
           </AccordionTrigger>
           <AccordionContent className="flex space-x-4 text-balance">
             <SectionInfoCard section={section} />

@@ -6,17 +6,17 @@ import {
 } from "@/components/ui/tooltip";
 import { ClockIcon } from "lucide-react";
 
-export type SectionSolverStatusProps = {
+export type SectionSolverHourCoverageProps = {
   marginOfError: number;
   hoursRequired: number;
   hoursAssigned: number;
 };
 
-export function SectionSolverStatus({
+export function SectionSolverHourCoverage({
   hoursRequired,
   marginOfError,
   hoursAssigned,
-}: SectionSolverStatusProps) {
+}: SectionSolverHourCoverageProps) {
   const difference = Math.abs(hoursRequired - hoursAssigned);
   const isAssignedExactlyNumberOfHoursNeeded = difference === 0;
   const isWithinMarginOfError =
@@ -24,7 +24,7 @@ export function SectionSolverStatus({
 
   return (
     <Tooltip>
-      <TooltipTrigger className="ml-auto" asChild>
+      <TooltipTrigger asChild>
         <Badge
           variant={
             isAssignedExactlyNumberOfHoursNeeded

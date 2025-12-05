@@ -54,7 +54,12 @@ export const staffRoute = createTRPCRouter({
                 },
               },
             },
-            timesAvailable: true,
+            timesAvailable: {
+              select: {
+                day: true,
+                hour: true,
+              },
+            },
             user: {
               select: {
                 id: true,

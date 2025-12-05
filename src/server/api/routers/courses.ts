@@ -10,6 +10,12 @@ export const courseRoute = createTRPCRouter({
         include: {
           professorPreference: {
             include: {
+              timesRequired: {
+                select: {
+                  day: true,
+                  hour: true,
+                },
+              },
               avoidedStaff: {
                 include: {
                   staff: {
@@ -52,10 +58,16 @@ export const courseRoute = createTRPCRouter({
                     where: { termId },
                     select: {
                       comments: true,
-                      timesAvailable: true,
+                      timesAvailable: {
+                        select: {
+                          day: true,
+                          hour: true,
+                        },
+                      },
                       qualifiedForSections: {
                         select: { sectionId: true },
                       },
+
                       preferredSections: {
                         select: {
                           rank: true,
@@ -97,6 +109,7 @@ export const courseRoute = createTRPCRouter({
             email: c.professor.email,
             name: c.professor.name,
             comments: c.professorPreference?.comments,
+            timesRequired: c.professorPreference?.timesRequired ?? [],
             preferedStaff: c.professorPreference?.preferredStaff.map((s) => ({
               ...s.staff,
               roles: s.staff.roles.map((r) => r.role),

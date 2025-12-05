@@ -151,6 +151,9 @@ async function main() {
       userId: ta.id,
       termId: term.id,
       comments: "Prefer morning labs.",
+      timesAvailable: {
+        create: [{ day: "F", hour: 12 }],
+      },
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }, { sectionId: algorithms.id }],
       },
@@ -200,6 +203,12 @@ async function main() {
     data: {
       sectionId: discrete.id,
       comments: "Need strong discrete background.",
+      timesRequired: {
+        create: [
+          { day: "F", hour: 11 },
+          { day: "F", hour: 12 },
+        ],
+      },
       preferredStaff: {
         create: [
           { staffId: ta.id }, // professor prefers this TA
