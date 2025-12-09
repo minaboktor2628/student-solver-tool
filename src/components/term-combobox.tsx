@@ -110,11 +110,12 @@ function TermComboboxInternal() {
               {all.map((term) => (
                 <CommandItem
                   key={term.id}
-                  value={term.id}
-                  onSelect={(currentValue) => {
-                    setSelectedId(
-                      selectedId === currentValue ? null : currentValue,
-                    );
+                  value={term.label}
+                  onSelect={(label) => {
+                    const term = all.find((t) => t.label === label);
+                    if (!term) return;
+
+                    setSelectedId(term.id);
                     setOpen(false);
                   }}
                 >
