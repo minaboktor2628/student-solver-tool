@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/app-sidebar";
 import { HeaderBreadcrumbs } from "@/components/header-breadcrumbs";
 import { ModeToggle } from "@/components/mode-toggle";
+import { TermProvider } from "@/components/term-combobox";
 
 export const metadata: Metadata = {
   title: "STS",
@@ -47,26 +48,28 @@ export default async function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors toastOptions={{ duration: 5000 }} />
             <TRPCReactProvider>
-              <SidebarProvider>
-                <AppSidebar user={session?.user} />
-                <SidebarInset>
-                  <header className="flex h-16 w-full shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-                    <div className="flex items-center gap-2 px-4">
-                      <SidebarTrigger className="-ml-1" />
-                      <Separator
-                        orientation="vertical"
-                        className="mr-2 data-[orientation=vertical]:h-4"
-                      />
-                      <HeaderBreadcrumbs />
-                    </div>
-                    <div className="px-2">
-                      <ModeToggle />
-                    </div>
-                  </header>
-                  <div className="flex flex-1 flex-col">{children}</div>
-                </SidebarInset>
-                <DevDock />
-              </SidebarProvider>
+              <TermProvider>
+                <SidebarProvider>
+                  <AppSidebar user={session?.user} />
+                  <SidebarInset>
+                    <header className="flex h-16 w-full shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+                      <div className="flex items-center gap-2 px-4">
+                        <SidebarTrigger className="-ml-1" />
+                        <Separator
+                          orientation="vertical"
+                          className="mr-2 data-[orientation=vertical]:h-4"
+                        />
+                        <HeaderBreadcrumbs />
+                      </div>
+                      <div className="px-2">
+                        <ModeToggle />
+                      </div>
+                    </header>
+                    <div className="flex flex-1 flex-col">{children}</div>
+                  </SidebarInset>
+                  <DevDock />
+                </SidebarProvider>
+              </TermProvider>
             </TRPCReactProvider>
           </ThemeProvider>
         </TooltipProvider>
