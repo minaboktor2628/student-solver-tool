@@ -3,47 +3,47 @@ import React, { useMemo, useState } from "react";
 
 type TokenType = "prefer" | "strong";
 
+export type Section = {
+  term: string;
+  id: string;
+  courseSection: string;
+  instructor?: string;
+};
+export type Course = { code: string; title: string; sections: Section[] };
+
 interface CoursePreferencesProps {
-  /** array of selected section ids, e.g. 'cs1101-al01' */
+  /** array of courses with sections that the user qualified for */
+  courses?: Course[];
+  /** array of selected section ids from qualifications step */
   selectedSectionIds: string[];
-  /** mapping from course code to a single token (mutually exclusive) */
+  /** mapping from section id to token type */
   onChange?: (mapping: Record<string, TokenType | undefined>) => void;
   onNext?: () => void;
   onExit?: () => void;
 }
 
-function formatCourseCodeFromSectionId(sectionId: string) {
-  // Try to extract a leading course code like 'cs1101' -> 'CS 1101'
-  const prefix = sectionId.split("-")[0] || sectionId;
-  const m = prefix.match(/^([A-Za-z]+)(\d+)(.*)$/);
-  if (m) {
-    const letters = (m[1] ?? "").toUpperCase();
-    const nums = m[2] ?? "";
-    const rest = m[3] ?? "";
-    return `${letters} ${nums}${rest}`.trim();
-  }
-  return prefix.toUpperCase();
-}
-
 const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
+  courses: coursesProp,
   selectedSectionIds,
   onChange,
   onNext,
   onExit,
 }) => {
-  // derive unique course codes from section ids
-  const courses = useMemo(() => {
-    const set = new Set<string>();
-    for (const sid of selectedSectionIds) {
-      const courseCode = formatCourseCodeFromSectionId(sid);
-      set.add(courseCode);
-    }
-    return Array.from(set);
-  }, [selectedSectionIds]);
+  // Filter courses to only show sections that were selected in qualifications
+  const filteredCourses = useMemo(() => {
+    if (!coursesProp) return [];
+    const selectedSet = new Set(selectedSectionIds);
+    return coursesProp
+      .map((course) => ({
+        ...course,
+        sections: course.sections.filter((s) => selectedSet.has(s.id)),
+      }))
+      .filter((course) => course.sections.length > 0);
+  }, [coursesProp, selectedSectionIds]);
 
-  // mapping holds at most one token per course to enforce mutual exclusivity
+  // mapping holds at most one token per section
   const [mapping, setMapping] = useState<Record<string, TokenType | undefined>>(
-    () => ({}),
+    {},
   );
 
   const originalNumStrongTokens = 1;
@@ -59,10 +59,10 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   const numStrongTokens = Math.max(0, originalNumStrongTokens - usedStrong);
   const numPreferTokens = Math.max(0, originalNumPreferTokens - usedPrefer);
 
-  function handleDrop(course: string, token: TokenType) {
+  function handleDrop(sectionId: string, token: TokenType) {
     setMapping((prev) => {
-      const existing = prev[course];
-      // No-op if dropping same token onto same course
+      const existing = prev[sectionId];
+      // No-op if dropping same token onto same section
       if (existing === token) return prev;
 
       // Prevent consuming a token if none are available
@@ -70,20 +70,20 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       if (token === "strong" && numStrongTokens <= 0) return prev;
 
       // Build next mapping
-      const next = { ...prev, [course]: token };
+      const next = { ...prev, [sectionId]: token };
 
       onChange?.(next);
       return next;
     });
   }
 
-  function handleRemoveToken(course: string, token: TokenType) {
+  function handleRemoveToken(sectionId: string) {
     setMapping((prev) => {
-      const existing = prev[course];
+      const existing = prev[sectionId];
       if (!existing) return prev;
 
       const next = { ...prev };
-      delete next[course];
+      delete next[sectionId];
 
       onChange?.(next);
       return next;
@@ -93,90 +93,127 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   return (
     <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
-        Set your course preferences
+        Set your section preferences
       </h2>
-      <div className="flex items-center gap-3">
-        {numPreferTokens > 0 && (
-          <div
-            draggable
-            onDragStart={(e) => e.dataTransfer?.setData("text/plain", "prefer")}
-            className="cursor-grab rounded-full bg-blue-100 px-3 py-1 text-sm font-medium"
-          >
-            Prefer
-          </div>
-        )}
 
-        <label className="text-muted-foreground text-sm">
-          {numPreferTokens}/{originalNumPreferTokens}
-        </label>
+      <div className="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-gray-50 p-4">
+        <div className="flex items-center gap-3">
+          {numPreferTokens > 0 && (
+            <div
+              draggable
+              onDragStart={(e) =>
+                e.dataTransfer?.setData("text/plain", "prefer")
+              }
+              className="cursor-grab rounded-full bg-blue-100 px-3 py-1 text-sm font-medium"
+            >
+              Prefer
+            </div>
+          )}
+          <span className="text-muted-foreground text-sm">
+            {numPreferTokens}/{originalNumPreferTokens}
+          </span>
+        </div>
 
-        {numStrongTokens > 0 && (
-          <div
-            draggable
-            onDragStart={(e) => e.dataTransfer?.setData("text/plain", "strong")}
-            className="cursor-grab rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium"
-          >
-            Strongly Prefer
-          </div>
-        )}
-
-        <label className="text-muted-foreground text-sm">
-          {numStrongTokens}/{originalNumStrongTokens}
-        </label>
+        <div className="flex items-center gap-3">
+          {numStrongTokens > 0 && (
+            <div
+              draggable
+              onDragStart={(e) =>
+                e.dataTransfer?.setData("text/plain", "strong")
+              }
+              className="cursor-grab rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium"
+            >
+              Strongly Prefer
+            </div>
+          )}
+          <span className="text-muted-foreground text-sm">
+            {numStrongTokens}/{originalNumStrongTokens}
+          </span>
+        </div>
 
         <div className="text-muted-foreground text-sm">
-          Drag a preference onto a course card
+          Drag a preference onto a section
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {courses.length === 0 && (
-          <div className="text-sm text-gray-500">No courses selected yet.</div>
+      <div className="grid grid-cols-1 gap-4">
+        {filteredCourses.length === 0 && (
+          <div className="text-sm text-gray-500">
+            No qualified sections yet. Go back to select courses first.
+          </div>
         )}
 
-        {courses.map((course) => (
+        {filteredCourses.map((course) => (
           <div
-            key={course}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const token = e.dataTransfer?.getData("text/plain") as
-                | TokenType
-                | undefined;
-              if (token === "prefer" || token === "strong") {
-                handleDrop(course, token);
-              }
-            }}
-            className="rounded-lg border bg-white p-4 shadow-sm"
+            key={course.code}
+            className="rounded-lg border bg-white shadow-sm"
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="font-semibold">{course}</div>
-                <div className="text-sm text-gray-500">
-                  Drop preferences here
-                </div>
+            <div className="rounded-md p-4">
+              <div className="text-lg font-medium">
+                {course.code} - {course.title}
               </div>
-              <div className="flex gap-2">
-                {mapping[course] ? (
-                  <button
-                    onClick={() => handleRemoveToken(course, mapping[course]!)}
-                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${mapping[course] === "strong" ? "bg-indigo-200 text-indigo-800" : "bg-blue-200 text-blue-800"}`}
-                    title="Remove preference"
-                    aria-label={`Remove preference for ${course}`}
+            </div>
+
+            <div className="border-t p-3">
+              <ul className="space-y-2">
+                {course.sections.map((section) => (
+                  <li
+                    key={section.id}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const token = e.dataTransfer?.getData("text/plain") as
+                        | TokenType
+                        | undefined;
+                      if (token === "prefer" || token === "strong") {
+                        handleDrop(section.id, token);
+                      }
+                    }}
+                    className="flex items-center justify-between rounded-md p-2 hover:bg-gray-50"
                   >
-                    <span>
-                      {mapping[course] === "strong" ? "★ Strong" : "Prefer"}
-                    </span>
-                    <span className="ml-1 text-xs leading-none font-bold">
-                      ×
-                    </span>
-                  </button>
-                ) : null}
-              </div>
+                    <div>
+                      <div className="font-medium">
+                        {section.term}
+                        {section.courseSection} -{" "}
+                        {section.instructor ?? "No instructor"}
+                      </div>
+                      <div className="text-sm text-gray-600">Section</div>
+                    </div>
+                    <div className="flex gap-2">
+                      {mapping[section.id] ? (
+                        <button
+                          onClick={() => handleRemoveToken(section.id)}
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
+                            mapping[section.id] === "strong"
+                              ? "bg-indigo-200 text-indigo-800"
+                              : "bg-blue-200 text-blue-800"
+                          }`}
+                          title="Remove preference"
+                          aria-label={`Remove preference for {${section.term}${section.courseSection}}`}
+                        >
+                          <span>
+                            {mapping[section.id] === "strong"
+                              ? "★ Strongly Prefer"
+                              : "Prefer"}
+                          </span>
+                          <span className="ml-1 text-xs leading-none font-bold">
+                            ×
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="text-sm text-gray-400">
+                          Drop preference here
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ))}
       </div>
+
       <div className="mt-4 flex gap-3">
         {onNext && (
           <button

@@ -1,11 +1,16 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 
-export type Section = { id: string; code: string; instructor?: string };
+export type Section = {
+  term: string;
+  id: string;
+  courseSection: string;
+  instructor?: string;
+};
 export type Course = { code: string; title: string; sections: Section[] };
 
 interface FormEntryQualificationsProps {
-  courses: Course[];
+  courses?: Course[];
   initialSelectedSections?: string[];
   onChange?: (selectedSectionIds: string[]) => void;
   onNext?: () => void;
@@ -17,30 +22,60 @@ const exampleCourses: Course[] = [
     code: "CS 1101",
     title: "Intro to Programming",
     sections: [
-      { id: "cs1101-al01", code: "CL01", instructor: "Matthew Ahrens" },
+      {
+        term: "C",
+        id: "cs1101-cl01",
+        courseSection: "CL01",
+        instructor: "Matthew Ahrens",
+      },
     ],
   },
   {
     code: "CS 2102",
     title: "Object-Oriented Design Concepts",
     sections: [
-      { id: "cs2102-cl02", code: "CL01", instructor: "Jennifer Mortensen" },
-      { id: "cs2102-cl02", code: "CL02", instructor: "Yu-Shan Sun" },
+      {
+        term: "C",
+        id: "cs2102-cl01",
+        courseSection: "CL01",
+        instructor: "Jennifer Mortensen",
+      },
+      {
+        term: "C",
+        id: "cs2102-cl02",
+        courseSection: "CL02",
+        instructor: "Yu-Shan Sun",
+      },
     ],
   },
   {
     code: "CS 3733",
     title: "Software Engineering",
     sections: [
-      { id: "cs3733-cl01", code: "CL01", instructor: "George Heineman" },
-      { id: "cs3733-cl02", code: "CL02", instructor: "Wilson Wong" },
+      {
+        term: "C",
+        id: "cs3733-cl01",
+        courseSection: "CL01",
+        instructor: "George Heineman",
+      },
+      {
+        term: "C",
+        id: "cs3733-cl02",
+        courseSection: "CL02",
+        instructor: "Wilson Wong",
+      },
     ],
   },
   {
     code: "CS 4432",
     title: "Database Systems II",
     sections: [
-      { id: "cs4432-cl01", code: "CL01", instructor: "Fabricio Murai" },
+      {
+        term: "C",
+        id: "cs4432-cl01",
+        courseSection: "CL01",
+        instructor: "Fabricio Murai",
+      },
     ],
   },
 ];
@@ -162,7 +197,8 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                       >
                         <div>
                           <div className="font-medium">
-                            {section.code} - {section.instructor}
+                            {section.term}
+                            {section.courseSection} - {section.instructor}
                           </div>
                           <div className="text-sm text-gray-600">Section</div>
                         </div>
@@ -173,7 +209,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                         onChange={() => toggleSection(section.id)}
                         tabIndex={0}
                         className="h-4 w-4"
-                        aria-label={`Select section ${section.code} for ${course.code}`}
+                        aria-label={`Select section ${section.term}${section.courseSection} for ${course.code}`}
                       />
                     </li>
                   ))}

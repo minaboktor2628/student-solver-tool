@@ -24,6 +24,7 @@ async function main() {
   // ----- TERM -----
   const term = await prisma.term.create({
     data: {
+      id: "cmidsm56y0000v8vaqgdz42sc",
       termLetter: TermLetter.A,
       year: 2025,
       termStaffDueDate: new Date("2025-08-15T23:59:59Z"),
@@ -32,7 +33,7 @@ async function main() {
   });
 
   // ----- USERS -----
-  const [professor, ta, pla, coordinator] = await Promise.all([
+  const [professor, ta, pla, pla2, coordinator] = await Promise.all([
     prisma.user.create({
       data: {
         name: "Prof. Discrete",
@@ -43,14 +44,21 @@ async function main() {
       data: {
         name: "Taylor TA",
         email: "ta.taylor@wpi.edu",
-        hours: 10,
+        hours: 20,
       },
     }),
     prisma.user.create({
       data: {
         name: "Pat PLA",
         email: "pla.pat@wpi.edu",
-        hours: 8,
+        hours: 10,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Mat PLA",
+        email: "pla.mat@wpi.edu",
+        hours: 10,
       },
     }),
     prisma.user.create({
@@ -67,6 +75,7 @@ async function main() {
       { userId: professor.id, role: Role.PROFESSOR },
       { userId: ta.id, role: Role.TA },
       { userId: pla.id, role: Role.PLA },
+      { userId: pla2.id, role: Role.PLA },
       { userId: coordinator.id, role: Role.COORDINATOR },
     ],
   });
@@ -90,6 +99,11 @@ async function main() {
         termId: term.id,
       },
       {
+        email: pla2.email!,
+        role: Role.PLA,
+        termId: term.id,
+      },
+      {
         email: coordinator.email!,
         role: Role.COORDINATOR,
         termId: term.id,
@@ -106,10 +120,12 @@ async function main() {
         courseCode: "CS 2022",
         description: "Intro to discrete math: sets, logic, relations, graphs.",
         professorId: professor.id,
+        courseSection: "LO2",
         enrollment: 40,
         capacity: 45,
-        requiredHours: 10,
+        requiredHours: 20,
         academicLevel: AcademicLevel.UNDERGRADUATE,
+        meetingPattern: "m t r",
       },
     }),
     prisma.section.create({
@@ -117,12 +133,14 @@ async function main() {
         termId: term.id,
         courseTitle: "Algorithms",
         courseCode: "CS 3013",
+        courseSection: "LO2",
         description: "Design and analysis of algorithms.",
         professorId: professor.id,
         enrollment: 30,
         capacity: 35,
-        requiredHours: 8,
+        requiredHours: 10,
         academicLevel: AcademicLevel.UNDERGRADUATE,
+        meetingPattern: "m t r",
       },
     }),
   ]);
@@ -132,15 +150,14 @@ async function main() {
     data: {
       userId: ta.id,
       termId: term.id,
-      timesAvailable: "MWF 9–11, T 2–4",
       comments: "Prefer morning labs.",
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }, { sectionId: algorithms.id }],
       },
       preferredSections: {
         create: [
-          { sectionId: discrete.id, rank: 1 },
-          { sectionId: algorithms.id, rank: 2 },
+          { sectionId: discrete.id, rank: "PREFER" },
+          { sectionId: algorithms.id, rank: "STRONGLY_PREFER" },
         ],
       },
     },
@@ -155,13 +172,25 @@ async function main() {
     data: {
       userId: pla.id,
       termId: term.id,
-      timesAvailable: "TR 10–12",
       comments: "Cannot work Fridays.",
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }],
       },
       preferredSections: {
-        create: [{ sectionId: discrete.id, rank: 1 }],
+        create: [{ sectionId: discrete.id, rank: "STRONGLY_PREFER" }],
+      },
+    },
+  });
+  const plaStaffPref2 = await prisma.staffPreference.create({
+    data: {
+      userId: pla2.id,
+      termId: term.id,
+      comments: "Cannot work Fridays.",
+      qualifiedForSections: {
+        create: [{ sectionId: discrete.id }],
+      },
+      preferredSections: {
+        create: [{ sectionId: discrete.id, rank: "PREFER" }],
       },
     },
   });
@@ -170,7 +199,6 @@ async function main() {
   const profPref = await prisma.professorPreference.create({
     data: {
       sectionId: discrete.id,
-      timesRequired: "At least 8 hours/week of staff",
       comments: "Need strong discrete background.",
       preferredStaff: {
         create: [
@@ -192,14 +220,6 @@ async function main() {
   // ----- ACTUAL ASSIGNMENTS -----
   await prisma.sectionAssignment.createMany({
     data: [
-      {
-        sectionId: discrete.id,
-        staffId: ta.id,
-      },
-      {
-        sectionId: discrete.id,
-        staffId: pla.id,
-      },
       {
         sectionId: algorithms.id,
         staffId: ta.id,

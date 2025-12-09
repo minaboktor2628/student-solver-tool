@@ -32,8 +32,10 @@ export const studentFormRoute = createTRPCRouter({
       const rows = await db.section.findMany({
         where: { term: { termLetter, year } },
         select: {
+          term: { select: { termLetter: true, year: true } },
           id: true,
           courseCode: true,
+          courseSection: true,
           courseTitle: true,
           enrollment: true,
           capacity: true,
@@ -55,8 +57,9 @@ export const studentFormRoute = createTRPCRouter({
         code: courseCode,
         title: items[0].courseTitle,
         sections: items.map((it) => ({
+          term: it.term.termLetter,
           id: it.id,
-          code: it.id, // TODO: consider adding a short section code field to the model
+          courseSection: it.courseSection,
           instructor: it.professor?.name ?? null,
           enrollment: it.enrollment,
           capacity: it.capacity,
@@ -124,7 +127,7 @@ export const studentFormRoute = createTRPCRouter({
   }),
 
   /** Insert or update the complete student form for a staff member and term */
-  insertStudentForm: assistantProcedure
+  saveStudentForm: assistantProcedure
     .input(
       baseInput.extend({
         /** The client should pass the full form payload (availability, qualifications, preferences, comments) */
@@ -135,14 +138,24 @@ export const studentFormRoute = createTRPCRouter({
       const { staffId, termLetter, year, form } = input;
 
       // TODO: Implement transactional persistence logic using Prisma.
-      // Suggested steps:
-      // 1. Resolve or create termId from termLetter+year
-      // 2. Upsert StaffPreference row for userId+termId with timesAvailable and comments
-      // 3. Upsert qualified sections (StaffPreferenceQualifiedSection) - replace existing entries for this staffPreference
-      // 4. Upsert preference tokens (a new table or StaffPreferencePreferredSection if using ranked preferences)
-      // 5. Return success status and any created IDs
 
-      return { ok: true };
+      // required info:
+      //   - staffId
+      //   - termId
+      //   - timesAvailable
+      //   - comments
+      //   - qualified sections
+      //      - sectionId
+      //      - staffId
+      //   - preferred sections
+      //      - sectionId
+      //      - staffId
+      //      - rank (PREFER, STRONGLY_PREFER)
+
+      // 1. Upsert qualifications
+      // 2. Upsert preferences
+      // 3. Upsert times, comments
+      // 4. Return success status and any created IDs
     }),
 });
 

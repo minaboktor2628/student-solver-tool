@@ -39,10 +39,10 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   const router = useRouter();
 
   // fetch sections for the selected term and pass to qualifications UI
-  const sectionsQ = api.studentForm.getSections.useQuery(
-    { termLetter: termLetter ?? "A", year: year ?? 2025 },
-    { enabled: !!termLetter && !!year },
-  );
+  const sectionsQ = api.studentForm.getSections.useQuery({
+    termLetter: termLetter ?? "A",
+    year: year ?? 2025,
+  });
 
   const [step, setStep] = useState(1);
   const handleNext = () => setStep((s) => s + 1);
@@ -70,7 +70,6 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
           onExit={() => setStep(1)}
           onSave={(weekly) => setWeeklyAvailability(weekly)}
         />
-        //TODO get out times data
       )}
       {step === 3 && (
         // pass server-provided course list into qualifications UI
@@ -85,6 +84,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       {step === 4 && (
         //TODO pass in initial preferences data
         <FormEntryPreferences
+          courses={sectionsQ.data?.courses}
           selectedSectionIds={qualifiedSections}
           onNext={handleNext}
           onExit={() => setStep(3)}
