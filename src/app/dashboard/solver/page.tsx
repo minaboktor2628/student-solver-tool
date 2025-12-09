@@ -233,6 +233,16 @@ export default function SolverPage() {
         setActiveStaff(null);
         return;
       }
+
+      // Figure out which section this staff is currently assigned to
+      const assignedSectionId = activeStaff?.assignedSection?.id;
+
+      // If they aren't assigned or assigned to a different section, don't call unassign at all.
+      if (!assignedSectionId || assignedSectionId !== selectedSectionId) {
+        setActiveStaff(null);
+        return;
+      }
+
       unassignApi.mutate({
         sectionId: selectedSectionId,
         staffId: active.id,

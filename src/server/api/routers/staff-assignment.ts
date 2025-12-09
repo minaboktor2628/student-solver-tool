@@ -16,8 +16,8 @@ export const staffAssignmentRoute = createTRPCRouter({
   remove: coordinatorProcedure
     .input(z.object({ sectionId: z.string(), staffId: z.string() }))
     .mutation(async ({ input: { sectionId, staffId }, ctx }) => {
-      return ctx.db.sectionAssignment.delete({
-        where: { sectionId_staffId: { sectionId, staffId } },
+      return ctx.db.sectionAssignment.deleteMany({
+        where: { sectionId, staffId },
       });
     }),
 
