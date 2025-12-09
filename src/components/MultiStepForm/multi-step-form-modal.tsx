@@ -14,6 +14,8 @@ interface MultiStepFormModalProps {
   onClose?: () => void;
   /** If true, render inline (no fixed overlay) so the form can be used as a full page */
   inline?: boolean;
+  /** Required: user ID of the authenticated user */
+  userId: string;
   /** Optional context: staff and term to load data for */
   staffId?: string;
   termLetter?: "A" | "B" | "C" | "D";
@@ -23,6 +25,7 @@ interface MultiStepFormModalProps {
 const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   onClose,
   inline = false,
+  userId,
   staffId,
   termLetter,
   year,
@@ -33,7 +36,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   );
   const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
   const [courseTokenMapping, setCourseTokenMapping] = useState<
-    Record<string, string | undefined>
+    Record<string, "prefer" | "strong" | undefined>
   >({});
   const [comments, setComments] = useState<string>("");
   const router = useRouter();
@@ -66,6 +69,12 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       {step === 2 && (
         //TODO pass in initial times data
         <FormEntryTimes
+          userId={userId}
+          termLetter={termLetter ?? "A"}
+          year={year ?? 2025}
+          qualifiedSectionIds={qualifiedSections}
+          sectionPreferences={courseTokenMapping}
+          comments={comments}
           onNext={handleNext}
           onExit={() => setStep(1)}
           onSave={(weekly) => setWeeklyAvailability(weekly)}
@@ -75,6 +84,9 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         // pass server-provided course list into qualifications UI
         // TODO pass in previous qualifications data
         <FormEntryQualifications
+          userId={userId}
+          termLetter={termLetter ?? "A"}
+          year={year ?? 2025}
           courses={sectionsQ.data?.courses}
           onNext={handleNext}
           onExit={() => setStep(2)}
@@ -84,12 +96,19 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       {step === 4 && (
         //TODO pass in initial preferences data
         <FormEntryPreferences
+          userId={userId}
+          termLetter={termLetter ?? "A"}
+          year={year ?? 2025}
+          qualifiedSectionIds={qualifiedSections}
+          comments={comments}
           courses={sectionsQ.data?.courses}
           selectedSectionIds={qualifiedSections}
           onNext={handleNext}
           onExit={() => setStep(3)}
           onChange={(m) =>
-            setCourseTokenMapping(m as Record<string, string | undefined>)
+            setCourseTokenMapping(
+              m as Record<string, "prefer" | "strong" | undefined>,
+            )
           }
         />
         //TODO get out preferences data
@@ -97,10 +116,13 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       {step === 5 && (
         //TODO pass in initial comments data
         <FormEntryComments
-          text="placeholder comments"
+          userId={userId}
+          termLetter={termLetter ?? "A"}
+          year={year ?? 2025}
+          initialText={comments}
           onSubmit={handleSubmit}
           onExit={() => setStep(4)}
-        ></FormEntryComments>
+        />
         //TODO get out comments data
       )}
     </div>

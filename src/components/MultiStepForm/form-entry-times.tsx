@@ -5,6 +5,7 @@ import "core-js/modules/web.dom-collections.iterator";
 
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
+import { api } from "@/trpc/react";
 
 // Dynamic import with no SSR because the schedule selector depends on browser APIs
 const ScheduleSelector: any = dynamic(
@@ -17,6 +18,12 @@ const ScheduleSelector: any = dynamic(
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
 
 interface FormEntryTimesProps {
+  userId: string;
+  termLetter: "A" | "B" | "C" | "D";
+  year: number;
+  qualifiedSectionIds: string[];
+  sectionPreferences: Record<string, "prefer" | "strong" | undefined>;
+  comments: string;
   onNext: () => void;
   onExit: () => void;
   initialSelection?: Date[];
@@ -25,12 +32,45 @@ interface FormEntryTimesProps {
 }
 
 const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
+  userId,
+  termLetter,
+  year,
+  qualifiedSectionIds,
+  sectionPreferences,
+  comments,
   onNext,
   onExit,
   initialSelection = [],
   onSave,
 }) => {
   const [selection, setSelection] = useState<Date[]>(initialSelection);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
+
+  async function handleNextClick() {
+    const weekly = selectionToWeekly(selection);
+    onSave?.(weekly);
+
+    // Save the complete form
+    setIsSaving(true);
+    try {
+      await saveFormMutation.mutateAsync({
+        userId,
+        termLetter,
+        year,
+        weeklyAvailability: weekly,
+        qualifiedSectionIds,
+        sectionPreferences,
+        comments,
+      });
+      onNext();
+    } catch (error) {
+      console.error("Failed to save form:", error);
+      // Optionally show error to user
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   function dayLetterFromDate(d: Date): WeeklySlot["day"] | null {
     // getDay(): 1 = Mon, ..., 5 = Fri
@@ -90,15 +130,11 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
 
       <div className="mt-4 flex gap-3">
         <button
-          onClick={() => {
-            const weekly = selectionToWeekly(selection);
-            onSave?.(weekly);
-            onNext();
-            console.log("Weekly availability:", weekly);
-          }}
-          className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white"
+          onClick={handleNextClick}
+          disabled={isSaving}
+          className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
         >
-          Next
+          {isSaving ? "Saving..." : "Next"}
         </button>
         <button
           onClick={onExit}

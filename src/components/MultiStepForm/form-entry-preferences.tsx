@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
+import { api } from "@/trpc/react";
 
 type TokenType = "prefer" | "strong";
 
@@ -12,6 +13,11 @@ export type Section = {
 export type Course = { code: string; title: string; sections: Section[] };
 
 interface CoursePreferencesProps {
+  userId: string;
+  termLetter: "A" | "B" | "C" | "D";
+  year: number;
+  qualifiedSectionIds: string[];
+  comments: string;
   /** array of courses with sections that the user qualified for */
   courses?: Course[];
   /** array of selected section ids from qualifications step */
@@ -23,12 +29,19 @@ interface CoursePreferencesProps {
 }
 
 const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
+  userId,
+  termLetter,
+  year,
+  qualifiedSectionIds,
+  comments,
   courses: coursesProp,
   selectedSectionIds,
   onChange,
   onNext,
   onExit,
 }) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
   // Filter courses to only show sections that were selected in qualifications
   const filteredCourses = useMemo(() => {
     if (!coursesProp) return [];
@@ -45,6 +58,25 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   const [mapping, setMapping] = useState<Record<string, TokenType | undefined>>(
     {},
   );
+
+  async function handleNextClick() {
+    setIsSaving(true);
+    try {
+      await saveFormMutation.mutateAsync({
+        userId,
+        termLetter,
+        year,
+        qualifiedSectionIds,
+        sectionPreferences: mapping,
+        comments,
+      });
+      onNext?.();
+    } catch (error) {
+      console.error("Failed to save preferences:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   const originalNumStrongTokens = 1;
   const originalNumPreferTokens = 3;
@@ -217,10 +249,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       <div className="mt-4 flex gap-3">
         {onNext && (
           <button
-            onClick={onNext}
-            className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white"
+            onClick={handleNextClick}
+            disabled={isSaving}
+            className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
           >
-            Next
+            {isSaving ? "Saving..." : "Next"}
           </button>
         )}
         {onExit && (

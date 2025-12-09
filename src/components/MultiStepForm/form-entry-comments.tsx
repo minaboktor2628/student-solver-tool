@@ -1,21 +1,51 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
+import { api } from "@/trpc/react";
 
 interface FormEntryCommentsProps {
-  text?: string;
+  userId: string;
+  termLetter: "A" | "B" | "C" | "D";
+  year: number;
+  initialText?: string;
   onSubmit?: () => void;
   onExit?: () => void;
 }
 
 const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
-  text,
+  userId,
+  termLetter,
+  year,
+  initialText,
   onSubmit,
   onExit,
 }) => {
+  const [comments, setComments] = useState(initialText ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+  const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
+
+  async function handleSubmitClick() {
+    setIsSaving(true);
+    try {
+      await saveFormMutation.mutateAsync({
+        userId,
+        termLetter,
+        year,
+        comments,
+      });
+      onSubmit?.();
+    } catch (error) {
+      console.error("Failed to save comments:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl p-4">
       <h2 className="mb-4 text-xl font-semibold">Comments</h2>
       <textarea
+        value={comments}
+        onChange={(e) => setComments(e.target.value)}
         className="w-full rounded-lg border border-gray-300 p-3"
         placeholder="Please leave any additional comments here..."
         rows={4}
@@ -23,10 +53,11 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
       <div className="mt-4 flex gap-3">
         {onSubmit && (
           <button
-            onClick={onSubmit}
-            className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white"
+            onClick={handleSubmitClick}
+            disabled={isSaving}
+            className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
           >
-            Submit
+            {isSaving ? "Saving..." : "Submit"}
           </button>
         )}
         {onExit && (

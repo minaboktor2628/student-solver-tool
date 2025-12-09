@@ -11,7 +11,7 @@ import { db } from "@/server/db";
  * authenticated PLAs/TAs can call them.
  */
 const baseInput = z.object({
-  staffId: z.string().min(1),
+  userId: z.string().min(1),
   termLetter: z.enum(["A", "B", "C", "D"]),
   year: z.number().int().min(1900).max(9999),
 });
@@ -77,12 +77,12 @@ export const studentFormRoute = createTRPCRouter({
   getWeeklyAvailability: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
-      const { staffId, termLetter, year } = input;
+      const { userId, termLetter, year } = input;
 
       // TODO: Implement Prisma query to fetch weekly availability.
       // Suggested model: StaffPreference.timesAvailable (or a dedicated WeeklyAvailability model)
       // Example pseudocode:
-      // const pref = await db.staffPreference.findUnique({ where: { userId_termId: { userId: staffId, termId: <resolve termId from termLetter+year> } }, select: { timesAvailable: true } });
+      // const pref = await db.staffPreference.findUnique({ where: { userId_termId: { userId, termId: <resolve termId from termLetter+year> } }, select: { timesAvailable: true } });
 
       // For now return a placeholder shape so frontend can be wired:
       return { availability: [] as unknown[] };
@@ -92,7 +92,7 @@ export const studentFormRoute = createTRPCRouter({
   getQualifications: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
-      const { staffId, termLetter, year } = input;
+      const { userId, termLetter, year } = input;
 
       // TODO: Implement Prisma query to fetch StaffPreferenceQualifiedSection entries for this staff & term
       // Suggested steps:
@@ -107,7 +107,7 @@ export const studentFormRoute = createTRPCRouter({
   getPreferences: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
-      const { staffId, termLetter, year } = input;
+      const { userId, termLetter, year } = input;
 
       // TODO: Implement Prisma query to return preferences mapping.
       // If you persist token-based course preferences, query that table here and build a mapping
@@ -118,7 +118,7 @@ export const studentFormRoute = createTRPCRouter({
 
   /** Load any free-text comments the staff left for the term */
   getComments: assistantProcedure.input(baseInput).query(async ({ input }) => {
-    const { staffId, termLetter, year } = input;
+    const { userId, termLetter, year } = input;
 
     // TODO: Query StaffPreference.comments or ProfessorPreference.comments depending on role
     // Example: const pref = await db.staffPreference.findUnique({ where: { userId_termId: { userId: staffId, termId }}, select: { comments: true }})
@@ -131,31 +131,107 @@ export const studentFormRoute = createTRPCRouter({
     .input(
       baseInput.extend({
         /** The client should pass the full form payload (availability, qualifications, preferences, comments) */
-        form: z.any(),
+        weeklyAvailability: z
+          .array(
+            z.object({
+              day: z.enum(["M", "T", "W", "R", "F"]),
+              hour: z.number(),
+            }),
+          )
+          .optional(),
+        qualifiedSectionIds: z.array(z.string()).optional(),
+        sectionPreferences: z
+          .record(z.string(), z.enum(["prefer", "strong"]).optional())
+          .optional(),
+        comments: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
-      const { staffId, termLetter, year, form } = input;
+      const {
+        userId,
+        termLetter,
+        year,
+        weeklyAvailability,
+        qualifiedSectionIds,
+        sectionPreferences,
+        comments,
+      } = input;
 
-      // TODO: Implement transactional persistence logic using Prisma.
+      const result = await db.$transaction(async (tx) => {
+        // 1. Resolve termId from termLetter+year
+        const term = await tx.term.findUniqueOrThrow({
+          where: { termLetter_year: { termLetter, year } },
+        });
 
-      // required info:
-      //   - staffId
-      //   - termId
-      //   - timesAvailable
-      //   - comments
-      //   - qualified sections
-      //      - sectionId
-      //      - staffId
-      //   - preferred sections
-      //      - sectionId
-      //      - staffId
-      //      - rank (PREFER, STRONGLY_PREFER)
+        // 2. Upsert StaffPreference for userId+termId
+        const staffPref = await tx.staffPreference.upsert({
+          where: { userId_termId: { userId, termId: term.id } },
+          update: {
+            comments: comments || null,
+            updatedAt: new Date(),
+          },
+          create: {
+            userId,
+            termId: term.id,
+            comments: comments || null,
+          },
+        });
 
-      // 1. Upsert qualifications
-      // 2. Upsert preferences
-      // 3. Upsert times, comments
-      // 4. Return success status and any created IDs
+        // 3. Upsert qualified sections (replace existing)
+        if (qualifiedSectionIds && qualifiedSectionIds.length > 0) {
+          // Delete existing qualifications
+          await tx.staffPreferenceQualifiedSection.deleteMany({
+            where: { staffPreferenceId: staffPref.id },
+          });
+          // Create new qualifications
+          await tx.staffPreferenceQualifiedSection.createMany({
+            data: qualifiedSectionIds.map((sectionId) => ({
+              staffPreferenceId: staffPref.id,
+              sectionId,
+            })),
+          });
+        }
+
+        // 4. Upsert preferred sections (replace existing)
+        if (sectionPreferences && Object.keys(sectionPreferences).length > 0) {
+          // Delete existing preferences
+          await tx.staffPreferencePreferredSection.deleteMany({
+            where: { staffPreferenceId: staffPref.id },
+          });
+          // Create new preferences
+          for (const [sectionId, rank] of Object.entries(sectionPreferences)) {
+            if (rank) {
+              await tx.staffPreferencePreferredSection.create({
+                data: {
+                  staffPreferenceId: staffPref.id,
+                  sectionId,
+                  rank: rank === "strong" ? "STRONGLY_PREFER" : "PREFER",
+                },
+              });
+            }
+          }
+        }
+
+        // 5. Upsert availability times (replace existing)
+        if (weeklyAvailability && weeklyAvailability.length > 0) {
+          // Delete existing availability
+          await tx.staffAvailableHour.deleteMany({
+            where: { staffPreferenceId: staffPref.id },
+          });
+          // Create new availability
+          await tx.staffAvailableHour.createMany({
+            data: weeklyAvailability.map(({ day, hour }) => ({
+              day: day as any,
+              hour,
+              staffPreferenceId: staffPref.id,
+            })),
+          });
+        }
+
+        return { ok: true, staffPreferenceId: staffPref.id };
+      });
+
+      return result;
     }),
 });
 
