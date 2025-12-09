@@ -9,7 +9,6 @@ import { type RouterInputs, type RouterOutputs } from "@/trpc/react";
 import { toFullCourseName } from "@/lib/utils";
 import { SectionInfoCard } from "./section-info-card";
 import { AssignedAssistantsCard } from "./assigned-assistant-card";
-import { calculateCoverage } from "@/lib/schedul-selector";
 import { SectionSolverScheduleCoverage } from "./section-solver-schedule-coverage";
 
 export type SectionAccordionProps = {

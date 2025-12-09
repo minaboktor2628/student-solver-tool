@@ -5,7 +5,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { calculateCoverage, type Slot } from "@/lib/schedul-selector";
-import { CalendarIcon, ClockIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 
 export type SectionSolverScheduleCoverageProp = {
   needed: Slot[];
@@ -16,8 +16,7 @@ export function SectionSolverScheduleCoverage({
   assigned,
   needed,
 }: SectionSolverScheduleCoverageProp) {
-  const { percent, covered, uncovered, totalNeeded, totalCovered } =
-    calculateCoverage(needed, assigned);
+  const { percent } = calculateCoverage(needed, assigned);
 
   return (
     <Tooltip>
@@ -30,7 +29,13 @@ export function SectionSolverScheduleCoverage({
           {percent}% <CalendarIcon />
         </Badge>
       </TooltipTrigger>
-      <TooltipContent></TooltipContent>
+      <TooltipContent>
+        {percent < 50
+          ? "Scheduling coverage is less than 50%"
+          : percent < 75
+            ? "Scheduling coverage is less than 75%"
+            : "Scheduling coverage is more than 75%"}
+      </TooltipContent>
     </Tooltip>
   );
 }
