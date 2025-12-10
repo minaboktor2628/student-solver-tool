@@ -334,8 +334,8 @@ export default function SolverPage() {
           setActiveStaff(null);
         }}
       />
-      <div className="flex items-center">
-        <h1 className="px-2 font-bold">Term: </h1> <TermCombobox />
+      <div className="flex items-center px-4">
+        <h1 className="pr-2 font-bold">Term: </h1> <TermCombobox />
         <ButtonGroup className="ml-auto">
           <Button size="sm" disabled>
             Solve Next

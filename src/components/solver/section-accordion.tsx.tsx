@@ -32,14 +32,14 @@ export function SectionAccordion({
   selected,
 }: SectionAccordionProps) {
   return (
-    <Accordion
-      type="single"
-      collapsible
-      className="h-full w-full"
-      value={selected}
-      onValueChange={onSelectedChange}
-    >
-      <ScrollArea className="h-full">
+    <ScrollArea className="h-full">
+      <Accordion
+        type="single"
+        collapsible
+        className="h-full w-full"
+        value={selected}
+        onValueChange={onSelectedChange}
+      >
         {classes.map((section) => (
           <AccordionItem value={section.id} key={section.id} className="px-4">
             <AccordionTrigger className="flex flex-row items-center text-xl">
@@ -74,7 +74,7 @@ export function SectionAccordion({
             </AccordionContent>
           </AccordionItem>
         ))}
-      </ScrollArea>
-    </Accordion>
+      </Accordion>
+    </ScrollArea>
   );
 }
