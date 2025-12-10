@@ -104,7 +104,7 @@ function TermComboboxInternal() {
       <PopoverContent className="w-[200px] p-0">
         <Command>
           <CommandInput placeholder="Search terms..." className="h-9" />
-          <CommandList>
+          <CommandList className="max-h-64 overflow-y-auto">
             <CommandEmpty>No Terms found.</CommandEmpty>
             <CommandGroup>
               {all.map((term) => (
