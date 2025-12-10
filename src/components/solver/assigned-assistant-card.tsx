@@ -21,7 +21,7 @@ export function AssignedAssistantsCard({
   onUnassign: (input: RouterInputs["staffAssignment"]["remove"]) => void;
 }) {
   return (
-    <Card className="flex-2">
+    <Card className="flex-5">
       <CardHeader>
         <CardTitle>Assigned Assistants</CardTitle>
       </CardHeader>

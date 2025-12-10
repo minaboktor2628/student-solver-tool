@@ -16,16 +16,40 @@ import {
   TableRow,
 } from "../ui/table";
 import { Badge } from "../ui/badge";
+import ScheduleSelector from "react-schedule-selector";
+import {
+  calculateCoverage,
+  dayLetterFromDate,
+  dedupe,
+  slotToDate,
+  START,
+  dateToSlot,
+  stylesByStatus,
+  BaseScheduleSelector,
+} from "@/lib/schedul-selector";
+import { cn } from "@/lib/utils";
 
 type SectionInfoCardProps = {
   section: SectionAccordionProps["classes"][0];
 };
 
 export function SectionInfoCard({ section }: SectionInfoCardProps) {
-  const { professor } = section;
+  const { professor, staff } = section;
+
+  const needed = professor.timesRequired ?? [];
+  const assigned = staff.flatMap((s) => s.timesAvailable) ?? [];
+
+  const neededKeys = new Set(needed.map((s) => `${s.day}:${s.hour}`));
+  const assignedKeys = new Set(assigned.map((s) => `${s.day}:${s.hour}`));
+
+  const selection = dedupe([...needed, ...assigned]).map(slotToDate);
+  const { percent, totalCovered, totalNeeded } = calculateCoverage(
+    needed,
+    assigned,
+  );
 
   return (
-    <Card className="flex-1">
+    <Card className="flex-2">
       <CardHeader>
         <CardTitle>Section Info</CardTitle>
       </CardHeader>
@@ -49,6 +73,67 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
           <span className="font-medium">Enrollment: </span>
           {section.enrollment}/{section.capacity}
         </p>
+
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span>Professor required times</span>
+              <ChevronsUpDown className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-1">
+            <div className="flex flex-col space-y-1 overflow-x-auto rounded-md border p-2">
+              <BaseScheduleSelector
+                selection={selection}
+                renderDateCell={(time, _selected, setEl) => {
+                  const ref: React.Ref<HTMLDivElement> = (node) => {
+                    if (node) setEl(node);
+                  };
+
+                  const slot = dateToSlot(time);
+                  if (!slot) return <div ref={ref} className="h-4" />;
+
+                  const k = `${slot.day}:${slot.hour}`;
+                  const needed = neededKeys.has(k);
+                  const assigned = assignedKeys.has(k);
+
+                  const status = needed
+                    ? assigned
+                      ? "needed-assigned"
+                      : "needed-unassigned"
+                    : assigned
+                      ? "not-needed-assigned"
+                      : "not-needed";
+
+                  const { cls, title } = stylesByStatus[status];
+
+                  return (
+                    <div
+                      ref={ref}
+                      title={title}
+                      aria-label={title}
+                      role="gridcell"
+                      className={cn(
+                        "h-4 rounded-sm transition-colors",
+                        "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
+                        cls,
+                      )}
+                    />
+                  );
+                }}
+              />
+              <section>
+                <div className="text-muted-foreground">
+                  Coverage: <strong>{percent}%</strong> ({totalCovered}/
+                  {totalNeeded}hrs)
+                </div>
+                <div className="text-muted-foreground">
+                  Meeting pattern: {section.meetingPattern}
+                </div>
+              </section>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         <Collapsible>
           <CollapsibleTrigger asChild>

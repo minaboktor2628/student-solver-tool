@@ -9,6 +9,12 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { toFullCourseName } from "@/lib/utils";
+import ScheduleSelector from "react-schedule-selector";
+import {
+  BaseScheduleSelector,
+  dayLetterFromDate,
+  slotToDate,
+} from "@/lib/schedul-selector";
 export type StaffItemProps =
   RouterOutputs["staff"]["getStaffForSection"]["staff"][0] & {
     children?: React.ReactNode;
@@ -54,59 +60,55 @@ export function StaffItem({
           </div>
         </div>
       </HoverCardTrigger>
-      <HoverCardContent className="w-100 space-y-2 text-sm">
-        <div>
-          <p className="flex justify-between font-semibold">{name}</p>
-          <p className="text-muted-foreground">{email}</p>
-        </div>
+      <HoverCardContent className="flex w-100 text-sm">
+        <div className="w-1/2">
+          <div>
+            <p className="flex justify-between font-semibold">{name}</p>
+            <p className="text-muted-foreground">{email}</p>
+          </div>
 
-        <div>
-          <p>
-            <span className="font-medium">Hours: </span> {hours ?? "N/A"}
-          </p>
-          <p>
-            <span className="font-medium">Assigned Section: </span>
-            {assignedSection ? assignedSection.code : "N/A"}
-          </p>
-        </div>
+          <div>
+            <p>
+              <span className="font-medium">Hours: </span> {hours ?? "N/A"}
+            </p>
+            <p>
+              <span className="font-medium">Assigned Section: </span>
+              {assignedSection ? assignedSection.code : "N/A"}
+            </p>
+          </div>
 
-        <div className="font-medium">
-          Times Available:
-          {timesAvailable.length === 0 ? (
-            " N/A"
-          ) : (
-            <pre>
-              <code>{JSON.stringify(timesAvailable, null, 2)}</code>
-            </pre>
+          {preferedSections && preferedSections.length > 0 && (
+            <div>
+              <p className="font-medium">Preferred Sections:</p>
+              <ol className="mx-4 list-disc">
+                {preferedSections.map((s) => (
+                  <li key={s.section.id}>
+                    {s.section.courseCode} - {s.section.courseSection}{" "}
+                    <span className="text-sm font-medium">({s.rank})</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {comments && (
+            <div>
+              <p className="font-medium">Comments:</p>
+              <p className="text-muted-foreground whitespace-pre-line">
+                {comments}
+              </p>
+            </div>
           )}
         </div>
 
-        {preferedSections && preferedSections.length > 0 && (
-          <div>
-            <p className="font-medium">Preferred Sections:</p>
-            <ol className="mx-4 list-disc">
-              {preferedSections.map((s) => (
-                <li key={s.section.id}>
-                  {toFullCourseName(
-                    s.section.courseCode,
-                    s.section.courseSection,
-                    s.section.courseTitle,
-                  )}{" "}
-                  <span className="text-sm font-medium">({s.rank})</span>
-                </li>
-              ))}
-            </ol>
+        <div className="w-1/2 font-medium">
+          Times Available:
+          <div className="rounded-md border p-2">
+            <BaseScheduleSelector
+              selection={timesAvailable.map((d) => slotToDate(d))}
+            />
           </div>
-        )}
-
-        {comments && (
-          <div>
-            <p className="font-medium">Comments:</p>
-            <p className="text-muted-foreground whitespace-pre-line">
-              {comments}
-            </p>
-          </div>
-        )}
+        </div>
       </HoverCardContent>
     </HoverCard>
   );
