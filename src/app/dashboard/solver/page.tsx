@@ -25,6 +25,7 @@ import { StaffItem, type StaffItemProps } from "@/components/solver/staff-item";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { AleadyAssignedAlert } from "@/components/solver/already-assigned-alert";
 import { toast } from "sonner";
+import { TermCombobox, useTerm } from "@/components/term-combobox";
 
 type PendingAssign = {
   toSectionId: string;
@@ -35,7 +36,7 @@ type PendingAssign = {
 } | null;
 
 export default function SolverPage() {
-  const termId = "cmidsm56y0000v8vaqgdz42sc";
+  const { selectedId: termId } = useTerm();
   const [activeStaff, setActiveStaff] = useState<StaffItemProps | null>(null);
   const [warningDialogOpen, setWarningDialogOpen] = useState(false);
   const [pendingAssign, setPendingAssign] = useState<PendingAssign>(null);
@@ -47,6 +48,7 @@ export default function SolverPage() {
     string | undefined
   >();
 
+  if (!termId) throw new Error("Term id is invalid.");
   const [{ courses }] = api.courses.getAllCoursesForTerm.useSuspenseQuery({
     termId,
   });
@@ -333,7 +335,7 @@ export default function SolverPage() {
         }}
       />
       <div className="flex items-center">
-        <h1>Solver for term: TODO</h1>
+        <h1 className="px-2 font-bold">Term: </h1> <TermCombobox />
         <ButtonGroup className="ml-auto">
           <Button size="sm" disabled>
             Solve Next
