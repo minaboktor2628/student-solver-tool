@@ -31,6 +31,8 @@ import { Badge } from "./ui/badge";
 import { useSessionStorage } from "@/hooks/use-session-storage";
 
 type Term = RouterOutputs["term"]["getTerms"]["all"][number];
+
+// What gets returned when using the useTerm() context
 type TermContextValue = {
   all: Term[];
   active: Term | null;
@@ -44,6 +46,8 @@ const TermContext = createContext<TermContextValue | null>(null);
 export function TermProvider({ children }: { children: ReactNode }) {
   const [{ active, all }] = api.term.getTerms.useSuspenseQuery();
 
+  // Keep the selected item in session storage so it survives page refreshes
+  // Defaults to the current active term in the database.
   const [selectedId, setSelectedId] = useSessionStorage<string | null>(
     "sts:selectedTermId",
     active?.id ?? null,
@@ -68,6 +72,8 @@ export function TermProvider({ children }: { children: ReactNode }) {
   return <TermContext.Provider value={value}>{children}</TermContext.Provider>;
 }
 
+// useTerm hook can be used anywhere in the app to retrieve the
+// active term, the current selected term, etc
 export function useTerm() {
   const ctx = useContext(TermContext);
   if (!ctx) {
@@ -76,6 +82,8 @@ export function useTerm() {
   return ctx;
 }
 
+// Combobox to select a term from a dropdown w/ search
+// sets the global term context's selected term.
 export function TermCombobox() {
   return (
     <Suspense fallback={<Skeleton className="h-9 w-[200px]" />}>
@@ -84,6 +92,7 @@ export function TermCombobox() {
   );
 }
 
+// internal function since we want to wrap this with a skeleton
 function TermComboboxInternal() {
   const { active, all, selectedId, selectedTerm, setSelectedId } = useTerm();
   const [open, setOpen] = useState(false);
@@ -104,6 +113,7 @@ function TermComboboxInternal() {
       <PopoverContent className="w-[200px] p-0">
         <Command>
           <CommandInput placeholder="Search terms..." className="h-9" />
+          {/* make it so the list is scrollable when it gets long */}
           <CommandList className="max-h-64 overflow-y-auto">
             <CommandEmpty>No Terms found.</CommandEmpty>
             <CommandGroup>
@@ -122,12 +132,14 @@ function TermComboboxInternal() {
                   <div className="flex w-full items-center gap-2">
                     <span>{term.label}</span>
 
+                    {/* always mark the active term with a badge */}
                     {term.id === active?.id && (
                       <Badge className="font-sm px-1 py-0 leading-tight">
                         Active
                       </Badge>
                     )}
 
+                    {/* selected term gets a checkmark next to it */}
                     <Check
                       className={cn(
                         "ml-auto h-4 w-4",

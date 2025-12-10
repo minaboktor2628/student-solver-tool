@@ -7,7 +7,7 @@ export const termRoute = createTRPCRouter({
       select: { active: true, year: true, termLetter: true, id: true },
     });
 
-    // combine year and term letter for convenience
+    // combine year and term letter into label field for convenience
     const withLabel = all.map((t) => ({
       ...t,
       label: `${t.year} ${t.termLetter}`,
@@ -20,6 +20,7 @@ export const termRoute = createTRPCRouter({
   }),
 
   getActive: protectedProcedure.query(async ({ ctx }) => {
+    // find first because only supposed to have one active term
     return ctx.db.term.findFirst({
       where: { active: true },
       select: { active: true, year: true, termLetter: true, id: true },
