@@ -40,14 +40,14 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
             <span className="font-medium">Email: </span>
             {professor?.email ?? "TBD"}
           </p>
+          <p>
+            <span className="font-medium">Comments: </span>
+            {professor?.comments ?? "N/A"}
+          </p>
         </div>
         <p>
           <span className="font-medium">Enrollment: </span>
           {section.enrollment}/{section.capacity}
-        </p>
-        <p>
-          <span className="font-medium">Comments: </span>
-          {professor.comments}
         </p>
 
         <Collapsible>
@@ -69,38 +69,49 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {professor?.preferedStaff?.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="flex items-center gap-2 font-medium">
-                        <Badge
-                          variant={"success"}
-                          className="px-1"
+                  {!professor?.preferedStaff && !professor?.avoidedStaff ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={3}
+                        className="text-muted-foreground h-10 text-center"
+                      >
+                        No staff preferences yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <>
+                      {professor?.preferedStaff?.map((s) => (
+                        <TableRow
+                          key={s.id}
                           title="This staff is a preference of this professor"
                         >
-                          <CheckIcon className="size-4" />
-                        </Badge>
-                        {s.name}
-                      </TableCell>
-                      <TableCell>{s.email}</TableCell>
-                      <TableCell>{s.roles.join(", ")}</TableCell>
-                    </TableRow>
-                  ))}
-                  {professor?.avoidedStaff?.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="flex items-center gap-2 font-medium">
-                        <Badge
-                          variant={"destructive"}
-                          className="px-1"
-                          title="This staff is a preference of this professor"
+                          <TableCell className="flex items-center gap-2 font-medium">
+                            <Badge variant="success" className="px-1">
+                              <CheckIcon className="size-4" />
+                            </Badge>
+                            {s.name}
+                          </TableCell>
+                          <TableCell>{s.email}</TableCell>
+                          <TableCell>{s.roles.join(", ")}</TableCell>
+                        </TableRow>
+                      ))}
+                      {professor?.avoidedStaff?.map((s) => (
+                        <TableRow
+                          key={s.id}
+                          title="This staff is an anti-preference of this professor"
                         >
-                          <XIcon className="size-4" />
-                        </Badge>
-                        {s.name}
-                      </TableCell>
-                      <TableCell>{s.email}</TableCell>
-                      <TableCell>{s.roles.join(", ")}</TableCell>
-                    </TableRow>
-                  ))}
+                          <TableCell className="flex items-center gap-2 font-medium">
+                            <Badge variant="destructive" className="px-1">
+                              <XIcon className="size-4" />
+                            </Badge>
+                            {s.name}
+                          </TableCell>
+                          <TableCell>{s.email}</TableCell>
+                          <TableCell>{s.roles.join(", ")}</TableCell>
+                        </TableRow>
+                      ))}
+                    </>
+                  )}
                 </TableBody>
               </Table>
             </div>
