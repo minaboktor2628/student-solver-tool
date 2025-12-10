@@ -80,7 +80,7 @@ export function StaffSelectionSidebar({
   }, [staff, filters, searchTerm]);
 
   return (
-    <div className="mx-0.5 flex h-full flex-col">
+    <div className="bg-card/40 flex h-full flex-col p-2">
       <div className="flex gap-1">
         <div className="relative flex-1">
           <Input

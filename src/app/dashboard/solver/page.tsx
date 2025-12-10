@@ -305,7 +305,7 @@ export default function SolverPage() {
   }
 
   return (
-    <div className="flex h-[100vh] flex-col px-4">
+    <div className="flex h-[100vh] flex-col">
       <AleadyAssignedAlert
         open={warningDialogOpen}
         fromCourse={pendingAssign?.fromSectionCode ?? ""}
@@ -346,7 +346,7 @@ export default function SolverPage() {
           </Button>
         </ButtonGroup>
       </div>
-      <Separator className="my-2" />
+      <Separator className="mt-2" />
       <div className="min-h-0 flex-1">
         <DndContext
           onDragStart={handleDragStart}
@@ -355,7 +355,7 @@ export default function SolverPage() {
         >
           <ResizablePanelGroup
             direction="horizontal"
-            className="h-full min-h-0 space-x-4"
+            className="h-full min-h-0"
           >
             <ResizablePanel defaultSize={70} className="min-h-0">
               <GlobalSuspense>
@@ -368,14 +368,14 @@ export default function SolverPage() {
                 />
               </GlobalSuspense>
             </ResizablePanel>
-            <ResizableHandle withHandle className="my-2" />
+            <ResizableHandle withHandle />
             <ResizablePanel
               defaultSize={30}
               maxSize={50}
               minSize={12}
               className="min-h-0"
             >
-              <aside className="h-full pt-2">
+              <aside className="h-full">
                 <GlobalSuspense>
                   {!selectedSectionId ? (
                     <h2 className="text-center text-lg font-semibold">

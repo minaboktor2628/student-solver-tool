@@ -41,7 +41,7 @@ export function SectionAccordion({
     >
       <ScrollArea className="h-full">
         {classes.map((section) => (
-          <AccordionItem value={section.id} key={section.id}>
+          <AccordionItem value={section.id} key={section.id} className="px-4">
             <AccordionTrigger className="flex flex-row items-center text-xl">
               {toFullCourseName(
                 section.courseCode,
