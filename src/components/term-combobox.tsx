@@ -43,6 +43,7 @@ type TermContextValue = {
 
 const TermContext = createContext<TermContextValue | null>(null);
 
+// This wraps the whole app so you can call useTerm() anywhere
 export function TermProvider({ children }: { children: ReactNode }) {
   const [{ active, all }] = api.term.getTerms.useSuspenseQuery();
 
