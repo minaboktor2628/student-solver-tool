@@ -60,6 +60,7 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
 
           <CollapsibleContent className="pt-1">
             <div className="overflow-x-auto rounded-md border">
+              {/* TODO: add button to quickly add preferred staff to section */}
               <Table>
                 <TableHeader>
                   <TableRow>

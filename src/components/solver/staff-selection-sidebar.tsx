@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "../ui/scroll-area";
 
 export const STAFF_SIDEBAR_ID = "StaffSelectionSidebar" as const;
 
@@ -130,64 +131,68 @@ export function StaffSelectionSidebar({
         {filteredStaff.length} of {staff.length} staff
       </p>
 
-      <Droppable
-        id={STAFF_SIDEBAR_ID}
-        data={{ action: "remove" }}
-        className="flex-1 overflow-y-auto"
-      >
-        <ul className="space-y-1">
-          {filteredStaff.map((s) => (
-            <li key={s.id} className="flex flex-row items-center space-x-2">
-              <Draggable
-                id={s.id}
-                data={{ staff: s, isAlreadyAssigned: !!s.assignedSection }}
-                className="flex-1"
-              >
-                <StaffItem {...s}>
-                  <div className="flex flex-row space-x-2">
-                    {!s.flags.availableThisTerm && (
-                      <Tooltip>
-                        <TooltipTrigger className="self-center">
-                          <TriangleAlertIcon className="text-warning size-6" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Staff is assigned to {s.assignedSection?.code}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    {!s.flags.notAvoidedByProfessor && (
-                      <Tooltip>
-                        <TooltipTrigger className="self-center">
-                          <CircleAlertIcon className="text-destructive size-6" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            Staff is an anti-preference of the professor
-                            teaching this section.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    {!s.flags.qualifiedForThisSection && (
-                      <Tooltip>
-                        <TooltipTrigger className="self-center">
-                          <CircleAlertIcon className="text-destructive size-6" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            Staff has reported that they are unqualified for
-                            this section.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                </StaffItem>
-              </Draggable>
-            </li>
-          ))}
-        </ul>
-      </Droppable>
+      <ScrollArea className="h-full">
+        <Droppable
+          id={STAFF_SIDEBAR_ID}
+          data={{ action: "remove" }}
+          className="flex-1 overflow-y-auto"
+        >
+          <ul className="space-y-1">
+            {filteredStaff.map((s) => (
+              <li key={s.id} className="flex flex-row items-center space-x-2">
+                <Draggable
+                  id={s.id}
+                  data={{ staff: s, isAlreadyAssigned: !!s.assignedSection }}
+                  className="flex-1"
+                >
+                  <StaffItem {...s}>
+                    <div className="flex flex-row space-x-2">
+                      {!s.flags.availableThisTerm && (
+                        <Tooltip>
+                          <TooltipTrigger className="self-center">
+                            <TriangleAlertIcon className="text-warning size-6" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Staff is assigned to {s.assignedSection?.code}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {!s.flags.notAvoidedByProfessor && (
+                        <Tooltip>
+                          <TooltipTrigger className="self-center">
+                            <CircleAlertIcon className="text-destructive size-6" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Staff is an anti-preference of the professor
+                              teaching this section.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {!s.flags.qualifiedForThisSection && (
+                        <Tooltip>
+                          <TooltipTrigger className="self-center">
+                            <CircleAlertIcon className="text-destructive size-6" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Staff has reported that they are unqualified for
+                              this section.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </StaffItem>
+                </Draggable>
+              </li>
+            ))}
+          </ul>
+        </Droppable>
+      </ScrollArea>
     </div>
   );
 }

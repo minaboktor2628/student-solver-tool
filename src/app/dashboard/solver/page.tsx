@@ -305,7 +305,7 @@ export default function SolverPage() {
   }
 
   return (
-    <div className="h-full min-h-96 px-4">
+    <div className="flex h-[100vh] flex-col px-4">
       <AleadyAssignedAlert
         open={warningDialogOpen}
         fromCourse={pendingAssign?.fromSectionCode ?? ""}
@@ -347,49 +347,56 @@ export default function SolverPage() {
         </ButtonGroup>
       </div>
       <Separator className="my-2" />
-      <DndContext
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="h-full space-x-4"
+      <div className="min-h-0 flex-1">
+        <DndContext
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
-          <ResizablePanel defaultSize={70}>
-            <GlobalSuspense>
-              <SectionAccordion
-                selected={selectedSectionId}
-                onSelectedChange={setSelectedSectionId}
-                onUnassign={unassignApi.mutate}
-                onToggleAssignmentLock={toggleLock.mutate}
-                classes={courses}
-              />
-            </GlobalSuspense>
-          </ResizablePanel>
-          <ResizableHandle withHandle className="my-2" />
-          <ResizablePanel defaultSize={30} maxSize={50} minSize={12}>
-            <aside className="h-full pt-2">
+          <ResizablePanelGroup
+            direction="horizontal"
+            className="h-full min-h-0 space-x-4"
+          >
+            <ResizablePanel defaultSize={70} className="min-h-0">
               <GlobalSuspense>
-                {!selectedSectionId ? (
-                  <h2 className="text-center text-lg font-semibold">
-                    No section selected!
-                  </h2>
-                ) : (
-                  <StaffSelectionSidebar sectionId={selectedSectionId} />
-                )}
+                <SectionAccordion
+                  selected={selectedSectionId}
+                  onSelectedChange={setSelectedSectionId}
+                  onUnassign={unassignApi.mutate}
+                  onToggleAssignmentLock={toggleLock.mutate}
+                  classes={courses}
+                />
               </GlobalSuspense>
-            </aside>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-        <DragOverlay wrapperElement="div">
-          {activeStaff ? (
-            <div className="pointer-events-none z-50">
-              <StaffItem {...activeStaff} />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+            </ResizablePanel>
+            <ResizableHandle withHandle className="my-2" />
+            <ResizablePanel
+              defaultSize={30}
+              maxSize={50}
+              minSize={12}
+              className="min-h-0"
+            >
+              <aside className="h-full pt-2">
+                <GlobalSuspense>
+                  {!selectedSectionId ? (
+                    <h2 className="text-center text-lg font-semibold">
+                      No section selected!
+                    </h2>
+                  ) : (
+                    <StaffSelectionSidebar sectionId={selectedSectionId} />
+                  )}
+                </GlobalSuspense>
+              </aside>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+          <DragOverlay wrapperElement="div">
+            {activeStaff ? (
+              <div className="pointer-events-none z-50">
+                <StaffItem {...activeStaff} />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
     </div>
   );
 }
