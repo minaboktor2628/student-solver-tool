@@ -131,12 +131,12 @@ export function StaffSelectionSidebar({
         {filteredStaff.length} of {staff.length} staff
       </p>
 
-      <ScrollArea className="h-full">
-        <Droppable
-          id={STAFF_SIDEBAR_ID}
-          data={{ action: "remove" }}
-          className="flex-1 overflow-y-auto"
-        >
+      <Droppable
+        id={STAFF_SIDEBAR_ID}
+        data={{ action: "remove" }}
+        className="flex-1 overflow-y-auto"
+      >
+        <ScrollArea className="h-full">
           <ul className="space-y-1">
             {filteredStaff.map((s) => (
               <li key={s.id} className="flex flex-row items-center space-x-2">
@@ -191,8 +191,8 @@ export function StaffSelectionSidebar({
               </li>
             ))}
           </ul>
-        </Droppable>
-      </ScrollArea>
+        </ScrollArea>
+      </Droppable>
     </div>
   );
 }

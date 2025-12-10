@@ -55,8 +55,6 @@ export function AssignedAssistantsCard({
                   {staff.locked ? <LockIcon /> : <UnlockIcon />}
                 </Toggle>
                 <Draggable id={staff.id} data={{ staff }} className="flex-1">
-                  {/* <ContextMenu> */}
-                  {/*   <ContextMenuTrigger> */}
                   <StaffItem {...staff}>
                     {!staff.flags.notAvoidedByProfessor && (
                       <Tooltip>
@@ -85,11 +83,6 @@ export function AssignedAssistantsCard({
                       </Tooltip>
                     )}
                   </StaffItem>
-                  {/*   </ContextMenuTrigger> */}
-                  {/*   <ContextMenuContent className="w-52"> */}
-                  {/*     <ContextMenuItem>dfjs</ContextMenuItem> */}
-                  {/*   </ContextMenuContent> */}
-                  {/* </ContextMenu> */}
                 </Draggable>
                 <Button
                   size="icon"

@@ -64,7 +64,7 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[140px]">Name</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                   </TableRow>
