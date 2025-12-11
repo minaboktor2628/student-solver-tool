@@ -1,3 +1,5 @@
+// src/app/api/dashboard/route.ts
+
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -26,7 +28,11 @@ export async function GET() {
         professor: true,
         assignments: {
           include: {
-            staff: true,
+            staff: {
+              include: {
+                roles: true,
+              },
+            },
           },
         },
         _count: {
@@ -82,10 +88,21 @@ export async function GET() {
       },
     });
 
-    // Transform courses
+    // Transform courses with correct hour calculations
     const courses = sections.map((section) => {
+      // Calculate assigned hours based on staff roles
+      // PLA = 10 hours, TA = 20 hours
       const assignedHours = section.assignments.reduce((sum, assignment) => {
-        return sum + (assignment.staff.hours || 0);
+        const staffRole = assignment.staff.roles.find(
+          (r) => r.role === "PLA" || r.role === "TA",
+        )?.role;
+
+        if (staffRole === "TA") {
+          return sum + 20;
+        } else if (staffRole === "PLA") {
+          return sum + 10;
+        }
+        return sum;
       }, 0);
 
       return {
@@ -98,6 +115,7 @@ export async function GET() {
         assignedStaff: assignedHours,
         professorName: section.professor.name || "Unknown",
         term: `${latestTerm.termLetter} Term ${latestTerm.year}`,
+        description: section.description || null,
       };
     });
 
