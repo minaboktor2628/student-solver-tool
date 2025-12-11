@@ -16,6 +16,8 @@ interface MultiStepFormModalProps {
   inline?: boolean;
   /** Required: user ID of the authenticated user */
   userId: string;
+  /** User role (e.g., "PLA", "TA") */
+  userRole?: string;
   /** Optional context: staff and term to load data for */
   staffId?: string;
   termLetter?: "A" | "B" | "C" | "D";
@@ -26,6 +28,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   onClose,
   inline = false,
   userId,
+  userRole,
   staffId,
   termLetter,
   year,
@@ -63,7 +66,13 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
     <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
       <ProgressIndicator step={step} totalSteps={5} />
       {step === 1 && (
-        <FormEntryAvailability onNext={handleNext} onExit={handleExit} />
+        <FormEntryAvailability
+          termLetter={termLetter ?? "A"}
+          year={year ?? 2025}
+          userRole={staffId ?? "TA"}
+          onNext={handleNext}
+          onExit={handleExit}
+        />
         //TODO get out availability data (boolean)
       )}
       {step === 2 && (

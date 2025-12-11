@@ -66,14 +66,12 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
       onNext();
     } catch (error) {
       console.error("Failed to save form:", error);
-      // Optionally show error to user
     } finally {
       setIsSaving(false);
     }
   }
 
   function dayLetterFromDate(d: Date): WeeklySlot["day"] | null {
-    // getDay(): 1 = Mon, ..., 5 = Fri
     switch (d.getDay()) {
       case 1:
         return "M";

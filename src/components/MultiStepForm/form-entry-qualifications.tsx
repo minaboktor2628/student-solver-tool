@@ -15,98 +15,45 @@ interface FormEntryQualificationsProps {
   termLetter: "A" | "B" | "C" | "D";
   year: number;
   courses?: Course[];
-  initialSelectedSections?: string[];
   onChange?: (selectedSectionIds: string[]) => void;
   onNext?: () => void;
   onExit?: () => void;
 }
 
-const exampleCourses: Course[] = [
-  {
-    code: "CS 1101",
-    title: "Intro to Programming",
-    sections: [
-      {
-        term: "C",
-        id: "cs1101-cl01",
-        courseSection: "CL01",
-        instructor: "Matthew Ahrens",
-      },
-    ],
-  },
-  {
-    code: "CS 2102",
-    title: "Object-Oriented Design Concepts",
-    sections: [
-      {
-        term: "C",
-        id: "cs2102-cl01",
-        courseSection: "CL01",
-        instructor: "Jennifer Mortensen",
-      },
-      {
-        term: "C",
-        id: "cs2102-cl02",
-        courseSection: "CL02",
-        instructor: "Yu-Shan Sun",
-      },
-    ],
-  },
-  {
-    code: "CS 3733",
-    title: "Software Engineering",
-    sections: [
-      {
-        term: "C",
-        id: "cs3733-cl01",
-        courseSection: "CL01",
-        instructor: "George Heineman",
-      },
-      {
-        term: "C",
-        id: "cs3733-cl02",
-        courseSection: "CL02",
-        instructor: "Wilson Wong",
-      },
-    ],
-  },
-  {
-    code: "CS 4432",
-    title: "Database Systems II",
-    sections: [
-      {
-        term: "C",
-        id: "cs4432-cl01",
-        courseSection: "CL01",
-        instructor: "Fabricio Murai",
-      },
-    ],
-  },
-];
-
 const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   userId,
   termLetter,
   year,
-  courses: coursesProp,
-  initialSelectedSections = [],
+  courses = [],
   onChange,
   onNext,
   onExit,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
-  // The modal (parent) is responsible for fetching sections and passing them
-  // into this component via the optional `courses` prop. If no prop is
-  // provided this component will fall back to a small example dataset so the
-  // UI can render in isolation or in storybook/tests.
-  const courses: Course[] = useMemo(() => {
-    return coursesProp ?? exampleCourses;
-  }, [coursesProp]);
+
+  // Fetch previous qualifications from API
+  const previousQualificationsQ = api.studentForm.getQualifications.useQuery(
+    {
+      userId,
+      termLetter,
+      year,
+    },
+    { enabled: !!userId },
+  );
 
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
-    new Set(initialSelectedSections),
+    new Set(previousQualificationsQ.data?.qualifiedSectionIds || []),
   );
+
+  // Update selected sections when previous qualifications load
+  useEffect(() => {
+    if (previousQualificationsQ.data?.qualifiedSectionIds) {
+      setSelectedSections(
+        new Set(previousQualificationsQ.data.qualifiedSectionIds),
+      );
+    }
+  }, [previousQualificationsQ.data?.qualifiedSectionIds]);
 
   // derived map from course code -> section ids for quick lookup
   const courseToSectionIds = useMemo(() => {
