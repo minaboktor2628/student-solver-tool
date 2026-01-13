@@ -1,5 +1,4 @@
 // validation router
-import { makeMeetingToAssistantMap, personKey } from "@/lib/validation";
 import {
   ensureCourseNeedsAreMet,
   ensureAssignedAssistantsAreQualified,
@@ -8,16 +7,11 @@ import {
   ensureAllAvailableAssistantsAreAssigned,
   ensureSocialImpsAvailability,
 } from "@/lib/validation-functions";
-import { createTRPCRouter, publicProcedure } from "../trpc";
-import {
-  ValidationInputSchema,
-  type Allocation,
-  type AssistantPreferences,
-} from "@/types/excel";
-import type { ValidationResult } from "@/types/validation";
+import { coordinatorProcedure, createTRPCRouter } from "../trpc";
+import { ValidationInputSchema } from "@/types/excel";
 
 export const validateRoute = createTRPCRouter({
-  validateFullSolution: publicProcedure
+  validateFullSolution: coordinatorProcedure
     .input(ValidationInputSchema)
     .mutation(async ({ input }) => {
       return {

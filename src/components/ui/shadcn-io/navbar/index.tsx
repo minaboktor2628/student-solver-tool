@@ -78,7 +78,7 @@ export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
       <header
         ref={combinedRef}
         className={cn(
-          "bg-background/95 supports-[backdrop-filter]:bg-background/60 fixed inset-x-0 top-0 z-50 h-[var(--fd-nav-height,4rem)] w-full border-b px-4 backdrop-blur md:px-6 [&_*]:no-underline",
+          "bg-background/95 supports-[backdrop-filter]:bg-background/60 fixed inset-x-0 top-0 z-50 h-16 w-full border-b px-4 backdrop-blur md:px-6 [&_*]:no-underline",
           className,
         )}
         {...props}
@@ -87,7 +87,7 @@ export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
           {/* Left side */}
           <div className="flex items-center gap-2">
             {/* Mobile menu trigger */}
-            {isMobile && (
+            {isMobile && navigationLinks.length > 0 && (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -121,7 +121,7 @@ export const Navbar = React.forwardRef<HTMLElement, NavbarProps>(
               >
                 <div className="text-2xl">{logo}</div>
                 <span className="hidden text-xl font-bold sm:inline-block">
-                  SST
+                  STS
                 </span>
               </Link>
               {/* Navigation menu */}

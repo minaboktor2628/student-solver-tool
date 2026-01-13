@@ -1,5 +1,5 @@
 {
-  "name": "student-solver-tool",
+  "name": "student-teaching-staff",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -24,6 +24,7 @@
     "test": "vitest",
     "test:ci": "vitest run --coverage=false --reporter=dot",
     "cypress:open": "cypress open",
+    "cypress:run": "cypress run --e2e --browser electron",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -95,6 +96,7 @@
     "react-resizable-panels": "^3.0.5",
     "recharts": "2.15.4",
     "server-only": "^0.0.1",
+    "shadcn": "^3.5.0",
     "shiki": "^3.12.0",
     "sonner": "^2.0.7",
     "superjson": "^2.2.1",
@@ -114,8 +116,6 @@
     "@types/node": "^20.14.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/react-dropzone": "^5.1.0",
-    "@types/recharts": "^2.0.1",
     "@vitejs/plugin-react": "^4.7.0",
     "cypress": "^15.0.0",
     "eslint": "^9.23.0",
