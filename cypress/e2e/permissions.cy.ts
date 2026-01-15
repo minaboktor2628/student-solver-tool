@@ -1,7 +1,7 @@
 describe("route protection via middleware + NextAuth", () => {
-  it("unauthenticated → redirect to /login on protected route", () => {
+  it("unauthenticated → redirect to /login on protected dashboard route", () => {
     cy.request({
-      url: "/validate",
+      url: "/dashboard",
       followRedirect: false,
       failOnStatusCode: false,
     }).then((r) => {
@@ -11,33 +11,31 @@ describe("route protection via middleware + NextAuth", () => {
     });
   });
 
-  it("TA cannot view /docs (403)", () => {
+  it("TA cannot view /dashboard", () => {
     cy.loginAs("testta");
-    cy.request({ url: "/docs", failOnStatusCode: false })
-      .its("status")
-      .should("eq", 403);
+    cy.visit("/dashboard", { failOnStatusCode: false });
+    cy.url().should("include", "/error?error=AccessDenied");
+    cy.contains("Code: AccessDenied").should("exist");
   });
 
-  it("Coordinator can view /docs (200)", () => {
+  it("Coordinator can view /dashboard", () => {
     cy.loginAs("testcoordinator");
-    cy.request("/docs").its("status").should("eq", 200);
-    cy.visit("/docs");
-    cy.contains("Documentation").should("exist");
+    cy.request("/dashboard").its("status").should("eq", 200);
+    cy.visit("/dashboard");
+    cy.contains("maybe some graphs").should("exist");
   });
 
   it("nav only shows allowed links for TA", () => {
     cy.loginAs("testta");
     cy.visit("/");
     cy.contains("Home").should("exist");
-    cy.contains("Preferences Form").should("exist");
-    cy.contains("Validate").should("not.exist");
-    cy.contains("Docs").should("not.exist");
+    cy.contains("About").should("exist");
+    cy.contains("Dashboard").should("not.exist");
   });
 
-  it("nested route (/docs/foo) enforced", () => {
+  it("nested route (/dashboard/solver) enforced", () => {
     cy.loginAs("testta");
-    cy.request({ url: "/docs/foo", failOnStatusCode: false })
-      .its("status")
-      .should("eq", 403);
+    cy.visit("/dashboard/solver", { failOnStatusCode: false });
+    cy.url().should("include", "/error?error=AccessDenied");
   });
 });
