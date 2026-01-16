@@ -50,7 +50,8 @@ export default async function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Toaster richColors toastOptions={{ duration: 5000 }} />
             <TRPCReactProvider>
-              <TermProvider>
+              {/* Only let TermProvider fetch when the user is authenticated */}
+              <TermProvider enabled={!!session}>
                 <SidebarProvider>
                   <AppSidebar user={session?.user} />
                   <SidebarInset>

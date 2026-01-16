@@ -14,7 +14,7 @@ import {
   BaseScheduleSelector,
   dayLetterFromDate,
   slotToDate,
-} from "@/lib/schedul-selector";
+} from "@/lib/schedule-selector";
 export type StaffItemProps =
   RouterOutputs["staff"]["getStaffForSection"]["staff"][0] & {
     children?: React.ReactNode;

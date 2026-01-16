@@ -26,7 +26,7 @@ import {
   dateToSlot,
   stylesByStatus,
   BaseScheduleSelector,
-} from "@/lib/schedul-selector";
+} from "@/lib/schedule-selector";
 import { cn } from "@/lib/utils";
 
 type SectionInfoCardProps = {

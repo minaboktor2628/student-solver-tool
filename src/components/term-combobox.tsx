@@ -41,11 +41,33 @@ type TermContextValue = {
   setSelectedId: (id: string | null) => void;
 };
 
+const EMPTY_TERMS: Term[] = [];
+const NO_ACTIVE: Term | null = null;
+
 const TermContext = createContext<TermContextValue | null>(null);
 
 // This wraps the whole app so you can call useTerm() anywhere
-export function TermProvider({ children }: { children: ReactNode }) {
-  const [{ active, all }] = api.term.getTerms.useSuspenseQuery();
+export function TermProvider({
+  children,
+  enabled,
+}: {
+  children: ReactNode;
+  enabled: boolean;
+}) {
+  // Only fetch when enabled (i.e., user is authed). Also only use suspense when enabled.
+  const { data } = api.term.getTerms.useQuery(undefined, {
+    enabled,
+    suspense: true,
+    retry: false,
+  });
+
+  // Grab raw values
+  const rawAll = data?.all;
+  const rawActive = data?.active;
+
+  // Memoize the *final* values to keep identity stable
+  const all = useMemo(() => rawAll ?? EMPTY_TERMS, [rawAll]);
+  const active = useMemo(() => rawActive ?? NO_ACTIVE, [rawActive]);
 
   // Keep the selected item in session storage so it survives page refreshes
   // Defaults to the current active term in the database.
