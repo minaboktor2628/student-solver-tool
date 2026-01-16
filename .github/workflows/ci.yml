@@ -33,7 +33,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Next types
-        run: pnpm run typegen
+        run: pnpm next build --no-lint
+        env:
+          NODE_ENV: production
 
       - name: Lint check
         run: pnpm run lint
