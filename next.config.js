@@ -6,8 +6,9 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  typedRoutes: true,
-  // swcMinify: true, // minification using SWC, performance optimization
+  experimental: {
+    typedRoutes: true,
+  }, // swcMinify: true, // minification using SWC, performance optimization
   reactStrictMode: true, // helps catch potential problems
   output: "standalone", // standalone server output for docker, generates .next/standalone without source code and node_modules
   typescript: { ignoreBuildErrors: true },
