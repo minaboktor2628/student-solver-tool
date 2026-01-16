@@ -16,9 +16,9 @@ export function AssignedAssistantsCard({
 }: {
   section: SectionAccordionProps["classes"][0];
   onToggleAssignmentLock: (
-    input: RouterInputs["staffAssignment"]["toggleAssignmentLock"],
+    input: RouterInputs["assignment"]["toggleAssignmentLock"],
   ) => void;
-  onUnassign: (input: RouterInputs["staffAssignment"]["remove"]) => void;
+  onUnassign: (input: RouterInputs["assignment"]["remove"]) => void;
 }) {
   return (
     <Card className="flex-5">

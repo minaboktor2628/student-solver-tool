@@ -1,3 +1,7 @@
+/* When2meet component lib helpers.
+ * there is an export here for a base component to use. use this instead
+ * of the one that the lib provides, as this one is styled to match
+ * the rest of the app. */
 import type { Day } from "@prisma/client";
 
 import ScheduleSelector from "react-schedule-selector";

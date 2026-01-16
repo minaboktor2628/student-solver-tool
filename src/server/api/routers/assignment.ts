@@ -2,7 +2,7 @@ import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
-export const staffAssignmentRoute = createTRPCRouter({
+export const assignmentRoute = createTRPCRouter({
   set: coordinatorProcedure
     .input(z.object({ sectionId: z.string(), staffId: z.string() }))
     .mutation(async ({ input: { sectionId, staffId }, ctx }) => {
@@ -42,26 +42,4 @@ export const staffAssignmentRoute = createTRPCRouter({
         });
       });
     }),
-  // swap: coordinatorProcedure
-  //   .input(
-  //     z.object({
-  //       firstStudent: z.object({
-  //         staffId: z.string(),
-  //         sectionId: z.string(),
-  //       }),
-  //       secondStudent: z.object({
-  //         staffId: z.string(),
-  //         sectionId: z.string(),
-  //       }),
-  //     }),
-  //   )
-  //   .mutation(async ({ ctx, input: { secondStudent, firstStudent } }) => {
-  //     if (secondStudent.staffId == firstStudent.staffId) {
-  //       throw new TRPCError({
-  //         code: "BAD_REQUEST",
-  //         message: "Cannot swap the same staff member with themselves",
-  //       });
-  //     }
-  //     return;
-  //   }),
 });

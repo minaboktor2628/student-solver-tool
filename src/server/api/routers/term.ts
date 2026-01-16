@@ -1,3 +1,4 @@
+/* Term related endpoints */
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const termRoute = createTRPCRouter({

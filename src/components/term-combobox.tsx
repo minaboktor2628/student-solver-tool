@@ -1,3 +1,31 @@
+/*
+The whole app is now wrapped in with <TermProvider /> so you can call useTerm() from anywhere in the app and be able to access all terms, the active term in the db, and the current selected term.
+
+The selected term defaults to the current active term. Selected term is stored in session storage, so it can survive page reloads, but gets reset back to the active term once the user closes the tab/browser.
+
+You can change the selected term with the provided useTerm() hook, which returns a function that takes in a termId. You can just also use the provided <TermCombobox /> component, which is a popover combobox w/ search.
+
+Here is an example of using the useTerm() hook. You can also directly see how it is used in the <TermCombobox /> component if you wish.
+
+"use client";
+
+import { useTerm } from "@/components/term-combobox";
+
+export function TermBadge() {
+  const { selectedTerm, active } = useTerm();
+
+  const termToShow = selectedTerm ?? active;
+
+  if (!termToShow) return null;
+
+  return (
+    <span className="rounded-full bg-muted px-2 py-1 text-xs">
+      {termToShow.label}
+    </span>
+  );
+}
+*/
+
 "use client";
 
 import {
@@ -65,7 +93,7 @@ export function TermProvider({
   const rawAll = data?.all;
   const rawActive = data?.active;
 
-  // Memoize the *final* values to keep identity stable
+  // Memoize the final values to keep identity stable
   const all = useMemo(() => rawAll ?? EMPTY_TERMS, [rawAll]);
   const active = useMemo(() => rawActive ?? NO_ACTIVE, [rawActive]);
 

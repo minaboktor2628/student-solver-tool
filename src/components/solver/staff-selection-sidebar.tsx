@@ -1,3 +1,5 @@
+/* sidebar on the solver ui that has the draggable staff items
+ * with search and filter functionality. */
 "use client";
 import { useMemo, useState } from "react";
 import { Input } from "../ui/input";

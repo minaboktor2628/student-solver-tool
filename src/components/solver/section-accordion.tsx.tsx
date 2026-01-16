@@ -15,9 +15,9 @@ import { ScrollArea } from "../ui/scroll-area";
 export type SectionAccordionProps = {
   selected: string | undefined;
   onSelectedChange: (val: string) => void;
-  onUnassign: (input: RouterInputs["staffAssignment"]["remove"]) => void;
+  onUnassign: (input: RouterInputs["assignment"]["remove"]) => void;
   onToggleAssignmentLock: (
-    input: RouterInputs["staffAssignment"]["toggleAssignmentLock"],
+    input: RouterInputs["assignment"]["toggleAssignmentLock"],
   ) => void;
   classes: RouterOutputs["courses"]["getAllCoursesForTerm"]["courses"];
 };

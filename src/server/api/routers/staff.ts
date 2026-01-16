@@ -1,3 +1,4 @@
+/* Staff related endpoints */
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";

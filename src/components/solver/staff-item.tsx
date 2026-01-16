@@ -8,13 +8,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import type { RouterOutputs } from "@/trpc/react";
-import { toFullCourseName } from "@/lib/utils";
-import ScheduleSelector from "react-schedule-selector";
-import {
-  BaseScheduleSelector,
-  dayLetterFromDate,
-  slotToDate,
-} from "@/lib/schedule-selector";
+import { BaseScheduleSelector, slotToDate } from "@/lib/schedule-selector";
 export type StaffItemProps =
   RouterOutputs["staff"]["getStaffForSection"]["staff"][0] & {
     children?: React.ReactNode;

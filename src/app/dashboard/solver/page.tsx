@@ -55,7 +55,7 @@ export default function SolverPage() {
 
   const utils = api.useUtils();
 
-  const toggleLock = api.staffAssignment.toggleAssignmentLock.useMutation({
+  const toggleLock = api.assignment.toggleAssignmentLock.useMutation({
     onMutate: async ({ sectionId, staffId }) => {
       await utils.courses.getAllCoursesForTerm.cancel({ termId });
       const previous = utils.courses.getAllCoursesForTerm.getData({ termId });
@@ -97,7 +97,7 @@ export default function SolverPage() {
     },
   });
 
-  const assignApi = api.staffAssignment.set.useMutation({
+  const assignApi = api.assignment.set.useMutation({
     onMutate: async ({ sectionId, staffId }) => {
       await utils.courses.getAllCoursesForTerm.cancel({ termId });
 
@@ -165,7 +165,7 @@ export default function SolverPage() {
     },
   });
 
-  const unassignApi = api.staffAssignment.remove.useMutation({
+  const unassignApi = api.assignment.remove.useMutation({
     onMutate: async ({ sectionId, staffId }) => {
       await utils.courses.getAllCoursesForTerm.cancel({ termId });
 

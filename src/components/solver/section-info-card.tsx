@@ -16,13 +16,10 @@ import {
   TableRow,
 } from "../ui/table";
 import { Badge } from "../ui/badge";
-import ScheduleSelector from "react-schedule-selector";
 import {
   calculateCoverage,
-  dayLetterFromDate,
   dedupe,
   slotToDate,
-  START,
   dateToSlot,
   stylesByStatus,
   BaseScheduleSelector,
