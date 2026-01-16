@@ -46,6 +46,9 @@ const ROLES = {
   PLA: {
     pages: { view: canViewPage },
   },
+  GLA: {
+    pages: { view: canViewPage },
+  },
 } as const satisfies RolesWithPermissions;
 
 export function hasPermission<Resource extends keyof Permissions>(
