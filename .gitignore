@@ -56,3 +56,7 @@ yarn-error.log*
 
 # cypress 
 cypress/screenshots
+
+/prisma
+
+/generated/prisma

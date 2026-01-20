@@ -2,6 +2,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 import { excelRoute } from "./routers/excel";
 import { validateRoute } from "./routers/validate";
 import { exportRoute } from "./routers/export";
+import { professorFormRoute } from "./routers/professor-form";
 
 /**
  * This is the primary router for your server.
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   excel: excelRoute,
   validate: validateRoute,
   export: exportRoute,
+  professorForm: professorFormRoute,
 });
 
 // export type definition of API
