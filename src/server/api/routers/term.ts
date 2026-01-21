@@ -1,8 +1,8 @@
 /* Term related endpoints */
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 
 export const termRoute = createTRPCRouter({
-  getTerms: protectedProcedure.query(async ({ ctx }) => {
+  getTerms: publicProcedure.query(async ({ ctx }) => {
     const all = await ctx.db.term.findMany({
       orderBy: [{ year: "desc" }, { termLetter: "desc" }],
       select: { active: true, year: true, termLetter: true, id: true },
@@ -20,7 +20,7 @@ export const termRoute = createTRPCRouter({
     return { active, all: withLabel };
   }),
 
-  getActive: protectedProcedure.query(async ({ ctx }) => {
+  getActive: publicProcedure.query(async ({ ctx }) => {
     // find first because only supposed to have one active term
     return ctx.db.term.findFirst({
       where: { active: true },
