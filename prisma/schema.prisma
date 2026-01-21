@@ -11,6 +11,7 @@ datasource db {
 
 enum Role {
   PLA
+  GLA
   TA
   COORDINATOR
   PROFESSOR
@@ -117,6 +118,8 @@ model SectionAssignment {
 
   staff   User   @relation(fields: [staffId], references: [id], onDelete: Cascade)
   staffId String
+
+  locked Boolean @default(false) // if true, solver must not change/remove this
 
   // Prevent duplicate assignments
   @@unique([sectionId, staffId])
