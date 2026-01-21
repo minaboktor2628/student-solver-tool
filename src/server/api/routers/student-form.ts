@@ -12,7 +12,7 @@ import { db } from "@/server/db";
  */
 const baseInput = z.object({
   userId: z.string().min(1),
-  termLetter: z.enum(["A", "B", "C", "D"]),
+  termId: z.string().min(1),
   year: z.number().int().min(1900).max(9999),
 });
 
@@ -92,7 +92,7 @@ export const studentFormRoute = createTRPCRouter({
   getQualifications: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
-      const { userId, termLetter, year } = input;
+      const { userId, termId, year } = input;
 
       // TODO: Implement Prisma query to fetch StaffPreferenceQualifiedSection entries for this staff & term
       // Suggested steps:
@@ -100,14 +100,14 @@ export const studentFormRoute = createTRPCRouter({
       // 2. Query staffPreference for userId and termId
       // 3. Include qualifiedForSections with section data
 
-      return { qualifiedSectionIds: [] as string[] };
+      qualifiedSections: return { qualifiedSectionIds: [] as string[] };
     }),
 
   /** Load token-based preferences (Prefer / Strong) for the staff for a term */
   getPreferences: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
-      const { userId, termLetter, year } = input;
+      const { userId, termId, year } = input;
 
       // TODO: Implement Prisma query to return preferences mapping.
       // If you persist token-based course preferences, query that table here and build a mapping
@@ -118,7 +118,7 @@ export const studentFormRoute = createTRPCRouter({
 
   /** Load any free-text comments the staff left for the term */
   getComments: assistantProcedure.input(baseInput).query(async ({ input }) => {
-    const { userId, termLetter, year } = input;
+    const { userId, termId, year } = input;
 
     // TODO: Query StaffPreference.comments or ProfessorPreference.comments depending on role
     // Example: const pref = await db.staffPreference.findUnique({ where: { userId_termId: { userId: staffId, termId }}, select: { comments: true }})
@@ -149,7 +149,7 @@ export const studentFormRoute = createTRPCRouter({
     .mutation(async ({ input }) => {
       const {
         userId,
-        termLetter,
+        termId,
         year,
         weeklyAvailability,
         qualifiedSectionIds,
