@@ -23,7 +23,7 @@ Query sections to see how many sections the professor is teaching
 
 export default async function ProfessorHomePage() {
   const mockUserName = "Professor Smith";
-  const deadlineDate = new Date("2025-12-15");
+  const deadlineDate = new Date("2026-3-15");
   const isSubmitted = false;
   const numberOfCourses = 3;
   const courses = [

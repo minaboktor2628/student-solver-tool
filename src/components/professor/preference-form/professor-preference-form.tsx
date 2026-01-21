@@ -13,41 +13,26 @@ import { Card, CardContent } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { LoadingSpinner } from "../../loading-spinner";
 
-export function ProfessorPreferenceForm() {
+interface ProfessorPreferenceFormProps {
+  userId: string;
+}
+
+const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
+  userId,
+}) => {
   const [sections, setSections] = useState<SectionWithProfessorPreference[]>(
     [],
   );
+  const [preferredStaff, setPreferredStaff] = useState<Assistant[]>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const sectionsQuery =
-    api.professorForm.getProfessorSectionsForTerm.useQuery();
-  const assistantsQuery = api.professorForm.getAvailableAssistants.useQuery();
-
-  useEffect(() => {
-    if (!sectionsQuery.data) return;
-
-    const mappedSections: SectionWithProfessorPreference[] =
-      sectionsQuery.data?.sections.map((s) => ({
-        sectionId: s.sectionId,
-        courseCode: s.courseCode,
-        courseSection: s.courseSection,
-        courseTitle: s.courseTitle,
-        meetingPattern: s.meetingPattern,
-        enrollment: s.enrollment,
-        capacity: s.capacity,
-        requiredHours: s.requiredHours,
-        availableAssistants: assistantsQuery.data || [],
-        professorPreference: {
-          preferredStaff: s.professorPreference.preferredStaff,
-          avoidedStaff: s.professorPreference.avoidedStaff,
-          timesRequired: s.professorPreference.timesRequired,
-          comments: s.professorPreference.comments,
-        },
-      }));
-    setSections(mappedSections);
-  }, [sectionsQuery.data, assistantsQuery.data]);
+  const { data, isLoading, error } =
+    api.professorForm.getProfessorSectionsForTerm.useQuery({
+      professorId: userId,
+    });
 
   const updateSectionPreference = (
     sectionId: string,
@@ -83,6 +68,17 @@ export function ProfessorPreferenceForm() {
     // api.sectionPreference.upsertMany.mutate(payload)
     // TODO: create mutation to submit preferences
   };
+  if (isLoading) {
+    return (
+      <div>
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div>Error loading sections: {error.message}</div>;
+  }
 
   if (isSubmitted) {
     return (
@@ -116,31 +112,35 @@ export function ProfessorPreferenceForm() {
           </Button>
         </Link>
       </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-      >
-        {sections.map((section) => (
-          <SectionPreferenceCard
-            key={section.sectionId}
-            sectionId={section.sectionId}
-            courseCode={section.courseCode}
-            courseSection={section.courseSection}
-            courseTitle={section.courseTitle}
-            meetingPattern={section.meetingPattern}
-            enrollment={section.enrollment}
-            capacity={section.capacity}
-            requiredHours={section.requiredHours}
-            availableAssistants={section.availableAssistants}
-            value={section.professorPreference}
-            onChange={(data) =>
-              updateSectionPreference(section.sectionId, data)
-            }
-          />
-        ))}
-      </form>
+      <div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
+          {data?.sections.map((section) => (
+            <div className="px-4 py-2">
+              <SectionPreferenceCard
+                key={section.sectionId}
+                sectionId={section.sectionId}
+                courseCode={section.courseCode}
+                courseSection={section.courseSection}
+                courseTitle={section.courseTitle}
+                meetingPattern={section.meetingPattern}
+                enrollment={section.enrollment}
+                capacity={section.capacity}
+                requiredHours={section.requiredHours}
+                availableAssistants={section.availableAssistants}
+                value={section.professorPreference}
+                onChange={(data) =>
+                  updateSectionPreference(section.sectionId, data)
+                }
+              />
+            </div>
+          ))}
+        </form>
+      </div>
       <div className="my-6 flex justify-end gap-4 pb-8">
         <Link href="/professor">
           <Button variant="outline">Cancel</Button>
@@ -151,6 +151,6 @@ export function ProfessorPreferenceForm() {
       </div>
     </div>
   );
-}
+};
 
 export default ProfessorPreferenceForm;

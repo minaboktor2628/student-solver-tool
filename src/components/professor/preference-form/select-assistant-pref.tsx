@@ -78,7 +78,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
                   <div className="flex items-center gap-2">
                     {staff.name}
                     <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                      {staff.roles.map((r) => r.role)}
+                      {/* staff.roles.map((r) => r.role) */}
                     </span>
                   </div>
                   <p className="text-muted-foreground text-sm">{staff.email}</p>

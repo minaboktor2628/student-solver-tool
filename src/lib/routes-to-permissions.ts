@@ -52,6 +52,19 @@ export const ROUTES: NavItem[] = [
       },
     ],
   },
+  {
+    label: "Professor Dashboard",
+    href: "/professor",
+    allowed: ["PROFESSOR"],
+    icon: UserStarIcon,
+    children: [
+      {
+        label: "Preferences",
+        href: "/professor/preferences",
+        icon: ComputerIcon,
+      },
+    ],
+  },
 ];
 
 function matchesRoute(path: string, node: NavItem) {

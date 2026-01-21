@@ -12,43 +12,11 @@ export type SectionWithProfessorPreference = {
   requiredHours: number;
   availableAssistants: Assistant[];
   professorPreference: {
-    preferredStaff:
-      | {
-          roles: Role[];
-          name: string | null;
-          id: string;
-          email: string | null;
-          hours: number | null;
-        }[]
-      | undefined;
-    avoidedStaff:
-      | {
-          roles: Role[];
-          name: string | null;
-          id: string;
-          email: string | null;
-          hours: number | null;
-        }[]
-      | undefined;
+    preferredStaff: Assistant[];
+    avoidedStaff: Assistant[];
     timesRequired: WeeklySlot[];
     comments: string | null | undefined;
   };
-};
-
-export type SectionPreferenceCardProps = {
-  sectionId: string;
-  courseCode: string;
-  courseTitle: string;
-  meetingPattern: string;
-  courseSection: string;
-  enrollment: number;
-  capacity: number;
-  requiredHours: number;
-  availableAssistants: Assistant[];
-  value: SectionWithProfessorPreference["professorPreference"];
-  onChange: (
-    data: Partial<SectionWithProfessorPreference["professorPreference"]>,
-  ) => void;
 };
 
 export type SelectAssistantPreferenceProps = {
@@ -65,12 +33,13 @@ export type SelectRequiredTimesProps = {
 
 export type ProfessorCommentBoxProps = {
   sectionId: string;
-  initialComment: string;
+  initialComment: string | undefined | null;
 };
 
 export type Assistant = {
   id: string;
   name: string | null;
   email: string | null;
-  roles: { role: Role }[];
+  hours: number | null;
+  roles: { role: Role }[] | undefined;
 };
