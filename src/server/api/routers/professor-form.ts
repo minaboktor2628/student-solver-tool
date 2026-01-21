@@ -89,4 +89,3 @@ export const professorFormRoute = createTRPCRouter({
     });
   }),
 });
-export default professorFormRoute;
