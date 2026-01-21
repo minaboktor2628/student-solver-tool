@@ -9,8 +9,8 @@ import type {
   Assistant,
   WeeklySlot,
 } from "@/types/professor";
-import { Card, CardContent } from "../ui/card";
-import { Button } from "../ui/button";
+import { Card, CardContent } from "../../ui/card";
+import { Button } from "../../ui/button";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 

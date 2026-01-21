@@ -1,23 +1,25 @@
 "use client";
 
 import React from "react";
-import { Label } from "../ui/label";
-import { Button } from "../ui/button";
+import { Label } from "../../ui/label";
+import { Button } from "../../ui/button";
 import type {
   SelectAssistantPreferenceProps,
   Assistant,
 } from "@/types/professor";
 
-export const SelectAssistantAntipref: React.FC<
-  SelectAssistantPreferenceProps
-> = ({ sectionId, availableAssistants, chosenAssistants }) => {
-  const [wantsAntiPreferences, setWantsAntiPreferences] =
+export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
+  sectionId,
+  availableAssistants,
+  chosenAssistants,
+}) => {
+  const [wantsSpecificAssistants, setWantsSpecificAssistants] =
     React.useState<boolean>();
-  const [antiPreferences, setAntiPreferences] = React.useState<Assistant[]>(
+  const [selectedPreferences, setPreferences] = React.useState<Assistant[]>(
     chosenAssistants ?? [],
   );
   const handleAssistantChange = (assistant: Assistant, checked: boolean) => {
-    setAntiPreferences((prev) =>
+    setPreferences((prev) =>
       checked
         ? [...prev, assistant]
         : prev.filter((a) => a.id !== assistant.id),
@@ -28,22 +30,25 @@ export const SelectAssistantAntipref: React.FC<
     <div className="bg-white p-4 shadow-sm">
       <div>
         <Label className="mb-2 block text-base font-medium">
-          Do you have any assistants that you do not want for this course?
+          Do you want to select specific assistants for this course?
         </Label>
+        <p className="text-muted-foreground mb-2 text-sm">
+          You may not receive your preference
+        </p>
         <div className="flex gap-4">
           <Button
             type="button"
-            variant={wantsAntiPreferences === true ? "default" : "outline"}
-            onClick={() => setWantsAntiPreferences(true)}
+            variant={wantsSpecificAssistants === true ? "default" : "outline"}
+            onClick={() => setWantsSpecificAssistants(true)}
           >
             Yes
           </Button>
           <Button
             type="button"
-            variant={wantsAntiPreferences === false ? "default" : "outline"}
+            variant={wantsSpecificAssistants === false ? "default" : "outline"}
             onClick={() => {
-              setWantsAntiPreferences(false);
-              setAntiPreferences([]);
+              setWantsSpecificAssistants(false);
+              setPreferences([]);
             }}
           >
             No
@@ -51,14 +56,14 @@ export const SelectAssistantAntipref: React.FC<
         </div>
       </div>
 
-      {wantsAntiPreferences && (
+      {wantsSpecificAssistants && (
         <div className="space-y-3 border-t pt-2">
           <Label className="text-sm font-medium">
             Select your preferred assistants
           </Label>
 
           {availableAssistants.map((staff) => {
-            const isSelected = antiPreferences.includes(staff);
+            const isSelected = selectedPreferences.includes(staff);
 
             return (
               <div

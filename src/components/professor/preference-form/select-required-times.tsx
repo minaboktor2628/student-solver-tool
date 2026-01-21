@@ -3,8 +3,8 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import type { SelectRequiredTimesProps, WeeklySlot } from "@/types/professor";
-import { Label } from "../ui/label";
-import { Button } from "../ui/button";
+import { Label } from "../../ui/label";
+import { Button } from "../../ui/button";
 
 // Dynamic import with no SSR because the schedule selector depends on browser APIs
 const ScheduleSelector = dynamic(

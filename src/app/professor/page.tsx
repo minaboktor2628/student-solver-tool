@@ -1,4 +1,3 @@
-// TEMPORARY: Auth bypassed for mockup demo
 import { Calendar, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,15 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
-import { redirect } from "next/dist/client/components/navigation";
-import { auth } from "@/server/auth";
 
 export default async function ProfessorHomePage() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
   const mockUserName = "Professor Smith";
 
   const deadlineDate = new Date("2025-12-15");
