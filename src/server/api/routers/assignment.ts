@@ -42,4 +42,33 @@ export const assignmentRoute = createTRPCRouter({
         });
       });
     }),
+
+  solve: coordinatorProcedure
+    .input(z.object({ termId: z.string() }))
+    .mutation(async ({ input: { termId }, ctx }) => {
+      const [sections, staffPreferences] = await Promise.all([
+        ctx.db.section.findMany({
+          where: { termId },
+          include: {
+            assignments: true,
+            preferredPreferences: true,
+            professor: true,
+            professorPreference: true,
+            qualifiedPreferences: true,
+          },
+        }),
+        ctx.db.staffPreference.findMany({
+          where: { termId },
+          include: {
+            preferredSections: true,
+            qualifiedForSections: true,
+            timesAvailable: true,
+            user: true,
+          },
+        }),
+      ]);
+
+      // do some solving here and write to the db
+      // ...
+    }),
 });

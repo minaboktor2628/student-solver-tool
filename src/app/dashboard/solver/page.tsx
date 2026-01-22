@@ -26,6 +26,7 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { AleadyAssignedAlert } from "@/components/solver/already-assigned-alert";
 import { toast } from "sonner";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
+import Link from "next/link";
 
 type PendingAssign = {
   toSectionId: string;
@@ -54,6 +55,15 @@ export default function SolverPage() {
   });
 
   const utils = api.useUtils();
+
+  const solverApi = api.assignment.solve.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.courses.getAllCoursesForTerm.invalidate({ termId }),
+        utils.staff.getStaffForSection.invalidate(),
+      ]);
+    },
+  });
 
   const toggleLock = api.assignment.toggleAssignmentLock.useMutation({
     onMutate: async ({ sectionId, staffId }) => {
@@ -304,6 +314,11 @@ export default function SolverPage() {
     setActiveStaff(null);
   }
 
+  function handleSolve() {
+    if (!termId) return;
+    solverApi.mutate({ termId });
+  }
+
   return (
     <div className="flex h-[100vh] flex-col">
       <AleadyAssignedAlert
@@ -337,12 +352,16 @@ export default function SolverPage() {
       <div className="flex items-center px-4">
         <h1 className="pr-2 font-bold">Term: </h1> <TermCombobox />
         <ButtonGroup className="ml-auto">
-          <Button size="sm" disabled>
+          <Button
+            size="sm"
+            onClick={handleSolve}
+            disabled={solverApi.isPending}
+          >
             Solve Next
           </Button>
           <ButtonGroupSeparator />
-          <Button size="sm" disabled>
-            Done
+          <Button size="sm" asChild>
+            <Link href={"/dashboard"}>Done</Link>
           </Button>
         </ButtonGroup>
       </div>
