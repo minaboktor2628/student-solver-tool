@@ -66,22 +66,15 @@ export const studentFormRoute = createTRPCRouter({
       return { courses };
     }),
 
-  /** Load weekly availability for a staff member for a term */
   getWeeklyAvailability: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
       const { userId, termId } = input;
 
-      // TODO: Implement Prisma query to fetch weekly availability.
-      // Suggested model: StaffPreference.timesAvailable (or a dedicated WeeklyAvailability model)
-      // Example pseudocode:
-      // const pref = await db.staffPreference.findUnique({ where: { userId_termId: { userId, termId: <resolve termId from termLetter+year> } }, select: { timesAvailable: true } });
-
-      // For now return a placeholder shape so frontend can be wired:
+      // TODO: query available hours
       return { availability: [] as unknown[] };
     }),
 
-  /** Load qualifications (sections the staff previously qualified for) */
   getQualifications: assistantProcedure
     .input(baseInput)
     .query(async ({ input, ctx }) => {
@@ -118,25 +111,20 @@ export const studentFormRoute = createTRPCRouter({
       return { qualifiedSectionIds };
     }),
 
-  /** Load token-based preferences (Prefer / Strong) for the staff for a term */
   getPreferences: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
       const { userId, termId } = input;
 
-      // TODO: Implement Prisma query to return preferences mapping.
-      // If you persist token-based course preferences, query that table here and build a mapping
-      // { "CS 1101": "prefer" | "strong" }
+      // TODO: query prefer/strong tokens on StaffPreference.StaffPreferencePreferredSection
 
       return { preferences: {} as Record<string, string> };
     }),
 
-  /** Load any free-text comments the staff left for the term */
   getComments: assistantProcedure.input(baseInput).query(async ({ input }) => {
     const { userId, termId } = input;
 
-    // TODO: Query StaffPreference.comments or ProfessorPreference.comments depending on role
-    // Example: const pref = await db.staffPreference.findUnique({ where: { userId_termId: { userId: staffId, termId }}, select: { comments: true }})
+    // TODO: Query StaffPreference.comments
 
     return { comments: null as string | null };
   }),
@@ -161,7 +149,7 @@ export const studentFormRoute = createTRPCRouter({
         comments: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const {
         userId,
         termId,
@@ -170,6 +158,18 @@ export const studentFormRoute = createTRPCRouter({
         sectionPreferences,
         comments,
       } = input;
+
+      if (
+        !(
+          ctx.session.user.roles.includes("COORDINATOR") ||
+          ctx.session.user.id === userId
+        )
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
 
       const result = await db.$transaction(async (tx) => {
         const term = await tx.term.findUniqueOrThrow({
