@@ -1,4 +1,4 @@
-"use client";
+/* "use client";
 
 import {
   Card,
@@ -46,42 +46,8 @@ export const SectionPreferenceCard: React.FC<SectionPreferenceCardProps> = ({
   onChange,
 }) => {
   return (
-    <Card key={sectionId}>
-      <CardHeader>
-        <CardTitle>{courseTitle}</CardTitle>
-        <CardDescription>
-          {courseCode} - {courseSection}
-        </CardDescription>
-        <CardDescription>Meeting Time: {meetingPattern}</CardDescription>
-        <CardDescription>
-          Enrollment: {enrollment} / {capacity}
-        </CardDescription>
-        <CardDescription>
-          Potential Staff Hours: {requiredHours}
-        </CardDescription>
-        <SelectAssistantPref
-          key={sectionId}
-          sectionId={sectionId}
-          availableAssistants={availableAssistants}
-          chosenAssistants={value.preferredStaff}
-        />
-        <SelectAssistantAntipref
-          key={sectionId + "-anti"}
-          sectionId={sectionId}
-          availableAssistants={availableAssistants}
-          chosenAssistants={value.avoidedStaff}
-        />
-        <SelectRequiredTimes
-          sectionId={sectionId}
-          timesRequired={value.timesRequired}
-        />
-        <FormEntryComments
-          sectionId={sectionId}
-          initialComment={value.comments}
-        />
-      </CardHeader>
-    </Card>
+
   );
 };
 
-export default SectionPreferenceCard;
+export default SectionPreferenceCard; */

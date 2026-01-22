@@ -1,4 +1,5 @@
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
+export type dayEnum = { day: "M" | "T" | "W" | "R" | "F" };
 export type Role = "TA" | "PLA" | "GLA" | "PROFESSOR" | "COORDINATOR";
 
 export type SectionWithProfessorPreference = {
@@ -14,7 +15,11 @@ export type SectionWithProfessorPreference = {
   professorPreference: {
     preferredStaff: Assistant[];
     avoidedStaff: Assistant[];
-    timesRequired: WeeklySlot[];
+    timesRequired: {
+      id: string;
+      day: dayEnum;
+      hour: number;
+    }[];
     comments: string | null | undefined;
   };
 };

@@ -9,11 +9,22 @@ import type {
   Assistant,
   WeeklySlot,
 } from "@/types/professor";
-import { Card, CardContent } from "../../ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../ui/card";
+
 import { Button } from "../../ui/button";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingSpinner } from "../../loading-spinner";
+import { SelectAssistantPref } from "./select-assistant-pref";
+import { SelectAssistantAntipref } from "./select-assistant-antipref";
+import { SelectRequiredTimes } from "./select-required-times";
+import { FormEntryComments } from "./comment-box";
 
 interface ProfessorPreferenceFormProps {
   userId: string;
@@ -121,22 +132,45 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
         >
           {data?.sections.map((section) => (
             <div className="px-4 py-2">
-              <SectionPreferenceCard
-                key={section.sectionId}
-                sectionId={section.sectionId}
-                courseCode={section.courseCode}
-                courseSection={section.courseSection}
-                courseTitle={section.courseTitle}
-                meetingPattern={section.meetingPattern}
-                enrollment={section.enrollment}
-                capacity={section.capacity}
-                requiredHours={section.requiredHours}
-                availableAssistants={section.availableAssistants}
-                value={section.professorPreference}
-                onChange={(data) =>
-                  updateSectionPreference(section.sectionId, data)
-                }
-              />
+              <Card key={section.sectionId}>
+                <CardHeader>
+                  <CardTitle>{section.courseTitle}</CardTitle>
+                  <CardDescription>
+                    {section.courseCode} - {section.courseSection}
+                  </CardDescription>
+                  <CardDescription>
+                    Meeting Time: {section.meetingPattern}
+                  </CardDescription>
+                  <CardDescription>
+                    Enrollment: {section.enrollment} / {section.capacity}
+                  </CardDescription>
+                  <CardDescription>
+                    Potential Staff Hours: {section.requiredHours}
+                  </CardDescription>
+                  <SelectAssistantPref
+                    key={section.sectionId}
+                    sectionId={section.sectionId}
+                    availableAssistants={section.availableAssistants}
+                    chosenAssistants={
+                      section.professorPreference.preferredStaff
+                    }
+                  />
+                  <SelectAssistantAntipref
+                    key={section.sectionId}
+                    sectionId={section.sectionId}
+                    availableAssistants={section.availableAssistants}
+                    chosenAssistants={section.professorPreference.avoidedStaff}
+                  />
+                  <SelectRequiredTimes
+                    sectionId={section.sectionId}
+                    timesRequired={section.professorPreference.timesRequired}
+                  />
+                  <FormEntryComments
+                    sectionId={section.sectionId}
+                    initialComment={section.professorPreference.comments}
+                  />
+                </CardHeader>
+              </Card>
             </div>
           ))}
         </form>
