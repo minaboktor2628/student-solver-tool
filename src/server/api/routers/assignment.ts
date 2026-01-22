@@ -58,7 +58,20 @@ export const assignmentRoute = createTRPCRouter({
           },
         }),
         ctx.db.staffPreference.findMany({
-          where: { termId },
+          where: {
+            termId,
+            // Only return users who are NOT locked to a section already this term
+            user: {
+              sectionAssignments: {
+                none: {
+                  locked: true,
+                  section: {
+                    termId,
+                  },
+                },
+              },
+            },
+          },
           include: {
             preferredSections: true,
             qualifiedForSections: true,
@@ -69,6 +82,7 @@ export const assignmentRoute = createTRPCRouter({
       ]);
 
       // do some solving here and write to the db
+      // frontend will refetch after this function completes, so no need to return anything
       // ...
     }),
 });
