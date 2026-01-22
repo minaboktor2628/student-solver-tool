@@ -6,6 +6,7 @@ import "core-js/modules/web.dom-collections.iterator";
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { api } from "@/trpc/react";
+import { useTerm } from "@/components/term-combobox";
 
 // Dynamic import with no SSR because the schedule selector depends on browser APIs
 const ScheduleSelector: any = dynamic(
@@ -19,8 +20,7 @@ export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
 
 interface FormEntryTimesProps {
   userId: string;
-  termLetter: "A" | "B" | "C" | "D";
-  year: number;
+  termId: string;
   qualifiedSectionIds: string[];
   sectionPreferences: Record<string, "prefer" | "strong" | undefined>;
   comments: string;
@@ -33,8 +33,7 @@ interface FormEntryTimesProps {
 
 const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   userId,
-  termLetter,
-  year,
+  termId,
   qualifiedSectionIds,
   sectionPreferences,
   comments,
@@ -56,8 +55,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
     try {
       await saveFormMutation.mutateAsync({
         userId,
-        termLetter,
-        year,
+        termId: termId,
         weeklyAvailability: weekly,
         qualifiedSectionIds,
         sectionPreferences,
@@ -117,7 +115,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
           startDate={new Date(1970, 0, 5)}
           renderDateLabel={(d: Date) => {
             const letter = dayLetterFromDate(d) ?? "";
-            return <div className="text-sm font-medium">{letter}</div>;
+            return <div className="text-center font-semibold">{letter}</div>;
           }}
           minTime={8}
           maxTime={21}

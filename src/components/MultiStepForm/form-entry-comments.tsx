@@ -4,8 +4,7 @@ import { api } from "@/trpc/react";
 
 interface FormEntryCommentsProps {
   userId: string;
-  termLetter: "A" | "B" | "C" | "D";
-  year: number;
+  termId: string;
   initialText?: string;
   onSubmit?: () => void;
   onExit?: () => void;
@@ -13,8 +12,7 @@ interface FormEntryCommentsProps {
 
 const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
   userId,
-  termLetter,
-  year,
+  termId,
   initialText,
   onSubmit,
   onExit,
@@ -28,8 +26,7 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
     try {
       await saveFormMutation.mutateAsync({
         userId,
-        termLetter,
-        year,
+        termId,
         comments,
       });
       onSubmit?.();

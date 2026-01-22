@@ -9,6 +9,8 @@ import FormEntryPreferences from "./form-entry-preferences";
 import FormEntryComments from "./form-entry-comments";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
+import { getTokenSourceMapRange } from "typescript";
+import { useTerm } from "@/components/term-combobox";
 
 interface MultiStepFormModalProps {
   onClose?: () => void;
@@ -43,21 +45,42 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   >({});
   const [comments, setComments] = useState<string>("");
   const router = useRouter();
+  const { selectedId } = useTerm();
 
   // fetch sections for the selected term and pass to qualifications UI
   const sectionsQ = api.studentForm.getSections.useQuery({
-    termLetter: termLetter ?? "A",
-    year: year ?? 2025,
+    termId: selectedId ?? "",
   });
 
+  // fetch previous qualifications from database
+  const previousQualificationsQ = api.studentForm.getQualifications.useQuery(
+    {
+      userId,
+      termId: selectedId ?? "",
+    },
+    { enabled: !!userId && !!selectedId },
+  );
+
   const [step, setStep] = useState(1);
+
+  // Initialize qualifications from database on first load
+  useEffect(() => {
+    if (
+      previousQualificationsQ.data?.qualifiedSectionIds &&
+      qualifiedSections.length === 0
+    ) {
+      setQualifiedSectionIds(previousQualificationsQ.data.qualifiedSectionIds);
+    }
+  }, [
+    previousQualificationsQ.data?.qualifiedSectionIds,
+    qualifiedSections.length,
+  ]);
+
   const handleNext = () => setStep((s) => s + 1);
   const handleBack = () => setStep((s) => Math.max(1, s - 1));
   const handleExit = () => onClose?.();
 
   const handleSubmit = () => {
-    // TODO: persist the collected form data via tRPC/prisma
-    // For now, navigate back to home after submit and close modal if present
     router.push("/");
     onClose?.();
   };
@@ -73,14 +96,12 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
           onNext={handleNext}
           onExit={handleExit}
         />
-        //TODO get out availability data (boolean)
       )}
       {step === 2 && (
         //TODO pass in initial times data
         <FormEntryTimes
           userId={userId}
-          termLetter={termLetter ?? "A"}
-          year={year ?? 2025}
+          termId={selectedId ?? ""}
           qualifiedSectionIds={qualifiedSections}
           sectionPreferences={courseTokenMapping}
           comments={comments}
@@ -90,24 +111,20 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         />
       )}
       {step === 3 && (
-        // pass server-provided course list into qualifications UI
-        // TODO pass in previous qualifications data
         <FormEntryQualifications
           userId={userId}
-          termLetter={termLetter ?? "A"}
-          year={year ?? 2025}
+          termId={selectedId ?? ""}
           courses={sectionsQ.data?.courses}
+          initialSelectedSections={qualifiedSections}
           onNext={handleNext}
           onExit={() => setStep(2)}
           onChange={(ids) => setQualifiedSectionIds(ids)}
         />
       )}
       {step === 4 && (
-        //TODO pass in initial preferences data
         <FormEntryPreferences
           userId={userId}
-          termLetter={termLetter ?? "A"}
-          year={year ?? 2025}
+          termId={selectedId ?? ""}
           qualifiedSectionIds={qualifiedSections}
           comments={comments}
           courses={sectionsQ.data?.courses}
@@ -120,19 +137,15 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
             )
           }
         />
-        //TODO get out preferences data
       )}
       {step === 5 && (
-        //TODO pass in initial comments data
         <FormEntryComments
           userId={userId}
-          termLetter={termLetter ?? "A"}
-          year={year ?? 2025}
+          termId={selectedId ?? ""}
           initialText={comments}
           onSubmit={handleSubmit}
           onExit={() => setStep(4)}
         />
-        //TODO get out comments data
       )}
     </div>
   );

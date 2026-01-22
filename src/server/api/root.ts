@@ -4,6 +4,7 @@ import { validateRoute } from "./routers/validate";
 import { exportRoute } from "./routers/export";
 import { assignmentRoute } from "./routers/assignment";
 import { courseRoute } from "./routers/courses";
+import { studentFormRoute } from "./routers/student-form";
 import { staffRoute } from "./routers/staff";
 import { termRoute } from "./routers/term";
 
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
   export: exportRoute,
   assignment: assignmentRoute,
   courses: courseRoute,
+  studentForm: studentFormRoute,
   staff: staffRoute,
   term: termRoute,
 });

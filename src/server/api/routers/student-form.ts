@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { db } from "@/server/db";
+import { TRPCError } from "@trpc/server";
 
 /**
  * Router: studentFormRoute
@@ -13,24 +14,16 @@ import { db } from "@/server/db";
 const baseInput = z.object({
   userId: z.string().min(1),
   termId: z.string().min(1),
-  year: z.number().int().min(1900).max(9999),
 });
 
 export const studentFormRoute = createTRPCRouter({
   /** Fetch all sections for a given term, grouped by courseCode */
   getSections: assistantProcedure
-    .input(
-      z.object({
-        termLetter: z.enum(["A", "B", "C", "D"]),
-        year: z.number().int().min(1900).max(9999),
-      }),
-    )
-    .query(async ({ input }) => {
-      const { termLetter, year } = input;
-
+    .input(z.object({ termId: z.string() }))
+    .query(async ({ input: { termId } }) => {
       // Fetch sections for the requested term and include the professor relation
       const rows = await db.section.findMany({
-        where: { term: { termLetter, year } },
+        where: { term: { id: termId } },
         select: {
           term: { select: { termLetter: true, year: true } },
           id: true,
@@ -77,7 +70,7 @@ export const studentFormRoute = createTRPCRouter({
   getWeeklyAvailability: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
-      const { userId, termLetter, year } = input;
+      const { userId, termId } = input;
 
       // TODO: Implement Prisma query to fetch weekly availability.
       // Suggested model: StaffPreference.timesAvailable (or a dedicated WeeklyAvailability model)
@@ -91,23 +84,45 @@ export const studentFormRoute = createTRPCRouter({
   /** Load qualifications (sections the staff previously qualified for) */
   getQualifications: assistantProcedure
     .input(baseInput)
-    .query(async ({ input }) => {
-      const { userId, termId, year } = input;
+    .query(async ({ input, ctx }) => {
+      const { userId, termId } = input;
 
-      // TODO: Implement Prisma query to fetch StaffPreferenceQualifiedSection entries for this staff & term
-      // Suggested steps:
-      // 1. Resolve termId from termLetter+year: const term = await db.term.findUnique({ where: { termLetter_year: { termLetter, year }}})
-      // 2. Query staffPreference for userId and termId
-      // 3. Include qualifiedForSections with section data
+      if (
+        !(
+          ctx.session.user.roles.includes("COORDINATOR") ||
+          ctx.session.user.id === userId
+        )
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
 
-      qualifiedSections: return { qualifiedSectionIds: [] as string[] };
+      // Find the staff preference for this user and term
+      const staffPref = await db.staffPreference.findUnique({
+        where: { userId_termId: { userId, termId } },
+        include: {
+          qualifiedForSections: {
+            select: {
+              sectionId: true,
+            },
+          },
+        },
+      });
+
+      // Extract section IDs from the qualified sections
+      const qualifiedSectionIds =
+        staffPref?.qualifiedForSections.map((q) => q.sectionId) ?? [];
+
+      return { qualifiedSectionIds };
     }),
 
   /** Load token-based preferences (Prefer / Strong) for the staff for a term */
   getPreferences: assistantProcedure
     .input(baseInput)
     .query(async ({ input }) => {
-      const { userId, termId, year } = input;
+      const { userId, termId } = input;
 
       // TODO: Implement Prisma query to return preferences mapping.
       // If you persist token-based course preferences, query that table here and build a mapping
@@ -118,7 +133,7 @@ export const studentFormRoute = createTRPCRouter({
 
   /** Load any free-text comments the staff left for the term */
   getComments: assistantProcedure.input(baseInput).query(async ({ input }) => {
-    const { userId, termId, year } = input;
+    const { userId, termId } = input;
 
     // TODO: Query StaffPreference.comments or ProfessorPreference.comments depending on role
     // Example: const pref = await db.staffPreference.findUnique({ where: { userId_termId: { userId: staffId, termId }}, select: { comments: true }})
@@ -150,7 +165,6 @@ export const studentFormRoute = createTRPCRouter({
       const {
         userId,
         termId,
-        year,
         weeklyAvailability,
         qualifiedSectionIds,
         sectionPreferences,
@@ -158,12 +172,11 @@ export const studentFormRoute = createTRPCRouter({
       } = input;
 
       const result = await db.$transaction(async (tx) => {
-        // 1. Resolve termId from termLetter+year
         const term = await tx.term.findUniqueOrThrow({
-          where: { termLetter_year: { termLetter, year } },
+          where: { id: termId },
         });
 
-        // 2. Upsert StaffPreference for userId+termId
+        // 2. Upsert StaffPreference
         const staffPref = await tx.staffPreference.upsert({
           where: { userId_termId: { userId, termId: term.id } },
           update: {

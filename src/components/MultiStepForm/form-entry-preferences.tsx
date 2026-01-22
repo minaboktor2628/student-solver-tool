@@ -14,8 +14,7 @@ export type Course = { code: string; title: string; sections: Section[] };
 
 interface CoursePreferencesProps {
   userId: string;
-  termLetter: "A" | "B" | "C" | "D";
-  year: number;
+  termId: string;
   qualifiedSectionIds: string[];
   comments: string;
   /** array of courses with sections that the user qualified for */
@@ -30,8 +29,7 @@ interface CoursePreferencesProps {
 
 const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   userId,
-  termLetter,
-  year,
+  termId,
   qualifiedSectionIds,
   comments,
   courses: coursesProp,
@@ -64,8 +62,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
     try {
       await saveFormMutation.mutateAsync({
         userId,
-        termLetter,
-        year,
+        termId,
         qualifiedSectionIds,
         sectionPreferences: mapping,
         comments,

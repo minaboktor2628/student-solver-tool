@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/trpc/react";
+import { useTerm } from "@/components/term-combobox";
 
 export type Section = {
   term: string;
@@ -12,9 +13,9 @@ export type Course = { code: string; title: string; sections: Section[] };
 
 interface FormEntryQualificationsProps {
   userId: string;
-  termLetter: "A" | "B" | "C" | "D";
-  year: number;
+  termId: string;
   courses?: Course[];
+  initialSelectedSections?: string[];
   onChange?: (selectedSectionIds: string[]) => void;
   onNext?: () => void;
   onExit?: () => void;
@@ -22,38 +23,20 @@ interface FormEntryQualificationsProps {
 
 const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   userId,
-  termLetter,
-  year,
+  termId,
   courses = [],
+  initialSelectedSections = [],
   onChange,
   onNext,
   onExit,
 }) => {
+  const { selectedTerm } = useTerm();
   const [isSaving, setIsSaving] = useState(false);
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
 
-  // Fetch previous qualifications from API
-  const previousQualificationsQ = api.studentForm.getQualifications.useQuery(
-    {
-      userId,
-      termLetter,
-      year,
-    },
-    { enabled: !!userId },
-  );
-
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
-    new Set(previousQualificationsQ.data?.qualifiedSectionIds || []),
+    () => new Set(initialSelectedSections),
   );
-
-  // Update selected sections when previous qualifications load
-  useEffect(() => {
-    if (previousQualificationsQ.data?.qualifiedSectionIds) {
-      setSelectedSections(
-        new Set(previousQualificationsQ.data.qualifiedSectionIds),
-      );
-    }
-  }, [previousQualificationsQ.data?.qualifiedSectionIds]);
 
   // derived map from course code -> section ids for quick lookup
   const courseToSectionIds = useMemo(() => {
@@ -67,16 +50,16 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   }, [courses]);
 
   useEffect(() => {
+    console.log("2");
     onChange?.(Array.from(selectedSections));
-  }, [selectedSections, onChange]);
+  }, [selectedSections]);
 
   async function handleNextClick() {
     setIsSaving(true);
     try {
       await saveFormMutation.mutateAsync({
         userId,
-        termLetter,
-        year,
+        termId: selectedTerm?.id ?? termId,
         qualifiedSectionIds: Array.from(selectedSections),
       });
       onNext?.();
