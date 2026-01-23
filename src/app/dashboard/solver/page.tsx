@@ -57,6 +57,9 @@ export default function SolverPage() {
   const utils = api.useUtils();
 
   const solverApi = api.assignment.solve.useMutation({
+    onError: (err) => {
+      toast.error(err.message);
+    },
     onSettled: async () => {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
