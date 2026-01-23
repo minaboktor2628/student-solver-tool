@@ -21,26 +21,17 @@ export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
 interface FormEntryTimesProps {
   userId: string;
   termId: string;
-  qualifiedSectionIds: string[];
-  sectionPreferences: Record<string, "prefer" | "strong" | undefined>;
-  comments: string;
   onNext: () => void;
   onExit: () => void;
   initialSelection?: Date[];
-  /** optional callback to receive weekly availability as day/hour pairs */
-  onSave?: (weekly: WeeklySlot[]) => void;
 }
 
 const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   userId,
   termId,
-  qualifiedSectionIds,
-  sectionPreferences,
-  comments,
   onNext,
   onExit,
   initialSelection = [],
-  onSave,
 }) => {
   const [selection, setSelection] = useState<Date[]>(initialSelection);
   const [isSaving, setIsSaving] = useState(false);
@@ -48,18 +39,13 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
 
   async function handleNextClick() {
     const weekly = selectionToWeekly(selection);
-    onSave?.(weekly);
 
-    // Save the complete form
     setIsSaving(true);
     try {
       await saveFormMutation.mutateAsync({
         userId,
-        termId: termId,
+        termId,
         weeklyAvailability: weekly,
-        qualifiedSectionIds,
-        sectionPreferences,
-        comments,
       });
       onNext();
     } catch (error) {

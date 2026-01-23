@@ -36,9 +36,6 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   year,
 }) => {
   // Data collected from each step, initialized from database
-  const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklySlot[]>(
-    [],
-  );
   const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
   const [courseTokenMapping, setCourseTokenMapping] = useState<
     Record<string, "prefer" | "strong" | undefined>
@@ -89,25 +86,16 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
     <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
       <ProgressIndicator step={step} totalSteps={5} />
       {step === 1 && (
-        <FormEntryAvailability
-          termLetter={termLetter ?? "A"}
-          year={year ?? 2025}
-          userRole={staffId ?? "TA"}
-          onNext={handleNext}
-          onExit={handleExit}
-        />
+        // doesnt need initial data, can always start form with available/not
+        <FormEntryAvailability onNext={handleNext} onExit={handleExit} />
       )}
       {step === 2 && (
         //TODO pass in initial times data
         <FormEntryTimes
           userId={userId}
           termId={selectedId ?? ""}
-          qualifiedSectionIds={qualifiedSections}
-          sectionPreferences={courseTokenMapping}
-          comments={comments}
           onNext={handleNext}
           onExit={() => setStep(1)}
-          onSave={(weekly) => setWeeklyAvailability(weekly)}
         />
       )}
       {step === 3 && (
@@ -122,6 +110,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         />
       )}
       {step === 4 && (
+        //TODO pass in initial prefs
         <FormEntryPreferences
           userId={userId}
           termId={selectedId ?? ""}
@@ -139,6 +128,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         />
       )}
       {step === 5 && (
+        //TODO pass in initial comments
         <FormEntryComments
           userId={userId}
           termId={selectedId ?? ""}
