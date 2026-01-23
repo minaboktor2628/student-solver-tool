@@ -1,5 +1,5 @@
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
-export type dayEnum = { day: "M" | "T" | "W" | "R" | "F" };
+export type dayEnum = "M" | "T" | "W" | "R" | "F";
 export type Role = "TA" | "PLA" | "GLA" | "PROFESSOR" | "COORDINATOR";
 
 export type SectionWithProfessorPreference = {
@@ -13,32 +13,11 @@ export type SectionWithProfessorPreference = {
   requiredHours: number;
   availableAssistants: Assistant[];
   professorPreference: {
-    preferredStaff: Assistant[];
-    avoidedStaff: Assistant[];
-    timesRequired: {
-      id: string;
-      day: dayEnum;
-      hour: number;
-    }[];
-    comments: string | null | undefined;
+    preferredStaff?: Assistant[];
+    avoidedStaff?: Assistant[];
+    timesRequired?: TimesRequiredOutput[];
+    comments?: string | null;
   };
-};
-
-export type SelectAssistantPreferenceProps = {
-  sectionId: string;
-  availableAssistants: Assistant[];
-  chosenAssistants: Assistant[];
-};
-
-export type SelectRequiredTimesProps = {
-  sectionId: string;
-  timesRequired: WeeklySlot[];
-  initialSelection?: Date[];
-};
-
-export type ProfessorCommentBoxProps = {
-  sectionId: string;
-  initialComment: string | undefined | null;
 };
 
 export type Assistant = {
@@ -46,5 +25,10 @@ export type Assistant = {
   name: string | null;
   email: string | null;
   hours: number | null;
-  roles: { role: Role }[] | undefined;
+  roles: { role: Role }[];
+};
+
+export type TimesRequiredOutput = {
+  day: dayEnum;
+  hour: number;
 };

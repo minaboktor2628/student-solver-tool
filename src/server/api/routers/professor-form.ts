@@ -19,6 +19,7 @@ export const professorFormRoute = createTRPCRouter({
             include: {
               timesRequired: {
                 select: {
+                  id: true,
                   day: true,
                   hour: true,
                 },

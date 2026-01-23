@@ -3,11 +3,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/dist/client/link";
 import { api } from "@/trpc/react";
-import SectionPreferenceCard from "./section-preference-card";
 import type {
   SectionWithProfessorPreference,
   Assistant,
-  WeeklySlot,
+  TimesRequiredOutput,
+  dayEnum,
 } from "@/types/professor";
 import {
   Card,
@@ -33,42 +33,121 @@ interface ProfessorPreferenceFormProps {
 const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   userId,
 }) => {
-  const [sections, setSections] = useState<SectionWithProfessorPreference[]>(
-    [],
+  const [preferredStaff, setPreferredStaff] = useState<
+    Record<string, Assistant[]>
+  >({});
+  const [avoidedStaff, setAvoidedStaff] = useState<Record<string, Assistant[]>>(
+    {},
   );
-  const [preferredStaff, setPreferredStaff] = useState<Assistant[]>();
+  const [timesRequired, setTimesRequired] = useState<
+    Record<string, TimesRequiredOutput[]>
+  >({});
+  const [comments, setComments] = useState<string | null | undefined>();
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const { data, isLoading, error } =
+  const { data, error } =
     api.professorForm.getProfessorSectionsForTerm.useQuery({
       professorId: userId,
     });
 
-  const updateSectionPreference = (
+  const [sections, setSections] =
+    useState<Record<string, SectionWithProfessorPreference>>();
+
+  useEffect(() => {
+    setLoading(true);
+    if (data) {
+      const initialValues: Record<string, SectionWithProfessorPreference> = {};
+      data?.sections.forEach((s) => {
+        initialValues[s.sectionId] = {
+          sectionId: s.sectionId,
+          courseCode: s.courseCode,
+          courseSection: s.courseSection,
+          courseTitle: s.courseTitle,
+          meetingPattern: s.meetingPattern,
+          enrollment: s.enrollment,
+          capacity: s.capacity,
+          requiredHours: s.requiredHours,
+          availableAssistants: s.availableAssistants.map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+            hours: a.hours,
+            roles: a.roles,
+          })),
+          professorPreference: {
+            preferredStaff: s.professorPreference?.preferredStaff?.map((a) => ({
+              id: a.id,
+              name: a.name,
+              email: a.email,
+              hours: a.hours,
+              roles: (a.roles ?? []).map((r) => ({ role: r })),
+            })),
+            avoidedStaff: s.professorPreference?.avoidedStaff?.map((a) => ({
+              id: a.id,
+              name: a.name,
+              email: a.email,
+              hours: a.hours,
+              roles: (a.roles ?? []).map((r) => ({ role: r })),
+            })),
+            timesRequired: s.professorPreference?.timesRequired?.map((a) => ({
+              day: a.day,
+              hour: a.hour,
+            })),
+            comments: s.professorPreference?.comments,
+          },
+        };
+      });
+      setSections(initialValues);
+      setLoading(false);
+    }
+  }, [data?.sections]);
+
+  const handlePreferredStaffChange = (
     sectionId: string,
-    data: Partial<SectionWithProfessorPreference["professorPreference"]>,
+    newPreferredStaff: Assistant[],
   ) => {
-    setSections((prev) =>
-      prev.map((section) =>
-        section.sectionId === sectionId
-          ? {
-              ...section,
-              professorPreference: {
-                ...section.professorPreference,
-                ...data,
-              },
-            }
-          : section,
-      ),
-    );
+    setPreferredStaff((prev) => ({
+      ...prev,
+      [sectionId]: newPreferredStaff,
+    }));
   };
+  const handleAvoidedStaffChange = (
+    sectionId: string,
+    newAvoidedStaff: Assistant[],
+  ) => {
+    setAvoidedStaff((prev) => ({
+      ...prev,
+      [sectionId]: newAvoidedStaff,
+    }));
+  };
+  const handleTimesRequiredChange = (
+    sectionId: string,
+    newTimesRequired: TimesRequiredOutput[],
+  ) => {
+    setTimesRequired((prev) => ({
+      ...prev,
+      [sectionId]: newTimesRequired,
+    }));
+  };
+  const handleCommentsChange = (
+    sectionId: string,
+    newComments: string | null | undefined,
+  ) => {
+    setComments(newComments);
+  };
+
+  const dbInsertProfPreference =
+    api.professorForm.updateProfessorSectionsForTerm.useMutation({
+      onError: (err) => console.error("Mutation failed:", err),
+    });
 
   const handleSubmit = () => {
     setIsSubmitting(true);
-    const payload = sections.map((s) => ({
+    const payload = data?.sections?.map((s) => ({
       sectionId: s.sectionId,
-      ...s.professorPreference,
+      professorId: userId,
     }));
 
     setIsSubmitted(true);
@@ -76,10 +155,11 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
 
     console.log("Submitting:", payload);
     toast.success("Preferences submitted successfully!");
+
     // api.sectionPreference.upsertMany.mutate(payload)
     // TODO: create mutation to submit preferences
   };
-  if (isLoading) {
+  if (loading) {
     return (
       <div>
         <LoadingSpinner />
@@ -130,15 +210,14 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
             handleSubmit();
           }}
         >
-          {data?.sections.map((section) => (
-            <div className="px-4 py-2">
-              <Card key={section.sectionId}>
+          {Object.values(sections ?? {}).map((section) => (
+            <div key={section.sectionId} className="px-4 py-2">
+              <Card>
                 <CardHeader>
                   <CardTitle>{section.courseTitle}</CardTitle>
                   <CardDescription>
                     {section.courseCode} - {section.courseSection}
-                  </CardDescription>
-                  <CardDescription>
+                    <br />
                     Meeting Time: {section.meetingPattern}
                   </CardDescription>
                   <CardDescription>
@@ -148,26 +227,36 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                     Potential Staff Hours: {section.requiredHours}
                   </CardDescription>
                   <SelectAssistantPref
-                    key={section.sectionId}
                     sectionId={section.sectionId}
                     availableAssistants={section.availableAssistants}
-                    chosenAssistants={
-                      section.professorPreference.preferredStaff
+                    preferredStaff={preferredStaff[section.sectionId] || []}
+                    onChange={(sectionId, preferredStaff) =>
+                      handlePreferredStaffChange(sectionId, preferredStaff)
                     }
                   />
                   <SelectAssistantAntipref
-                    key={section.sectionId}
                     sectionId={section.sectionId}
                     availableAssistants={section.availableAssistants}
-                    chosenAssistants={section.professorPreference.avoidedStaff}
+                    avoidedStaff={avoidedStaff[section.sectionId] || []}
+                    onChange={(sectionId, avoidedStaff) =>
+                      handleAvoidedStaffChange(sectionId, avoidedStaff)
+                    }
                   />
                   <SelectRequiredTimes
                     sectionId={section.sectionId}
-                    timesRequired={section.professorPreference.timesRequired}
+                    timesRequired={
+                      section.professorPreference.timesRequired || []
+                    }
+                    onChange={(sectionId, timesRequired) =>
+                      handleTimesRequiredChange(sectionId, timesRequired)
+                    }
                   />
                   <FormEntryComments
                     sectionId={section.sectionId}
                     initialComment={section.professorPreference.comments}
+                    onChange={(sectionId, comments) =>
+                      handleCommentsChange(sectionId, comments)
+                    }
                   />
                 </CardHeader>
               </Card>

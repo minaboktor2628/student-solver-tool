@@ -3,27 +3,28 @@
 import React from "react";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
-import type {
-  SelectAssistantPreferenceProps,
-  Assistant,
-} from "@/types/professor";
+import type { Assistant } from "@/types/professor";
+
+type SelectAssistantPreferenceProps = {
+  sectionId: string;
+  availableAssistants: Assistant[];
+  preferredStaff?: Assistant[];
+  onChange: (sectionId: string, preferredStaff: Assistant[]) => void;
+};
 
 export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
   sectionId,
   availableAssistants,
-  chosenAssistants,
+  preferredStaff,
+  onChange,
 }) => {
   const [wantsSpecificAssistants, setWantsSpecificAssistants] =
     React.useState<boolean>();
-  const [selectedPreferences, setPreferences] = React.useState<Assistant[]>(
-    chosenAssistants ?? [],
-  );
-  const handleAssistantChange = (assistant: Assistant, checked: boolean) => {
-    setPreferences((prev) =>
-      checked
-        ? [...prev, assistant]
-        : prev.filter((a) => a.id !== assistant.id),
-    );
+  const toggleAssistant = (assistant: Assistant, checked: boolean) => {
+    const newStaff = checked
+      ? [...(preferredStaff || []), assistant]
+      : (preferredStaff || []).filter((a) => a.id !== assistant.id);
+    onChange(sectionId, newStaff);
   };
 
   return (
@@ -48,7 +49,6 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
             variant={wantsSpecificAssistants === false ? "default" : "outline"}
             onClick={() => {
               setWantsSpecificAssistants(false);
-              setPreferences([]);
             }}
           >
             No
@@ -61,15 +61,12 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
           <Label className="text-sm font-medium">
             Select your preferred assistants
           </Label>
-
           {availableAssistants.map((staff) => {
-            const isSelected = selectedPreferences.includes(staff);
-
             return (
               <div
                 key={staff.id}
                 className={`flex items-center justify-between rounded-lg border p-3 ${
-                  isSelected
+                  preferredStaff?.some((a) => a.id === staff.id)
                     ? "border-primary bg-primary/5"
                     : "border-border hover:bg-accent"
                 }`}
@@ -86,10 +83,8 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
                 <input
                   type="checkbox"
                   id={`${sectionId}-${staff.id}`}
-                  checked={isSelected}
-                  onChange={(e) =>
-                    handleAssistantChange(staff, e.target.checked)
-                  }
+                  checked={preferredStaff?.some((a) => a.id === staff.id)}
+                  onChange={(e) => toggleAssistant(staff, e.target.checked)}
                   className="text-primary focus:ring-primary h-4 w-4 cursor-pointer rounded border-gray-300"
                 />
               </div>

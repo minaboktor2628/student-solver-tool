@@ -3,25 +3,25 @@
 import React from "react";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
-import type {
-  SelectAssistantPreferenceProps,
-  Assistant,
-} from "@/types/professor";
+import type { Assistant } from "@/types/professor";
+
+type SelectAssistantPreferenceProps = {
+  sectionId: string;
+  availableAssistants: Assistant[];
+  avoidedStaff?: Assistant[];
+  onChange: (sectionId: string, preferredStaff: Assistant[]) => void;
+};
 
 export const SelectAssistantAntipref: React.FC<
   SelectAssistantPreferenceProps
-> = ({ sectionId, availableAssistants, chosenAssistants }) => {
+> = ({ sectionId, availableAssistants, avoidedStaff, onChange }) => {
   const [wantsAntiPreferences, setWantsAntiPreferences] =
     React.useState<boolean>();
-  const [antiPreferences, setAntiPreferences] = React.useState<Assistant[]>(
-    chosenAssistants ?? [],
-  );
-  const handleAssistantChange = (assistant: Assistant, checked: boolean) => {
-    setAntiPreferences((prev) =>
-      checked
-        ? [...prev, assistant]
-        : prev.filter((a) => a.id !== assistant.id),
-    );
+  const toggleAssistant = (assistant: Assistant, checked: boolean) => {
+    const newStaff = checked
+      ? [...(avoidedStaff || []), assistant]
+      : (avoidedStaff || []).filter((a) => a.id !== assistant.id);
+    onChange(sectionId, newStaff);
   };
 
   return (
@@ -41,10 +41,7 @@ export const SelectAssistantAntipref: React.FC<
           <Button
             type="button"
             variant={wantsAntiPreferences === false ? "default" : "outline"}
-            onClick={() => {
-              setWantsAntiPreferences(false);
-              setAntiPreferences([]);
-            }}
+            onClick={() => setWantsAntiPreferences(false)}
           >
             No
           </Button>
@@ -58,13 +55,11 @@ export const SelectAssistantAntipref: React.FC<
           </Label>
 
           {availableAssistants.map((staff) => {
-            const isSelected = antiPreferences.includes(staff);
-
             return (
               <div
                 key={staff.id}
                 className={`flex items-center justify-between rounded-lg border p-3 ${
-                  isSelected
+                  avoidedStaff?.some((a) => a.id === staff.id)
                     ? "border-primary bg-primary/5"
                     : "border-border hover:bg-accent"
                 }`}
@@ -81,10 +76,8 @@ export const SelectAssistantAntipref: React.FC<
                 <input
                   type="checkbox"
                   id={`${sectionId}-${staff.id}`}
-                  checked={isSelected}
-                  onChange={(e) =>
-                    handleAssistantChange(staff, e.target.checked)
-                  }
+                  checked={avoidedStaff?.some((a) => a.id === staff.id)}
+                  onChange={(e) => toggleAssistant(staff, e.target.checked)}
                   className="text-primary focus:ring-primary h-4 w-4 cursor-pointer rounded border-gray-300"
                 />
               </div>
