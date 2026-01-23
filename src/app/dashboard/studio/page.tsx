@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { Studio } from "@prisma/studio-core/ui";
 import { createSQLiteAdapter } from "@prisma/studio-core/data/sqlite-core";
 import { createStudioBFFClient } from "@prisma/studio-core/data/bff";
-import "@prisma/studio-core/ui/index.css";
 
 export default function EmbeddedPrismaStudioPage() {
   const adapter = useMemo(() => {
