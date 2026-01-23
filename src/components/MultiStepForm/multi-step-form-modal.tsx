@@ -103,10 +103,10 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
           userId={userId}
           termId={selectedId ?? ""}
           courses={sectionsQ.data?.courses}
-          initialSelectedSections={qualifiedSections}
+          onChange={(ids) => setQualifiedSectionIds(ids)}
           onNext={handleNext}
           onExit={() => setStep(2)}
-          onChange={(ids) => setQualifiedSectionIds(ids)}
+          onSubmit={handleSubmit}
         />
       )}
       {step === 4 && (

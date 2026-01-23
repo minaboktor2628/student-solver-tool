@@ -15,27 +15,26 @@ interface FormEntryQualificationsProps {
   userId: string;
   termId: string;
   courses?: Course[];
-  initialSelectedSections?: string[];
   onChange?: (selectedSectionIds: string[]) => void;
   onNext?: () => void;
   onExit?: () => void;
+  onSubmit?: () => void;
 }
 
 const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   userId,
   termId,
   courses = [],
-  initialSelectedSections = [],
   onChange,
   onNext,
   onExit,
+  onSubmit,
 }) => {
-  const { selectedTerm } = useTerm();
   const [isSaving, setIsSaving] = useState(false);
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
 
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
-    () => new Set(initialSelectedSections),
+    () => new Set([]),
   );
 
   // derived map from course code -> section ids for quick lookup
@@ -50,16 +49,34 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   }, [courses]);
 
   useEffect(() => {
-    console.log("2");
     onChange?.(Array.from(selectedSections));
   }, [selectedSections]);
 
   async function handleNextClick() {
+    // If no sections selected, skip to end/homepage
+    if (selectedSections.size === 0) {
+      setIsSaving(true);
+      try {
+        await saveFormMutation.mutateAsync({
+          userId,
+          termId,
+          qualifiedSectionIds: [],
+        });
+        // Exit to homepage instead of going to next step
+        onSubmit?.();
+      } catch (error) {
+        console.error("Failed to save qualifications:", error);
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
     setIsSaving(true);
     try {
       await saveFormMutation.mutateAsync({
         userId,
-        termId: selectedTerm?.id ?? termId,
+        termId,
         qualifiedSectionIds: Array.from(selectedSections),
       });
       onNext?.();

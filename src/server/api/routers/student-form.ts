@@ -191,18 +191,20 @@ export const studentFormRoute = createTRPCRouter({
         });
 
         // 3. Upsert qualified sections (replace existing)
-        if (qualifiedSectionIds && qualifiedSectionIds.length > 0) {
+        if (qualifiedSectionIds !== undefined) {
           // Delete existing qualifications
           await tx.staffPreferenceQualifiedSection.deleteMany({
             where: { staffPreferenceId: staffPref.id },
           });
-          // Create new qualifications
-          await tx.staffPreferenceQualifiedSection.createMany({
-            data: qualifiedSectionIds.map((sectionId) => ({
-              staffPreferenceId: staffPref.id,
-              sectionId,
-            })),
-          });
+          // Create new qualifications if array is not empty
+          if (qualifiedSectionIds.length > 0) {
+            await tx.staffPreferenceQualifiedSection.createMany({
+              data: qualifiedSectionIds.map((sectionId) => ({
+                staffPreferenceId: staffPref.id,
+                sectionId,
+              })),
+            });
+          }
         }
 
         // 4. Upsert preferred sections (replace existing)

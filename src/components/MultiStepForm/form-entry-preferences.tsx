@@ -78,7 +78,6 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   const originalNumStrongTokens = 1;
   const originalNumPreferTokens = 3;
 
-  // derive token usage from mapping so counts cannot drift out of sync
   const usedStrong = Object.values(mapping).filter(
     (v) => v === "strong",
   ).length;
@@ -91,14 +90,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   function handleDrop(sectionId: string, token: TokenType) {
     setMapping((prev) => {
       const existing = prev[sectionId];
-      // No-op if dropping same token onto same section
       if (existing === token) return prev;
 
-      // Prevent consuming a token if none are available
       if (token === "prefer" && numPreferTokens <= 0) return prev;
       if (token === "strong" && numStrongTokens <= 0) return prev;
 
-      // Build next mapping
       const next = { ...prev, [sectionId]: token };
 
       onChange?.(next);
