@@ -1,13 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createNodeSQLiteExecutor } from "@prisma/studio-core/data/node-sqlite";
 import { serializeError } from "@prisma/studio-core/data/bff";
 import DatabaseSync from "better-sqlite3";
 import { env } from "@/env";
+import { auth } from "@/server/auth";
+import { isCoordinator } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+
+  if (!session) {
+    return NextResponse.json([serializeError(new Error("Unauthorized"))], {
+      status: 401,
+    });
+  }
+
+  if (!isCoordinator(session)) {
+    return NextResponse.json([serializeError(new Error("Forbidden"))], {
+      status: 403,
+    });
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const body = await req.json();
