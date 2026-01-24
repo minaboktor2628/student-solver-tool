@@ -4,21 +4,16 @@ import { serializeError } from "@prisma/studio-core/data/bff";
 import DatabaseSync from "better-sqlite3";
 import { env } from "@/env";
 import { auth } from "@/server/auth";
-import { isCoordinator } from "@/lib/utils";
+import { hasPermission } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
+  const user = session?.user ?? null;
 
-  if (!session) {
-    return NextResponse.json([serializeError(new Error("Unauthorized"))], {
-      status: 401,
-    });
-  }
-
-  if (!isCoordinator(session)) {
+  if (!user || !hasPermission(user, "studioEndpoint", "call", undefined)) {
     return NextResponse.json([serializeError(new Error("Forbidden"))], {
       status: 403,
     });
