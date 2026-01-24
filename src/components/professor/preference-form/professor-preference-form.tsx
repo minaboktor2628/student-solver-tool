@@ -42,7 +42,8 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   const [timesRequired, setTimesRequired] = useState<
     Record<string, TimesRequiredOutput[]>
   >({});
-  const [comments, setComments] = useState<string | null | undefined>();
+  const [comments, setComments] =
+    useState<Record<string, string | null | undefined>>();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -135,13 +136,11 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     sectionId: string,
     newComments: string | null | undefined,
   ) => {
-    setComments(newComments);
+    setComments((prev) => ({
+      ...prev,
+      [sectionId]: newComments,
+    }));
   };
-
-  const dbInsertProfPreference =
-    api.professorForm.updateProfessorSectionsForTerm.useMutation({
-      onError: (err) => console.error("Mutation failed:", err),
-    });
 
   const handleSubmit = () => {
     setIsSubmitting(true);
@@ -158,6 +157,9 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
 
     // api.sectionPreference.upsertMany.mutate(payload)
     // TODO: create mutation to submit preferences
+    api.professorForm.updateProfessorSectionsForTerm.useMutation({
+      onError: (err) => console.error("Mutation failed:", err),
+    });
   };
   if (loading) {
     return (
