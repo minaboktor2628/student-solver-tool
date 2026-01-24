@@ -32,6 +32,7 @@ type Permissions = {
     action: "view";
   };
   studioEndpoint: {
+    dataType: never;
     action: "view" | "call";
   };
 };
