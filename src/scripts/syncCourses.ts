@@ -243,6 +243,7 @@ async function createOrUpdateSection(
   const { enrolled, capacity } = parseEnrollment(course.Enrolled_Capacity);
   const courseCode = extractCourseCode(course.Course_Section);
   const courseTitle = course.Course_Title.replace(/^[A-Z]+\s+\d+\s+-\s+/, "");
+  const courseSection = extractSectionType(course.Course_Section) || "01";
 
   // Enhanced description
   let enhancedDescription = course.Course_Description || "";
@@ -266,10 +267,12 @@ async function createOrUpdateSection(
     courseTitle,
     enrollment: enrolled,
     capacity,
-    requiredHours: isPrimary ? calculateRequiredHours(enrolled) : 0, // 0 hours for secondary
+    requiredHours: isPrimary ? calculateRequiredHours(enrolled) : 0,
     professorId: professor.id,
     academicLevel: parseAcademicLevel(course.Academic_Level),
     description: enhancedDescription,
+    courseSection: courseSection,
+    meetingPattern: "",
   };
 
   if (existingSection) {

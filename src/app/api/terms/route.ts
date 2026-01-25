@@ -18,7 +18,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: termId },
     });
 
-    console.log("✅ Term deleted successfully");
+    console.log("Term deleted successfully");
     console.log("=== TERM DELETION COMPLETE ===");
 
     return NextResponse.json({
@@ -40,17 +40,13 @@ export async function DELETE(request: NextRequest) {
 } // src/app/api/terms/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
-const prisma = new PrismaClient();
+const prisma = db;
 
-// Calculate required hours based on enrollment
 function calculateRequiredHours(enrollment: number): number {
-  // Round enrollment up to nearest 5
   const roundedUp = Math.ceil(enrollment / 5) * 5;
-  // Divide by 2
   const divided = roundedUp / 2;
-  // Round down to nearest 10
   const requiredHours = Math.floor(divided / 10) * 10;
   return requiredHours;
 }
@@ -127,7 +123,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("✅ Term created:", term.id);
+    console.log("Term created:", term.id);
 
     // Create allowed emails
     if (csvData && Array.isArray(csvData)) {
@@ -143,11 +139,7 @@ export async function POST(request: NextRequest) {
           });
           console.log("✅ Created allowed email:", row.email);
         } catch (emailError) {
-          console.error(
-            "❌ Error creating allowed email:",
-            row.email,
-            emailError,
-          );
+          console.error("Error creating allowed email:", row.email, emailError);
         }
       }
     } else {
@@ -212,14 +204,16 @@ export async function POST(request: NextRequest) {
               professorId: professorUser.id,
               enrollment: course.enrollment || 0,
               capacity: course.capacity || 0,
-              requiredHours: calculatedHours, // Use calculated hours
+              requiredHours: calculatedHours,
               academicLevel: "UNDERGRADUATE",
+              courseSection: course.courseSection || "01",
+              meetingPattern: course.meetingPattern || "TBD",
             },
           });
-          console.log("✅ Created section:", course.courseCode);
+          console.log("Created section:", course.courseCode);
         } catch (courseError) {
           console.error(
-            "❌ Error creating section for course:",
+            "Error creating section for course:",
             course.courseCode,
             courseError,
           );

@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncCourses } from "@/scripts/syncCourses";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 
-const prisma = new PrismaClient();
+const prisma = db;
 
-// Calculate required hours based on enrollment (same as in page.tsx)
+// Calculate required hours based on enrollment
 function calculateRequiredHours(enrollment: number): number {
-  // Round enrollment up to nearest 5
   const roundedUp = Math.ceil(enrollment / 5) * 5;
-  // Divide by 2
   const divided = roundedUp / 2;
-  // Round down to nearest 10
   const requiredHours = Math.floor(divided / 10) * 10;
   return requiredHours;
 }
@@ -147,8 +144,15 @@ export async function POST(request: Request) {
       const createdCourses = [];
 
       for (const courseData of courses) {
-        const { courseCode, courseTitle, professorName, enrollment, capacity } =
-          courseData;
+        const {
+          courseCode,
+          courseTitle,
+          professorName,
+          enrollment,
+          capacity,
+          courseSection,
+          meetingPattern,
+        } = courseData;
 
         // Find or create professor
         let professor = await prisma.user.findFirst({
@@ -189,6 +193,8 @@ export async function POST(request: Request) {
             termId: termId || null,
             academicLevel: "UNDERGRADUATE",
             description: `${courseCode} - ${courseTitle}`,
+            courseSection: courseSection || "01",
+            meetingPattern: meetingPattern || "",
           },
         });
 
@@ -201,7 +207,7 @@ export async function POST(request: Request) {
         courses: createdCourses,
       });
     } else {
-      // No JSON body, so it's a sync request from the UI button
+      // Sync request from the UI button
       const result = await syncCourses();
       return NextResponse.json({
         success: true,
