@@ -13,7 +13,7 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
         <div
           key={i}
           className={`mx-1 h-2 w-8 rounded ${
-            i < step ? "bg-blue-600" : "bg-gray-200"
+            i < step ? "bg-primary" : "bg-gray-200"
           }`}
         />
       ))}

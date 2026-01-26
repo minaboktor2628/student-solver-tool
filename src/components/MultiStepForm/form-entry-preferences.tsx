@@ -118,7 +118,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   return (
     <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
-        Set your section preferences
+        Drag preference tokens to sections you prefer to work for
       </h2>
 
       <div className="mb-4 flex flex-wrap items-center gap-4 rounded-lg bg-gray-50 p-4">
@@ -162,12 +162,6 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {filteredCourses.length === 0 && (
-          <div className="text-sm text-gray-500">
-            No qualified sections yet. Go back to select courses first.
-          </div>
-        )}
-
         {filteredCourses.map((course) => (
           <div
             key={course.code}

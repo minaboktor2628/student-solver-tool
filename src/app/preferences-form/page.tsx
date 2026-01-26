@@ -1,4 +1,3 @@
-import FormTriggerButton from "@/components/MultiStepForm/form-trigger-button";
 import MultiStepFormModal from "@/components/MultiStepForm/multi-step-form-modal";
 import { auth } from "@/server/auth";
 import { redirect } from "next/navigation";

@@ -94,18 +94,8 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
       </h2>
 
       <div className="bg-white p-4 shadow-sm">
-        {/* ScheduleSelector props: selection is an array of Date objects */}
-        <ScheduleSelector
+        <BaseScheduleSelector
           selection={selection}
-          numDays={5}
-          startDate={new Date(1970, 0, 5)}
-          renderDateLabel={(d: Date) => {
-            const letter = dayLetterFromDate(d) ?? "";
-            return <div className="text-center font-semibold">{letter}</div>;
-          }}
-          minTime={8}
-          maxTime={21}
-          hourlyChunks={1}
           onChange={(newSelection: Date[]) => setSelection(newSelection)}
         />
       </div>

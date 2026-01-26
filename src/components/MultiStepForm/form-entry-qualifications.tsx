@@ -124,7 +124,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   return (
     <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
-        Select courses and sections
+        Select courses and sections you qualified to work for
       </h2>
 
       <div className="grid grid-cols-1 gap-4">
@@ -151,7 +151,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                       checked={courseSelected}
                       onChange={() => toggleCourse(course)}
                       aria-label={`Select all sections for ${course.code}`}
-                      className="h-4 w-4"
+                      className="accent-primary h-4 w-4"
                     />
                   </label>
                 </div>
@@ -181,7 +181,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                         checked={isSectionSelected(section.id)}
                         onChange={() => toggleSection(section.id)}
                         tabIndex={0}
-                        className="h-4 w-4"
+                        className="accent-primary h-4 w-4"
                         aria-label={`Select section ${section.term}${section.courseSection} for ${course.code}`}
                       />
                     </li>
