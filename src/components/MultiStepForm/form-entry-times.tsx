@@ -8,14 +8,6 @@ import dynamic from "next/dynamic";
 import { api } from "@/trpc/react";
 import { BaseScheduleSelector } from "@/lib/schedule-selector";
 
-// Dynamic import with no SSR because the schedule selector depends on browser APIs
-const ScheduleSelector: any = dynamic(
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - dynamic import of a JS module without types
-  () => import("react-schedule-selector").then((mod) => mod.default || mod),
-  { ssr: false },
-);
-
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
 
 interface FormEntryTimesProps {
