@@ -2,14 +2,12 @@
 import { useEffect, useState } from "react";
 import FormEntryAvailability from "./form-entry-availability";
 import FormEntryTimes from "./form-entry-times";
-import type { WeeklySlot } from "./form-entry-times";
 import ProgressIndicator from "./progress-indicator";
 import FormEntryQualifications from "./form-entry-qualifications";
 import FormEntryPreferences from "./form-entry-preferences";
 import FormEntryComments from "./form-entry-comments";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
-import { getTokenSourceMapRange } from "typescript";
 import { useTerm } from "@/components/term-combobox";
 
 interface MultiStepFormModalProps {

@@ -1,8 +1,5 @@
 "use client";
 
-// Ensure core-js polyfill required by some CJS packages is available at bundle time
-import "core-js/modules/web.dom-collections.iterator";
-
 import React, { useState } from "react";
 import { api } from "@/trpc/react";
 import { BaseScheduleSelector } from "@/lib/schedule-selector";

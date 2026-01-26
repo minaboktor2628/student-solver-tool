@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/trpc/react";
-import { useTerm } from "@/components/term-combobox";
 
 export type Section = {
   term: string;
