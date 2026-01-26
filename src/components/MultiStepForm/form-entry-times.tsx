@@ -4,7 +4,6 @@
 import "core-js/modules/web.dom-collections.iterator";
 
 import React, { useState } from "react";
-import dynamic from "next/dynamic";
 import { api } from "@/trpc/react";
 import { BaseScheduleSelector } from "@/lib/schedule-selector";
 
