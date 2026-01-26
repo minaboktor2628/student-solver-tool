@@ -180,7 +180,7 @@ export const studentFormRoute = createTRPCRouter({
         const staffPref = await tx.staffPreference.upsert({
           where: { userId_termId: { userId, termId: term.id } },
           update: {
-            comments: comments || null,
+            ...(comments !== undefined && { comments: comments || null }),
             updatedAt: new Date(),
           },
           create: {
@@ -246,6 +246,21 @@ export const studentFormRoute = createTRPCRouter({
         return { ok: true, staffPreferenceId: staffPref.id };
       });
 
+      return result;
+    }),
+
+  setAvailabilityForTerm: assistantProcedure
+    .input(
+      baseInput.extend({
+        isAvailable: z.boolean(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { userId, termId, isAvailable } = input;
+      const result = await db.staffPreference.updateMany({
+        where: { userId, termId },
+        data: { isAvailableForTerm: isAvailable },
+      });
       return result;
     }),
 });

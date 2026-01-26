@@ -87,7 +87,12 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       <ProgressIndicator step={step} totalSteps={5} />
       {step === 1 && (
         // doesnt need initial data, can always start form with available/not
-        <FormEntryAvailability onNext={handleNext} onExit={handleExit} />
+        <FormEntryAvailability
+          userId={userId}
+          termId={selectedId ?? ""}
+          onNext={handleNext}
+          onExit={handleSubmit}
+        />
       )}
       {step === 2 && (
         //TODO pass in initial times data

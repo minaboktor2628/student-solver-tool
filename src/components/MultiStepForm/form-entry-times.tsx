@@ -6,7 +6,7 @@ import "core-js/modules/web.dom-collections.iterator";
 import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { api } from "@/trpc/react";
-import { useTerm } from "@/components/term-combobox";
+import { BaseScheduleSelector } from "@/lib/schedule-selector";
 
 // Dynamic import with no SSR because the schedule selector depends on browser APIs
 const ScheduleSelector: any = dynamic(
@@ -116,7 +116,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
           disabled={isSaving}
           className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
         >
-          {isSaving ? "Saving..." : "Next"}
+          Next
         </button>
         <button
           onClick={onExit}

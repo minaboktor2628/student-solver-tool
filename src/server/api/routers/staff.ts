@@ -27,6 +27,7 @@ export const staffRoute = createTRPCRouter({
         const staffPreferences = await tx.staffPreference.findMany({
           where: {
             termId,
+            isAvailableForTerm: true,
             user: {
               sectionAssignments: {
                 none: {

@@ -246,7 +246,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
             disabled={isSaving}
             className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
           >
-            {isSaving ? "Saving..." : "Next"}
+            Next
           </button>
         )}
         {onExit && (
