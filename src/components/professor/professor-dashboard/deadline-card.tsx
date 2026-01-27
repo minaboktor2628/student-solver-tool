@@ -48,7 +48,7 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
           )}
         </div>
         <CardDescription>
-          Submit your assistant preferences for each course you're teaching
+          Submit your assistant preferences for each course you&apos;re teaching
         </CardDescription>
       </CardHeader>
       <CardContent>

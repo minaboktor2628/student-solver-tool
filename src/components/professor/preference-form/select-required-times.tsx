@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import type { TimesRequiredOutput, WeeklySlot } from "@/types/professor";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
-import { BaseScheduleSelector } from "@/lib/schedule-selector";
 
 // Dynamic import with no SSR because the schedule selector depends on browser APIs
 const ScheduleSelector = dynamic(

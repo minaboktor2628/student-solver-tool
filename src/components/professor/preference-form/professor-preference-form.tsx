@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/dist/client/link";
 import { api } from "@/trpc/react";
 import type {
   SectionWithProfessorPreference,
   Assistant,
   TimesRequiredOutput,
-  dayEnum,
 } from "@/types/professor";
 import {
   Card,
@@ -253,7 +252,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                   <SelectAssistantPref
                     sectionId={section.sectionId}
                     availableAssistants={section.availableAssistants}
-                    preferredStaff={preferredStaff[section.sectionId] || []}
+                    preferredStaff={preferredStaff[section.sectionId] ?? []}
                     onChange={(sectionId, preferredStaff) =>
                       handlePreferredStaffChange(sectionId, preferredStaff)
                     }
@@ -261,7 +260,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                   <SelectAssistantAntipref
                     sectionId={section.sectionId}
                     availableAssistants={section.availableAssistants}
-                    avoidedStaff={avoidedStaff[section.sectionId] || []}
+                    avoidedStaff={avoidedStaff[section.sectionId] ?? []}
                     onChange={(sectionId, avoidedStaff) =>
                       handleAvoidedStaffChange(sectionId, avoidedStaff)
                     }
@@ -269,7 +268,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                   <SelectRequiredTimes
                     sectionId={section.sectionId}
                     timesRequired={
-                      section.professorPreference.timesRequired || []
+                      section.professorPreference.timesRequired ?? []
                     }
                     onChange={(sectionId, timesRequired) =>
                       handleTimesRequiredChange(sectionId, timesRequired)

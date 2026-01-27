@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, professorProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, professorProcedure } from "../trpc";
 
 export const professorDashboardRoute = createTRPCRouter({
   getDashBoardInfo: professorProcedure

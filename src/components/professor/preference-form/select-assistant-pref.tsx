@@ -22,8 +22,8 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
     React.useState<boolean>();
   const toggleAssistant = (assistant: Assistant, checked: boolean) => {
     const newStaff = checked
-      ? [...(preferredStaff || []), assistant]
-      : (preferredStaff || []).filter((a) => a.id !== assistant.id);
+      ? [...(preferredStaff ?? []), assistant]
+      : (preferredStaff ?? []).filter((a) => a.id !== assistant.id);
     onChange(sectionId, newStaff);
   };
 

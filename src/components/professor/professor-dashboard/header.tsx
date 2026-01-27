@@ -1,5 +1,3 @@
-import { api } from "@/trpc/react";
-
 type HeaderProps = {
   username: string | null | undefined;
 };

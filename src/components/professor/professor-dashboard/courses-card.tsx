@@ -1,3 +1,6 @@
+"use client";
+import React from "react";
+import dynamic from "next/dynamic";
 import {
   Card,
   CardHeader,
@@ -5,12 +8,62 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import type { Section } from "@/components/professor/professor-dashboard/professor-homepage";
+import type {
+  SectionWithProfessorPreference,
+  TimesRequiredOutput,
+  WeeklySlot,
+} from "@/types/professor";
+
+// Dynamic import with no SSR because the schedule selector depends on browser APIs
+const ScheduleSelector = dynamic(
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - dynamic import of a JS module without types
+  () => import("react-schedule-selector").then((mod) => mod.default || mod),
+  { ssr: false },
+);
 
 type CoursesCardProps = {
-  sections: Record<string, Section> | undefined;
+  sections: Record<string, SectionWithProfessorPreference> | undefined;
 };
 export const CoursesCard: React.FC<CoursesCardProps> = ({ sections }) => {
+  const calendarStart = new Date(1970, 0, 5);
+  const dayMap: Record<WeeklySlot["day"], number> = {
+    M: 0,
+    T: 1,
+    W: 2,
+    R: 3,
+    F: 4,
+  };
+  function timesRequiredToDate(
+    times: TimesRequiredOutput[],
+    calendarStart: Date,
+  ): Date[] {
+    return times.map((time) => {
+      const dayOffset = dayMap[time.day];
+
+      const date = new Date(calendarStart);
+      date.setDate(calendarStart.getDate() + dayOffset);
+      date.setHours(time.hour, 0, 0, 0);
+
+      return date;
+    });
+  }
+  function dayLetterFromDate(d: Date): WeeklySlot["day"] | null {
+    switch (d.getDay()) {
+      case 1:
+        return "M";
+      case 2:
+        return "T";
+      case 3:
+        return "W";
+      case 4:
+        return "R";
+      case 5:
+        return "F";
+      default:
+        return null;
+    }
+  }
   return (
     <Card>
       <CardHeader>
@@ -25,9 +78,69 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({ sections }) => {
           {Object.values(sections ?? {}).map((course) => (
             <div key={course.courseCode} className="rounded-lg border p-4">
               <h3 className="font-semibold">
-                {course.courseSection}-{course.courseCode} -{" "}
+                {course.courseCode}-{course.courseSection} -{" "}
                 {course.courseTitle}
               </h3>
+
+              <h4 className="mt-2 font-medium">Preferred Assistants</h4>
+              {course.professorPreference?.preferredStaff?.length ? (
+                <ul className="ml-4 list-disc">
+                  {course.professorPreference.preferredStaff.map(
+                    (assistant) => (
+                      <li key={assistant.id}>{assistant.name}</li>
+                    ),
+                  )}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">No preferred assistants</p>
+              )}
+
+              <h4 className="mt-2 font-medium">Avoided Assistants</h4>
+              {course.professorPreference?.avoidedStaff?.length ? (
+                <ul className="ml-4 list-disc">
+                  {course.professorPreference.avoidedStaff.map((assistant) => (
+                    <li key={assistant.id}>{assistant.name}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500">No avoided assistants</p>
+              )}
+
+              <h4 className="mt-2 font-medium">
+                {" "}
+                Required availability for Assistants{" "}
+              </h4>
+              {course.professorPreference?.timesRequired?.length ? (
+                <div className="pointer-events-none max-w-[800px]">
+                  <ScheduleSelector
+                    selection={timesRequiredToDate(
+                      course.professorPreference.timesRequired,
+                      calendarStart,
+                    )}
+                    numDays={5}
+                    startDate={calendarStart}
+                    renderDateLabel={(d: Date) => {
+                      const letter = dayLetterFromDate(d) ?? "";
+                      return (
+                        <div className="text-sm font-medium">{letter}</div>
+                      );
+                    }}
+                    minTime={8}
+                    maxTime={21}
+                    hourlyChunks={1}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No required times</p>
+              )}
+              <h4 className="mt-2 font-medium">Comments</h4>
+              {course.professorPreference?.comments?.length ? (
+                <div className="ml-4 list-disc">
+                  {course.professorPreference.comments}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No comments</p>
+              )}
             </div>
           ))}
         </div>

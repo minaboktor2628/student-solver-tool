@@ -1,21 +1,16 @@
 "use client";
-import { Calendar, Clock, AlertCircle, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import Link from "next/link";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
 import { NumCoursesCard } from "@/components/professor/professor-dashboard/num-courses-card";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
 import { useTerm } from "@/components/term-combobox";
 import { Header } from "@/components/professor/professor-dashboard/header";
 import { api } from "@/trpc/react";
+import type {
+  SectionWithProfessorPreference,
+  Assistant,
+  TimesRequiredOutput,
+} from "@/types/professor";
 
 /*Data I need to fetch from queries
 From signed in User get name
@@ -28,19 +23,6 @@ interface ProfessorHomePageProps {
   userId: string;
 }
 
-export type Section = {
-  sectionId: string;
-  courseCode: string;
-  courseSection: string;
-  courseTitle: string;
-  professorPreference: {
-    preferredStaff: any;
-    avoidedStaff: any;
-    timesRequired: any;
-    comments: any;
-  };
-};
-
 const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
   const { data } = api.professorForm.getProfessorSectionsForTerm.useQuery({
     professorId: userId,
@@ -50,21 +32,33 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
       professorId: userId,
       termId: useTerm()?.active?.id ?? "",
     });
-  const [sections, setSections] = useState<Record<string, Section>>();
+  const [sections, setSections] =
+    useState<Record<string, SectionWithProfessorPreference>>();
   const username = professorData?.info?.professor;
   const deadlineDate = professorData?.info?.term?.termProfDueDate;
   const isSubmitted = false;
   const [numCourses, setNumCourses] = useState<number>();
 
   useEffect(() => {
-    if (data) {
-      const initialValues: Record<string, Section> = {};
+    if (data?.sections) {
+      const initialValues: Record<string, SectionWithProfessorPreference> = {};
       data?.sections.forEach((s) => {
         initialValues[s.sectionId] = {
           sectionId: s.sectionId,
           courseCode: s.courseCode,
           courseSection: s.courseSection,
           courseTitle: s.courseTitle,
+          meetingPattern: s.meetingPattern,
+          enrollment: s.enrollment,
+          capacity: s.capacity,
+          requiredHours: s.requiredHours,
+          availableAssistants: s.availableAssistants.map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+            hours: a.hours,
+            roles: a.roles,
+          })),
           professorPreference: {
             preferredStaff: s.professorPreference?.preferredStaff?.map((a) => ({
               id: a.id,

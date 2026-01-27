@@ -19,8 +19,8 @@ export const SelectAssistantAntipref: React.FC<
     React.useState<boolean>();
   const toggleAssistant = (assistant: Assistant, checked: boolean) => {
     const newStaff = checked
-      ? [...(avoidedStaff || []), assistant]
-      : (avoidedStaff || []).filter((a) => a.id !== assistant.id);
+      ? [...(avoidedStaff ?? []), assistant]
+      : (avoidedStaff ?? []).filter((a) => a.id !== assistant.id);
     onChange(sectionId, newStaff);
   };
 

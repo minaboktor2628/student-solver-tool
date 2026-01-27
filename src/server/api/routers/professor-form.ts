@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, professorProcedure, publicProcedure } from "../trpc";
+import { createTRPCRouter, professorProcedure } from "../trpc";
 
 export const professorFormRoute = createTRPCRouter({
   /** Fetch all sections in a term for a professor */
@@ -137,58 +137,60 @@ export const professorFormRoute = createTRPCRouter({
             },
           },
         });
-        const profPref = await ctx.db.section.update({
-          where: {
-            id: sectionId,
-            professorId: professorId,
-          },
-          data: {
-            professorPreference: {
-              upsert: {
-                create: {
-                  preferredStaff: {
-                    create: prefStaffList.map((u) => ({
-                      staffId: u.id,
-                    })),
+        return await ctx.db.$transaction(async (tx) => {
+          return await tx.section.update({
+            where: {
+              id: sectionId,
+              professorId: professorId,
+            },
+            data: {
+              professorPreference: {
+                upsert: {
+                  create: {
+                    preferredStaff: {
+                      create: prefStaffList.map((u) => ({
+                        staffId: u.id,
+                      })),
+                    },
+                    avoidedStaff: {
+                      create: antiprefStaffList.map((u) => ({
+                        staffId: u.id,
+                      })),
+                    },
+                    timesRequired: {
+                      create: professorPreference.timesRequired.map((t) => ({
+                        hour: t.hour,
+                        day: t.day,
+                      })),
+                    },
+                    comments: professorPreference.comments,
                   },
-                  avoidedStaff: {
-                    create: antiprefStaffList.map((u) => ({
-                      staffId: u.id,
-                    })),
+                  update: {
+                    preferredStaff: {
+                      deleteMany: {},
+                      create: prefStaffList.map((u) => ({
+                        staffId: u.id,
+                      })),
+                    },
+                    avoidedStaff: {
+                      deleteMany: {},
+                      create: antiprefStaffList.map((u) => ({
+                        staffId: u.id,
+                      })),
+                    },
+                    timesRequired: {
+                      deleteMany: {},
+                      create: professorPreference.timesRequired.map((t) => ({
+                        hour: t.hour,
+                        day: t.day,
+                      })),
+                    },
+                    comments: professorPreference.comments,
                   },
-                  timesRequired: {
-                    create: professorPreference.timesRequired.map((t) => ({
-                      hour: t.hour,
-                      day: t.day,
-                    })),
-                  },
-                  comments: professorPreference.comments,
-                },
-                update: {
-                  preferredStaff: {
-                    deleteMany: {},
-                    create: prefStaffList.map((u) => ({
-                      staffId: u.id,
-                    })),
-                  },
-                  avoidedStaff: {
-                    deleteMany: {},
-                    create: antiprefStaffList.map((u) => ({
-                      staffId: u.id,
-                    })),
-                  },
-                  timesRequired: {
-                    deleteMany: {},
-                    create: professorPreference.timesRequired.map((t) => ({
-                      hour: t.hour,
-                      day: t.day,
-                    })),
-                  },
-                  comments: professorPreference.comments,
                 },
               },
             },
-          },
+          });
         });
       },
     ),
