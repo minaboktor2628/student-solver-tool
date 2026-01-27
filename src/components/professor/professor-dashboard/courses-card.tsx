@@ -5,11 +5,12 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import type { Section } from "@/components/professor/professor-dashboard/professor-homepage";
 
 type CoursesCardProps = {
-  courses: { code: string; name: string; section: string }[];
+  sections: Record<string, Section> | undefined;
 };
-export const CoursesCard: React.FC<CoursesCardProps> = ({ courses }) => {
+export const CoursesCard: React.FC<CoursesCardProps> = ({ sections }) => {
   return (
     <Card>
       <CardHeader>
@@ -21,10 +22,11 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({ courses }) => {
       <CardContent>
         <div className="space-y-4">
           {/* Mock course data */}
-          {courses.map((course) => (
-            <div key={course.code} className="rounded-lg border p-4">
+          {Object.values(sections ?? {}).map((course) => (
+            <div key={course.courseCode} className="rounded-lg border p-4">
               <h3 className="font-semibold">
-                {course.section}-{course.code} - {course.name}
+                {course.courseSection}-{course.courseCode} -{" "}
+                {course.courseTitle}
               </h3>
             </div>
           ))}
