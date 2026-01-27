@@ -1,5 +1,14 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { syncCourses } from "@/scripts/syncCourses";
+
+function calculateRequiredHours(enrollment: number): number {
+  const roundedUp = Math.ceil(enrollment / 5) * 5;
+  const divided = roundedUp / 2;
+  const requiredHours = Math.floor(divided / 10) * 10;
+  return requiredHours;
+}
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
@@ -158,4 +167,291 @@ export const courseRoute = createTRPCRouter({
         })),
       };
     }),
+
+  getAllCourses: coordinatorProcedure.query(async ({ ctx }) => {
+    try {
+      const sections = await ctx.db.section.findMany({
+        include: {
+          professor: true,
+          term: true,
+          assignments: {
+            include: {
+              staff: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        courses: sections.map((course) => ({
+          id: course.id,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          professorName: course.professor?.name || "Unknown Professor",
+          professorEmail: course.professor?.email || "",
+          enrollment: course.enrollment,
+          capacity: course.capacity,
+          requiredHours: course.requiredHours,
+          assignedStaff: course.assignments.reduce(
+            (sum, assignment) => sum + (assignment.staff?.hours || 0),
+            0,
+          ),
+          term: course.term
+            ? `${course.term.termLetter} ${course.term.year}`
+            : "Unknown Term",
+          academicLevel: course.academicLevel,
+        })),
+      };
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch courses",
+      });
+    }
+  }),
+
+  getCourse: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input: { id }, ctx }) => {
+      try {
+        const course = await ctx.db.section.findUnique({
+          where: { id },
+          include: {
+            professor: true,
+            term: true,
+            assignments: {
+              include: {
+                staff: true,
+              },
+            },
+          },
+        });
+
+        if (!course) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Course not found",
+          });
+        }
+
+        return {
+          success: true,
+          course: {
+            id: course.id,
+            courseCode: course.courseCode,
+            courseTitle: course.courseTitle,
+            professorName: course.professor?.name || "Unknown Professor",
+            professorId: course.professorId,
+            enrollment: course.enrollment,
+            capacity: course.capacity,
+            requiredHours: course.requiredHours,
+            description: course.description,
+            academicLevel: course.academicLevel,
+            courseSection: course.courseSection,
+            meetingPattern: course.meetingPattern,
+            term: course.term
+              ? `${course.term.termLetter} ${course.term.year}`
+              : "Unknown Term",
+            assignedStaff: course.assignments,
+          },
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch course",
+        });
+      }
+    }),
+
+  createCourses: coordinatorProcedure
+    .input(
+      z.object({
+        courses: z.array(z.any()),
+        termId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const { courses, termId } = input;
+
+        if (!courses || !Array.isArray(courses) || courses.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "No courses provided",
+          });
+        }
+
+        const createdCourses = [];
+
+        for (const courseData of courses) {
+          try {
+            const {
+              courseCode,
+              courseTitle,
+              professorName,
+              enrollment = 0,
+              capacity = 0,
+              academicLevel = "UNDERGRADUATE",
+              courseSection = "01",
+              meetingPattern = "TBD",
+              description = "",
+              term: selectedTerm,
+            } = courseData;
+
+            if (!courseCode || !courseTitle || !professorName) {
+              continue;
+            }
+
+            // Determine which term to use
+            let finalTermId = termId;
+            if (!finalTermId && selectedTerm) {
+              const term = await ctx.db.term.findFirst({
+                where: {
+                  termLetter: selectedTerm.split(" ")[0],
+                  year: parseInt(selectedTerm.split(" ")[1]),
+                },
+              });
+              finalTermId = term?.id;
+            }
+
+            if (!finalTermId) {
+              continue;
+            }
+
+            // Find or create professor
+            let professor = await ctx.db.user.findFirst({
+              where: {
+                name: {
+                  contains: professorName,
+                },
+              },
+            });
+
+            if (!professor) {
+              professor = await ctx.db.user.create({
+                data: {
+                  email: `${professorName.toLowerCase().replace(/\s+/g, ".")}@wpi.edu`,
+                  name: professorName,
+                  roles: {
+                    create: {
+                      role: "PROFESSOR",
+                    },
+                  },
+                },
+              });
+            }
+
+            const calculatedHours = calculateRequiredHours(enrollment);
+
+            const createdCourse = await ctx.db.section.create({
+              data: {
+                termId: finalTermId,
+                courseCode,
+                courseTitle,
+                description,
+                professorId: professor.id,
+                enrollment,
+                capacity,
+                requiredHours: calculatedHours,
+                academicLevel,
+                courseSection,
+                meetingPattern,
+              },
+            });
+
+            createdCourses.push(createdCourse);
+          } catch (courseError) {
+            console.error("Error creating course:", courseError);
+          }
+        }
+
+        return {
+          success: true,
+          message: `Created ${createdCourses.length} courses`,
+          courseCount: createdCourses.length,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create courses",
+        });
+      }
+    }),
+
+  updateCourse: coordinatorProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        data: z.object({
+          courseCode: z.string().optional(),
+          courseTitle: z.string().optional(),
+          description: z.string().optional(),
+          enrollment: z.number().optional(),
+          capacity: z.number().optional(),
+          courseSection: z.string().optional(),
+          meetingPattern: z.string().optional(),
+          academicLevel: z.string().optional(),
+        }),
+      }),
+    )
+    .mutation(async ({ input: { id, data }, ctx }) => {
+      try {
+        const updated = await ctx.db.section.update({
+          where: { id },
+          data: {
+            ...data,
+            academicLevel: (data.academicLevel as any) ?? undefined,
+          },
+        });
+
+        return {
+          success: true,
+          course: updated,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update course",
+        });
+      }
+    }),
+
+  deleteCourse: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input: { id }, ctx }) => {
+      try {
+        await ctx.db.section.delete({
+          where: { id },
+        });
+
+        return {
+          success: true,
+          message: "Course deleted successfully",
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to delete course",
+        });
+      }
+    }),
+
+  syncCourses: coordinatorProcedure.mutation(async () => {
+    try {
+      const result = await syncCourses();
+      return {
+        success: true,
+        message: "Course sync completed",
+        ...result,
+      };
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to sync courses",
+      });
+    }
+  }),
 });

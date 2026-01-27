@@ -41,6 +41,11 @@ export const ROUTES: NavItem[] = [
     icon: UserStarIcon,
     children: [
       {
+        label: "Create Term",
+        href: "/dashboard/create-term",
+        icon: ComputerIcon,
+      },
+      {
         label: "Solver",
         href: "/dashboard/solver",
         icon: ComputerIcon,

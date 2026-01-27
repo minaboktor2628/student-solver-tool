@@ -1,5 +1,18 @@
 /* Term related endpoints */
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { z } from "zod";
+import {
+  createTRPCRouter,
+  publicProcedure,
+  coordinatorProcedure,
+} from "../trpc";
+import { TRPCError } from "@trpc/server";
+
+function calculateRequiredHours(enrollment: number): number {
+  const roundedUp = Math.ceil(enrollment / 5) * 5;
+  const divided = roundedUp / 2;
+  const requiredHours = Math.floor(divided / 10) * 10;
+  return requiredHours;
+}
 
 export const termRoute = createTRPCRouter({
   getTerms: publicProcedure.query(async ({ ctx }) => {
@@ -27,4 +40,237 @@ export const termRoute = createTRPCRouter({
       select: { active: true, year: true, termLetter: true, id: true },
     });
   }),
+
+  getAllTerms: coordinatorProcedure.query(async ({ ctx }) => {
+    try {
+      const terms = await ctx.db.term.findMany({
+        include: {
+          sections: true,
+          allowedEmails: true,
+        },
+        orderBy: [{ year: "desc" }, { termLetter: "desc" }],
+      });
+
+      return {
+        terms: terms.map((term) => ({
+          id: term.id,
+          name: `${term.termLetter} ${term.year}`,
+          termLetter: term.termLetter,
+          year: term.year,
+          staffDueDate: term.termStaffDueDate.toISOString(),
+          professorDueDate: term.termProfessorDueDate.toISOString(),
+          courseCount: term.sections.length,
+          peopleCount: term.allowedEmails.length,
+          active: term.active,
+        })),
+      };
+    } catch (error) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to fetch terms",
+      });
+    }
+  }),
+
+  createTerm: coordinatorProcedure
+    .input(
+      z.object({
+        termLetter: z.enum(["A", "B", "C", "D"]),
+        year: z.number(),
+        staffDueDate: z.string(),
+        professorDueDate: z.string(),
+        csvData: z
+          .array(
+            z.object({
+              email: z.string(),
+              role: z.enum(["PLA", "GLA", "TA", "COORDINATOR", "PROFESSOR"]),
+            }),
+          )
+          .optional(),
+        courses: z.array(z.any()).optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const {
+          termLetter,
+          year,
+          staffDueDate,
+          professorDueDate,
+          csvData,
+          courses,
+        } = input;
+
+        // Validate required fields
+        if (!termLetter || !year || !staffDueDate || !professorDueDate) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Missing required fields",
+          });
+        }
+
+        // Create term
+        const term = await ctx.db.term.create({
+          data: {
+            termLetter,
+            year: parseInt(year.toString()),
+            termStaffDueDate: new Date(staffDueDate),
+            termProfessorDueDate: new Date(professorDueDate),
+          },
+        });
+
+        // Create allowed emails
+        if (csvData && Array.isArray(csvData)) {
+          for (const row of csvData) {
+            try {
+              await ctx.db.allowedEmail.create({
+                data: {
+                  email: row.email,
+                  role: row.role,
+                  termId: term.id,
+                },
+              });
+            } catch (emailError) {
+              // Continue on individual email creation errors
+            }
+          }
+        }
+
+        // Create sections
+        if (courses && Array.isArray(courses) && courses.length > 0) {
+          for (const course of courses) {
+            try {
+              // Find or create the professor user
+              let professorUser = await ctx.db.user.findFirst({
+                where: {
+                  name: { contains: course.professorName },
+                },
+              });
+
+              if (!professorUser) {
+                professorUser = await ctx.db.user.create({
+                  data: {
+                    email: `${course.professorName.toLowerCase().replace(/\s+/g, ".")}@wpi.edu`,
+                    name: course.professorName,
+                    roles: {
+                      create: {
+                        role: "PROFESSOR",
+                      },
+                    },
+                  },
+                });
+              }
+
+              // Calculate required hours based on enrollment
+              const calculatedHours = calculateRequiredHours(
+                course.enrollment || 0,
+              );
+
+              // Create the section
+              await ctx.db.section.create({
+                data: {
+                  termId: term.id,
+                  courseTitle: course.courseTitle,
+                  courseCode: course.courseCode,
+                  description:
+                    course.description ||
+                    `${course.courseCode} - ${course.courseTitle}`,
+                  professorId: professorUser.id,
+                  enrollment: course.enrollment || 0,
+                  capacity: course.capacity || 0,
+                  requiredHours: calculatedHours,
+                  academicLevel: "UNDERGRADUATE",
+                  courseSection: course.courseSection || "01",
+                  meetingPattern: course.meetingPattern || "TBD",
+                },
+              });
+            } catch (courseError) {
+              // Continue on individual course creation errors
+            }
+          }
+        }
+
+        return {
+          success: true,
+          termId: term.id,
+          message: "Term created successfully",
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create term",
+        });
+      }
+    }),
+
+  deleteTerm: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input: { id }, ctx }) => {
+      try {
+        await ctx.db.term.delete({
+          where: { id },
+        });
+
+        return {
+          success: true,
+          message: "Term deleted successfully",
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to delete term",
+        });
+      }
+    }),
+
+  publishTerm: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input: { id }, ctx }) => {
+      try {
+        // Set all terms to inactive first
+        await ctx.db.term.updateMany({
+          where: { active: true },
+          data: { active: false },
+        });
+
+        // Set the selected term to active
+        const updatedTerm = await ctx.db.term.update({
+          where: { id },
+          data: { active: true },
+        });
+
+        return {
+          success: true,
+          termId: updatedTerm.id,
+          message: "Term published successfully",
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to publish term",
+        });
+      }
+    }),
+
+  updateTerm: coordinatorProcedure
+    .input(z.object({ id: z.string(), data: z.any() }))
+    .mutation(async ({ input: { id, data }, ctx }) => {
+      try {
+        const updated = await ctx.db.term.update({
+          where: { id },
+          data,
+        });
+
+        return {
+          success: true,
+          term: updated,
+        };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to update term",
+        });
+      }
+    }),
 });

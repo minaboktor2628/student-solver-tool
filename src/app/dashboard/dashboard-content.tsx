@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Users,
   CheckCircle,
@@ -20,6 +21,7 @@ import {
   Save,
   X,
 } from "lucide-react";
+import { api } from "@/trpc/react";
 
 // Types
 interface Course {
@@ -95,16 +97,6 @@ export default function DashboardContent() {
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [loadingTerms, setLoadingTerms] = useState(false);
 
-  // New term creation state
-  const [isCreatingTerm, setIsCreatingTerm] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [newTermData, setNewTermData] = useState({
-    termLetter: "A",
-    year: new Date().getFullYear(),
-    staffDueDate: "",
-    professorDueDate: "",
-  });
-
   // User management state
   const [isManagingUsers, setIsManagingUsers] = useState(false);
   const [usersToAdd, setUsersToAdd] = useState<UserToAdd[]>([
@@ -178,46 +170,25 @@ export default function DashboardContent() {
         return `${letter} ${year}`;
     }
   };
-  const [csvData, setCsvData] = useState<CSVRow[]>([]);
-  const [termCoursesToInclude, setTermCoursesToInclude] = useState<Course[]>(
-    [],
+
+  // tRPC mutations and queries
+  const getTermsQuery = api.term.getAllTerms.useQuery(undefined, {
+    enabled: false,
+  });
+  const getDashboardQuery = api.dashboard.getDashboardData.useQuery(
+    { termId: selectedTerm || "" },
+    { enabled: !!selectedTerm },
   );
-  const [creatingTerm, setCreatingTerm] = useState(false);
-  const [termError, setTermError] = useState<string | null>(null);
-
-  // safefetchJson utility
-  async function safeFetchJson(url: string, opts?: RequestInit) {
-    const res = await fetch(url, opts);
-    const ct = res.headers.get("content-type") || "";
-
-    if (!res.ok) {
-      const body = ct.includes("application/json")
-        ? await res.json().catch(() => null)
-        : await res.text().catch(() => null);
-      const err: any = new Error(
-        `Request failed: ${res.status} ${res.statusText}`,
-      );
-      err.info = {
-        url,
-        status: res.status,
-        statusText: res.statusText,
-        contentType: ct,
-        body,
-      };
-      throw err;
-    }
-
-    if (ct.includes("application/json") || ct.includes("application/ld+json")) {
-      return res.json();
-    }
-
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { __raw_text: text, __contentType: ct };
-    }
-  }
+  const deleteTermMutation = api.term.deleteTerm.useMutation();
+  const publishTermMutation = api.term.publishTerm.useMutation();
+  const getAllCoursesQuery = api.courses.getAllCourses.useQuery(undefined, {
+    enabled: false,
+  });
+  const createCoursesMutation = api.courses.createCourses.useMutation();
+  const updateCourseMutation = api.courses.updateCourse.useMutation();
+  const deleteCourseMutation = api.courses.deleteCourse.useMutation();
+  const syncCoursesMutation = api.courses.syncCourses.useMutation();
+  const createUserMutation = api.staff.createUser.useMutation();
 
   // Initialize terms from API
   useEffect(() => {
@@ -228,11 +199,22 @@ export default function DashboardContent() {
   const fetchTerms = async () => {
     setLoadingTerms(true);
     try {
-      const data = await safeFetchJson("/api/terms");
-      if (data && !data.error) {
-        setTerms(data.terms || []);
-        if (data.terms && data.terms.length > 0) {
-          setSelectedTerm(data.terms[0].id);
+      const { data } = await getTermsQuery.refetch();
+      if (data) {
+        const formattedTerms = data.terms.map((term: any) => ({
+          id: term.id,
+          name: term.name,
+          termLetter: term.termLetter,
+          year: term.year,
+          staffDueDate: term.staffDueDate,
+          professorDueDate: term.professorDueDate,
+          status: (term.active ? "published" : "draft") as
+            | "draft"
+            | "published",
+        }));
+        setTerms(formattedTerms);
+        if (formattedTerms.length > 0 && formattedTerms[0]) {
+          setSelectedTerm(formattedTerms[0].id);
         }
       }
     } catch (err) {
@@ -270,13 +252,11 @@ export default function DashboardContent() {
   const fetchDashboardData = async (termId: string) => {
     setIsLoading(true);
     try {
-      const data = await safeFetchJson(
-        `/api/dashboard?term=${encodeURIComponent(termId)}`,
-      );
+      const { data } = await getDashboardQuery.refetch();
 
-      if (data?.error) {
-        console.error("Dashboard API error:", data.error);
-        setSyncMessage(`✗ Dashboard API error: ${String(data.error)}`);
+      if (!data) {
+        console.error("Dashboard API error");
+        setSyncMessage(`✗ Dashboard API error`);
         setCourses([]);
         setStaff([]);
         setProfessors([]);
@@ -329,7 +309,7 @@ export default function DashboardContent() {
           enrollment: course.enrollment,
           capacity: course.capacity,
           requiredHours: isDisplayOnly ? 0 : course.requiredHours, // 0 for display-only
-          assignedStaff: course.assignedStaff,
+          assignedStaff: course.assignedHours,
           professorName: course.professorName,
           term: termDisplay,
           isGradSemesterCourse: isGradSemester,
@@ -339,8 +319,19 @@ export default function DashboardContent() {
       });
 
       setCourses(transformedCourses);
-      setStaff(data.staff || []);
-      setProfessors(data.professors || []);
+      setStaff(
+        (data.staff || []).map((s: any) => ({
+          ...s,
+          role: s.roles?.[0] || "PLA",
+          submitted: s.hasPreferences,
+        })),
+      );
+      setProfessors(
+        (data.professors || []).map((p: any) => ({
+          ...p,
+          submitted: true,
+        })),
+      );
     } catch (err: any) {
       console.error("Error fetching dashboard data:", err);
       setSyncMessage("✗ Failed to load dashboard data");
@@ -352,300 +343,21 @@ export default function DashboardContent() {
     }
   };
 
-  // CSV parsing function
-  const parseCSV = (text: string): CSVRow[] => {
-    const lines = text.split("\n").filter((line) => line.trim());
-    if (lines.length < 2) return [];
-
-    const headers = (lines[0] ?? "")
-      .split(",")
-      .map((h) => h.trim().toLowerCase());
-    const emailIndex = headers.findIndex((h) => h.includes("email"));
-    const nameIndex = headers.findIndex((h) => h.includes("name"));
-    const roleIndex = headers.findIndex((h) => h.includes("role"));
-
-    if (emailIndex === -1 || nameIndex === -1 || roleIndex === -1) {
-      throw new Error("CSV must contain email, name, and role columns");
-    }
-
-    return lines.slice(1).map((line) => {
-      const values = line.split(",").map((v) => v.trim());
-      const rawRole = (values[roleIndex] ?? "").toString();
-      const role = rawRole.toUpperCase();
-      if (!rawRole) {
-        throw new Error(`Missing role value in CSV row: ${line}`);
-      }
-      if (!["TA", "PLA", "PROFESSOR"].includes(role)) {
-        throw new Error(
-          `Invalid role: ${rawRole}. Must be TA, PLA, or PROFESSOR`,
-        );
-      }
-
-      const emailVal = values[emailIndex] ?? "";
-      const nameVal = values[nameIndex] ?? "";
-
-      return {
-        email: emailVal,
-        name: nameVal,
-        role: role as "TA" | "PLA" | "PROFESSOR",
-      };
-    });
-  };
-
-  // Step 1: Create term basic info
-  const handleCreateTermStep1 = () => {
-    if (!newTermData.staffDueDate || !newTermData.professorDueDate) {
-      setTermError("Both due dates are required");
-      return;
-    }
-
-    // Check if term already exists
-    const termExists = terms.some(
-      (term) =>
-        term.termLetter === newTermData.termLetter &&
-        term.year === newTermData.year,
-    );
-
-    if (termExists) {
-      setTermError(
-        `Term ${getTermName(newTermData.termLetter, newTermData.year)} already exists. Please choose a different term letter or year.`,
-      );
-      return;
-    }
-
-    setCurrentStep(2);
-    setTermError(null);
-  };
-
-  // Step 2: Handle CSV upload
-  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const parsedData = parseCSV(text);
-        setCsvData(parsedData);
-        setTermError(null);
-      } catch (err: any) {
-        setTermError(err.message);
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // Step 3: Fetch all courses from database
-  const handleFetchCourses = async () => {
-    try {
-      console.log("Fetching all courses from database...");
-
-      // Fetch ALL courses from the database (not filtered by term)
-      const response = await safeFetchJson("/api/courses");
-
-      if (!response.success) {
-        setTermError("Failed to fetch courses from database");
-        return;
-      }
-
-      const allCourses = response.courses || [];
-      console.log(`Fetched ${allCourses.length} total courses from database`);
-
-      // Show ALL courses - let coordinator manually select which to include
-      setTermCoursesToInclude(allCourses);
-
-      if (allCourses.length === 0) {
-        setTermError(
-          "No courses available. Please sync courses from WPI first.",
-        );
-      } else {
-        setTermError(null);
-        console.log(
-          `✅ Loaded ${allCourses.length} courses - remove any you don't want to include`,
-        );
-      }
-    } catch (err) {
-      console.error("Error loading courses:", err);
-      setTermError("Failed to load courses from database");
-    }
-  };
-
-  // Add new course manually (for term creation)
-  const handleAddCourseToTerm = () => {
-    if (
-      !newCourse.courseCode.trim() ||
-      !newCourse.courseTitle.trim() ||
-      !newCourse.professorName.trim()
-    ) {
-      setTermError("Course code, title, and professor name are required");
-      return;
-    }
-
-    // Calculate required hours based on enrollment
-    const calculatedHours = calculateRequiredHours(newCourse.enrollment);
-
-    const courseToAdd: Course = {
-      id: `temp-${Date.now()}`, // Temporary ID
-      courseCode: newCourse.courseCode,
-      courseTitle: newCourse.courseTitle,
-      professorName: newCourse.professorName,
-      enrollment: newCourse.enrollment,
-      capacity: newCourse.capacity,
-      requiredHours: calculatedHours, // Use calculated hours
-      assignedStaff: 0,
-      term: "",
-    };
-
-    setTermCoursesToInclude((prev) => [...prev, courseToAdd]);
-    setIsAddingCourse(false);
-    setNewCourse({
-      courseCode: "",
-      courseTitle: "",
-      professorName: "",
-      enrollment: 0,
-      capacity: 0,
-      requiredHours: 0,
-      description: "",
-    });
-    setTermError(null);
-  };
-
-  // Edit course in term creation
-  const startEditTermCourse = (course: Course) => {
-    setEditingTermCourseId(course.id);
-    setEditingTermCourseData({ ...course });
-  };
-
-  const cancelEditTermCourse = () => {
-    setEditingTermCourseId(null);
-    setEditingTermCourseData(null);
-  };
-
-  const saveEditTermCourse = () => {
-    if (!editingTermCourseData) return;
-
-    if (
-      !editingTermCourseData.courseCode.trim() ||
-      !editingTermCourseData.courseTitle.trim() ||
-      !editingTermCourseData.professorName.trim()
-    ) {
-      setTermError("Course code, title, and professor name are required");
-      return;
-    }
-
-    // Recalculate hours if enrollment changed
-    const updatedCourse = {
-      ...editingTermCourseData,
-      requiredHours: calculateRequiredHours(editingTermCourseData.enrollment),
-    };
-
-    setTermCoursesToInclude((prev) =>
-      prev.map((course) =>
-        course.id === editingTermCourseId ? updatedCourse : course,
-      ),
-    );
-
-    setEditingTermCourseId(null);
-    setEditingTermCourseData(null);
-    setTermError(null);
-  };
-
-  // Step 4: Create term in database
-  const createTermInDatabase = async () => {
-    setCreatingTerm(true);
-    setTermError(null);
-
-    try {
-      const response = await safeFetchJson("/api/terms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newTermData,
-          csvData,
-          courses: termCoursesToInclude,
-        }),
-      });
-
-      if (response.success) {
-        setSyncMessage("✓ Term created successfully!");
-        setIsCreatingTerm(false);
-        setCurrentStep(1);
-        setNewTermData({
-          termLetter: "A",
-          year: new Date().getFullYear(),
-          staffDueDate: "",
-          professorDueDate: "",
-        });
-        setCsvData([]);
-        setTermCoursesToInclude([]);
-        fetchTerms(); // Refresh terms list
-      } else {
-        // Handle specific error types
-        const errorMsg = response.error || "Failed to create term";
-
-        // Check for unique constraint violations
-        if (
-          errorMsg.includes("Unique constraint") ||
-          errorMsg.includes("unique") ||
-          response.code === "P2002"
-        ) {
-          setTermError(
-            `Term ${getTermName(newTermData.termLetter, newTermData.year)} already exists. Please go back and choose a different term letter or year.`,
-          );
-        } else {
-          setTermError(errorMsg);
-        }
-
-        // Don't close the modal on error - let user fix it
-      }
-    } catch (err: any) {
-      console.error("Error creating term:", err);
-
-      // Parse error message for better user feedback
-      let errorMessage = "Failed to create term";
-
-      if (err.message) {
-        if (
-          err.message.includes("Unique constraint") ||
-          err.message.includes("unique")
-        ) {
-          errorMessage = `Term ${getTermName(newTermData.termLetter, newTermData.year)} already exists. Please go back and choose a different term letter or year.`;
-        } else {
-          errorMessage = err.message;
-        }
-      }
-
-      setTermError(errorMessage);
-    } finally {
-      setCreatingTerm(false);
-    }
-  };
-
   // Publish term
   const publishTerm = async (termId: string) => {
     try {
-      const response = await safeFetchJson(`/api/terms/${termId}/publish`, {
-        method: "POST",
-      });
+      const response = await publishTermMutation.mutateAsync({ id: termId });
 
       if (response.success) {
         setSyncMessage("✓ Term published successfully!");
         fetchTerms();
       } else {
-        setSyncMessage(`✗ Failed to publish term: ${response.error}`);
+        setSyncMessage(`✗ Failed to publish term`);
       }
     } catch (err) {
       console.error("Error publishing term:", err);
       setSyncMessage("✗ Failed to publish term");
     }
-  };
-
-  // Remove course from inclusion list (term creation)
-  const removeCourseFromTerm = (courseId: string) => {
-    setTermCoursesToInclude((prev) =>
-      prev.filter((course) => course.id !== courseId),
-    );
   };
 
   // Delete term
@@ -659,9 +371,7 @@ export default function DashboardContent() {
     }
 
     try {
-      const response = await safeFetchJson(`/api/terms?id=${termId}`, {
-        method: "DELETE",
-      });
+      const response = await deleteTermMutation.mutateAsync({ id: termId });
 
       if (response.success) {
         setSyncMessage("✓ Term deleted successfully!");
@@ -676,7 +386,7 @@ export default function DashboardContent() {
           );
         }
       } else {
-        setSyncMessage(`✗ Failed to delete term: ${response.error}`);
+        setSyncMessage(`✗ Failed to delete term`);
       }
     } catch (err) {
       console.error("Error deleting term:", err);
@@ -717,15 +427,20 @@ export default function DashboardContent() {
         requiredHours: calculateRequiredHours(editingCourseData.enrollment),
       };
 
-      // Update via API - using query parameter instead of dynamic route
-      const response = await safeFetchJson(
-        `/api/courses?id=${editingCourseId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedCourse),
+      // Update via tRPC
+      const response = await updateCourseMutation.mutateAsync({
+        id: editingCourseId,
+        data: {
+          courseCode: updatedCourse.courseCode,
+          courseTitle: updatedCourse.courseTitle,
+          description: updatedCourse.term,
+          enrollment: updatedCourse.enrollment,
+          capacity: updatedCourse.capacity,
+          courseSection: "",
+          meetingPattern: "",
+          academicLevel: "UNDERGRADUATE",
         },
-      );
+      });
 
       if (response.success) {
         // Update local state
@@ -737,8 +452,6 @@ export default function DashboardContent() {
         setSyncMessage("✓ Course updated successfully!");
         setEditingCourseId(null);
         setEditingCourseData(null);
-      } else {
-        setSyncMessage(`✗ Failed to update course: ${response.error}`);
       }
     } catch (err: any) {
       console.error("Error updating course:", err);
@@ -761,16 +474,12 @@ export default function DashboardContent() {
     }
 
     try {
-      const response = await safeFetchJson(`/api/courses?id=${courseId}`, {
-        method: "DELETE",
-      });
+      const response = await deleteCourseMutation.mutateAsync({ id: courseId });
 
       if (response.success) {
         // Remove from local state
         setCourses((prev) => prev.filter((course) => course.id !== courseId));
         setSyncMessage("✓ Course deleted successfully!");
-      } else {
-        setSyncMessage(`✗ Failed to delete course: ${response.error}`);
       }
     } catch (err) {
       console.error("Error deleting course:", err);
@@ -783,11 +492,7 @@ export default function DashboardContent() {
     setIsSyncing(true);
     setSyncMessage(null);
     try {
-      const response = await safeFetchJson("/api/courses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ term: selectedTerm }),
-      });
+      const response = await syncCoursesMutation.mutateAsync();
       if (response && (response.success || response.created !== undefined)) {
         setSyncMessage(
           `✓ Synced! Created: ${response.created ?? 0}, Updated: ${response.updated ?? 0}, Skipped: ${response.skipped ?? 0}`,
@@ -796,7 +501,7 @@ export default function DashboardContent() {
           await fetchDashboardData(selectedTerm);
         }
       } else {
-        setSyncMessage(`✗ Sync failed: ${response?.error || "unknown error"}`);
+        setSyncMessage(`✗ Sync failed`);
       }
     } catch (err: any) {
       console.error("Error syncing courses:", err);
@@ -843,23 +548,22 @@ export default function DashboardContent() {
         return;
       }
 
-      // Create users via API
-      const response = await safeFetchJson("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ users: usersToAdd }),
-      });
+      // Create users via tRPC
+      for (const user of usersToAdd) {
+        await createUserMutation.mutateAsync({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          hours: 0,
+        });
+      }
 
-      if (response.success) {
-        setSyncMessage(`✓ Added ${usersToAdd.length} user(s) successfully!`);
-        setIsManagingUsers(false);
-        setUsersToAdd([{ name: "", email: "", role: "PLA" }]);
-        // Refresh dashboard data if we have a selected term
-        if (selectedTerm) {
-          await fetchDashboardData(selectedTerm);
-        }
-      } else {
-        setUserManagementError(response.error || "Failed to save users");
+      setSyncMessage(`✓ Added ${usersToAdd.length} user(s) successfully!`);
+      setIsManagingUsers(false);
+      setUsersToAdd([{ name: "", email: "", role: "PLA" }]);
+      // Refresh dashboard data if we have a selected term
+      if (selectedTerm) {
+        await fetchDashboardData(selectedTerm);
       }
     } catch (err: any) {
       console.error("Error saving users:", err);
@@ -924,14 +628,10 @@ export default function DashboardContent() {
         return;
       }
 
-      // Save courses via API
-      const response = await safeFetchJson("/api/courses/manual", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courses: coursesToAdd,
-          termId: selectedTerm, // Associate with current term if selected
-        }),
+      // Save courses via tRPC
+      const response = await createCoursesMutation.mutateAsync({
+        courses: coursesToAdd as any,
+        termId: selectedTerm ?? undefined,
       });
 
       if (response.success) {
@@ -944,8 +644,6 @@ export default function DashboardContent() {
         if (selectedTerm) {
           await fetchDashboardData(selectedTerm);
         }
-      } else {
-        setCourseManagementError(response.error || "Failed to save courses");
       }
     } catch (err: any) {
       console.error("Error saving courses:", err);
@@ -993,628 +691,6 @@ export default function DashboardContent() {
     );
   }
 
-  // Term Creation Modal
-  if (isCreatingTerm) {
-    return (
-      <div className="bg-background min-h-screen p-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-6">
-            <h1 className="text-foreground mb-2 text-3xl font-bold">
-              Create New Term
-            </h1>
-            <div className="mb-4 flex gap-2">
-              {[1, 2, 3, 4].map((step) => (
-                <div key={step} className="flex items-center">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                      step === currentStep
-                        ? "bg-primary text-white"
-                        : step < currentStep
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-200"
-                    }`}
-                  >
-                    {step < currentStep ? "✓" : step}
-                  </div>
-                  {step < 4 && (
-                    <div
-                      className={`h-1 w-12 ${step < currentStep ? "bg-green-500" : "bg-gray-200"}`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {termError && (
-            <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-              {termError}
-            </div>
-          )}
-
-          {/* Step 1: Basic Info */}
-          {currentStep === 1 && (
-            <div className="bg-card border-border rounded-lg border p-6">
-              <h2 className="text-foreground mb-4 text-xl font-semibold">
-                Term Information
-              </h2>
-
-              <div className="mb-4 rounded border border-blue-200 bg-blue-50 p-3">
-                <p className="text-sm font-medium text-blue-900">
-                  Term Name:{" "}
-                  <span className="font-bold">
-                    {getTermName(newTermData.termLetter, newTermData.year)}
-                  </span>
-                </p>
-                <p className="mt-1 text-xs text-blue-700">
-                  (Auto-generated from term letter and year)
-                </p>
-              </div>
-
-              <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-muted-foreground mb-2 block text-sm">
-                    Term Letter
-                  </label>
-                  <select
-                    value={newTermData.termLetter}
-                    onChange={(e) =>
-                      setNewTermData((prev) => ({
-                        ...prev,
-                        termLetter: e.target.value,
-                      }))
-                    }
-                    className="w-full rounded border px-3 py-2"
-                  >
-                    <option value="A">A (Fall)</option>
-                    <option value="B">B</option>
-                    <option value="C">C (Spring)</option>
-                    <option value="D">D</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-muted-foreground mb-2 block text-sm">
-                    Year
-                  </label>
-                  <input
-                    type="number"
-                    value={newTermData.year}
-                    onChange={(e) =>
-                      setNewTermData((prev) => ({
-                        ...prev,
-                        year: parseInt(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded border px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-muted-foreground mb-2 block text-sm">
-                    Staff Preferences Due Date
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={newTermData.staffDueDate}
-                    onChange={(e) =>
-                      setNewTermData((prev) => ({
-                        ...prev,
-                        staffDueDate: e.target.value,
-                      }))
-                    }
-                    className="w-full rounded border px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="text-muted-foreground mb-2 block text-sm">
-                    Professor Preferences Due Date
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={newTermData.professorDueDate}
-                    onChange={(e) =>
-                      setNewTermData((prev) => ({
-                        ...prev,
-                        professorDueDate: e.target.value,
-                      }))
-                    }
-                    className="w-full rounded border px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={() => setIsCreatingTerm(false)}
-                  className="rounded border px-4 py-2"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateTermStep1}
-                  className="bg-primary rounded px-4 py-2 text-white"
-                >
-                  Next: Upload CSV
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: CSV Upload */}
-          {currentStep === 2 && (
-            <div className="bg-card border-border rounded-lg border p-6">
-              <h2 className="text-foreground mb-4 text-xl font-semibold">
-                Upload Staff & Professor CSV
-              </h2>
-              <p className="text-muted-foreground mb-4">
-                Upload a CSV file with columns: email, name, role (TA, PLA, or
-                PROFESSOR)
-              </p>
-
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleCSVUpload}
-                className="mb-4"
-              />
-
-              {csvData.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-foreground mb-2 font-semibold">
-                    Uploaded Data Preview:
-                  </h3>
-                  <div className="max-h-60 overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr>
-                          <th className="border-b p-2 text-left">Name</th>
-                          <th className="border-b p-2 text-left">Email</th>
-                          <th className="border-b p-2 text-left">Role</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {csvData.slice(0, 10).map((row, index) => (
-                          <tr key={index}>
-                            <td className="border-b p-2">{row.name}</td>
-                            <td className="border-b p-2">{row.email}</td>
-                            <td className="border-b p-2">{row.role}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {csvData.length > 10 && (
-                      <p className="text-muted-foreground mt-2 text-sm">
-                        ... and {csvData.length - 10} more rows
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 flex justify-between">
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="rounded border px-4 py-2"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={() => {
-                    if (csvData.length > 0) {
-                      setCurrentStep(3);
-                      handleFetchCourses();
-                    } else {
-                      setTermError("Please upload a CSV file first");
-                    }
-                  }}
-                  className="bg-primary rounded px-4 py-2 text-white"
-                >
-                  Next: Select Courses
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Course Selection */}
-          {currentStep === 3 && (
-            <div className="bg-card border-border rounded-lg border p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-foreground text-xl font-semibold">
-                    Select Courses to Include
-                  </h2>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    All courses from database. Add new courses or remove any
-                    that shouldn't be included.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsAddingCourse(true)}
-                  className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded px-4 py-2 text-white"
-                >
-                  <Plus className="h-4 w-4" /> Add Course
-                </button>
-              </div>
-
-              {/* Add Course Form */}
-              {isAddingCourse && (
-                <div className="mb-4 rounded-lg border bg-gray-50 p-4">
-                  <h3 className="mb-3 font-semibold">Add New Course</h3>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-sm">
-                        Course Code *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g., CS 2102"
-                        value={newCourse.courseCode}
-                        onChange={(e) =>
-                          setNewCourse((prev) => ({
-                            ...prev,
-                            courseCode: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm">
-                        Course Title *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g., Object-Oriented Design"
-                        value={newCourse.courseTitle}
-                        onChange={(e) =>
-                          setNewCourse((prev) => ({
-                            ...prev,
-                            courseTitle: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm">
-                        Professor Name *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g., John Smith"
-                        value={newCourse.professorName}
-                        onChange={(e) =>
-                          setNewCourse((prev) => ({
-                            ...prev,
-                            professorName: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm">Enrollment *</label>
-                      <input
-                        type="number"
-                        value={newCourse.enrollment}
-                        onChange={(e) => {
-                          const enrollment = parseInt(e.target.value) || 0;
-                          setNewCourse((prev) => ({ ...prev, enrollment }));
-                        }}
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      />
-                      {newCourse.enrollment > 0 && (
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          Calculated hours:{" "}
-                          {calculateRequiredHours(newCourse.enrollment)}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm">Capacity</label>
-                      <input
-                        type="number"
-                        value={newCourse.capacity}
-                        onChange={(e) =>
-                          setNewCourse((prev) => ({
-                            ...prev,
-                            capacity: parseInt(e.target.value) || 0,
-                          }))
-                        }
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex justify-end gap-2">
-                    <button
-                      onClick={() => {
-                        setIsAddingCourse(false);
-                        setNewCourse({
-                          courseCode: "",
-                          courseTitle: "",
-                          professorName: "",
-                          enrollment: 0,
-                          capacity: 0,
-                          requiredHours: 0,
-                          description: "",
-                        });
-                      }}
-                      className="rounded border px-3 py-1.5 text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleAddCourseToTerm}
-                      className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-sm text-white"
-                    >
-                      Add Course
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Course List */}
-              <div className="mb-4 max-h-96 overflow-y-auto rounded border">
-                {termCoursesToInclude.length === 0 ? (
-                  <div className="text-muted-foreground p-8 text-center">
-                    No courses loaded. Click "Add Course" to add courses
-                    manually.
-                  </div>
-                ) : (
-                  termCoursesToInclude.map((course) => (
-                    <div
-                      key={course.id}
-                      className="flex items-center justify-between border-b p-3 hover:bg-gray-50"
-                    >
-                      {editingTermCourseId === course.id ? (
-                        <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
-                          <div>
-                            <label className="mb-1 block text-xs">
-                              Course Code *
-                            </label>
-                            <input
-                              type="text"
-                              value={editingTermCourseData?.courseCode || ""}
-                              onChange={(e) =>
-                                setEditingTermCourseData((prev) =>
-                                  prev
-                                    ? { ...prev, courseCode: e.target.value }
-                                    : null,
-                                )
-                              }
-                              className="w-full rounded border px-2 py-1 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs">
-                              Course Title *
-                            </label>
-                            <input
-                              type="text"
-                              value={editingTermCourseData?.courseTitle || ""}
-                              onChange={(e) =>
-                                setEditingTermCourseData((prev) =>
-                                  prev
-                                    ? { ...prev, courseTitle: e.target.value }
-                                    : null,
-                                )
-                              }
-                              className="w-full rounded border px-2 py-1 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs">
-                              Professor *
-                            </label>
-                            <input
-                              type="text"
-                              value={editingTermCourseData?.professorName || ""}
-                              onChange={(e) =>
-                                setEditingTermCourseData((prev) =>
-                                  prev
-                                    ? { ...prev, professorName: e.target.value }
-                                    : null,
-                                )
-                              }
-                              className="w-full rounded border px-2 py-1 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs">
-                              Enrollment
-                            </label>
-                            <input
-                              type="number"
-                              value={editingTermCourseData?.enrollment || 0}
-                              onChange={(e) =>
-                                setEditingTermCourseData((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        enrollment:
-                                          parseInt(e.target.value) || 0,
-                                      }
-                                    : null,
-                                )
-                              }
-                              className="w-full rounded border px-2 py-1 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs">
-                              Capacity
-                            </label>
-                            <input
-                              type="number"
-                              value={editingTermCourseData?.capacity || 0}
-                              onChange={(e) =>
-                                setEditingTermCourseData((prev) =>
-                                  prev
-                                    ? {
-                                        ...prev,
-                                        capacity: parseInt(e.target.value) || 0,
-                                      }
-                                    : null,
-                                )
-                              }
-                              className="w-full rounded border px-2 py-1 text-sm"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex-1">
-                          <p className="font-medium">
-                            {course.courseCode} - {course.courseTitle}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            Professor: {course.professorName} • Enrollment:{" "}
-                            {course.enrollment}/{course.capacity} • Hours:{" "}
-                            {course.requiredHours}
-                          </p>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        {editingTermCourseId === course.id ? (
-                          <>
-                            <button
-                              onClick={saveEditTermCourse}
-                              className="p-2 text-green-600 hover:text-green-800"
-                              title="Save changes"
-                            >
-                              <Save className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={cancelEditTermCourse}
-                              className="p-2 text-gray-500 hover:text-gray-700"
-                              title="Cancel editing"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => startEditTermCourse(course)}
-                              className="p-2 text-blue-500 hover:text-blue-700"
-                              title="Edit course"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => removeCourseFromTerm(course.id)}
-                              className="p-2 text-red-500 hover:text-red-700"
-                              title="Remove course"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="text-muted-foreground mb-4 flex items-center justify-between text-sm">
-                <span>
-                  {termCoursesToInclude.length} course
-                  {termCoursesToInclude.length !== 1 ? "s" : ""} selected
-                </span>
-              </div>
-
-              <div className="mt-6 flex justify-between">
-                <button
-                  onClick={() => setCurrentStep(2)}
-                  className="rounded border px-4 py-2"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={() => setCurrentStep(4)}
-                  disabled={termCoursesToInclude.length === 0}
-                  className="bg-primary rounded px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Next: Review & Create
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Review & Create */}
-          {currentStep === 4 && (
-            <div className="bg-card border-border rounded-lg border p-6">
-              <h2 className="text-foreground mb-4 text-xl font-semibold">
-                Review Term Setup
-              </h2>
-
-              <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <h3 className="mb-2 font-semibold">Term Details</h3>
-                  <p>
-                    <strong>Name:</strong>{" "}
-                    {getTermName(newTermData.termLetter, newTermData.year)}
-                  </p>
-                  <p>
-                    <strong>Term Letter:</strong> {newTermData.termLetter}
-                  </p>
-                  <p>
-                    <strong>Year:</strong> {newTermData.year}
-                  </p>
-                  <p>
-                    <strong>Staff Due:</strong>{" "}
-                    {new Date(newTermData.staffDueDate).toLocaleString()}
-                  </p>
-                  <p>
-                    <strong>Professor Due:</strong>{" "}
-                    {new Date(newTermData.professorDueDate).toLocaleString()}
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="mb-2 font-semibold">People Summary</h3>
-                  <p>
-                    <strong>Professors:</strong>{" "}
-                    {csvData.filter((row) => row.role === "PROFESSOR").length}
-                  </p>
-                  <p>
-                    <strong>TAs:</strong>{" "}
-                    {csvData.filter((row) => row.role === "TA").length}
-                  </p>
-                  <p>
-                    <strong>PLAs:</strong>{" "}
-                    {csvData.filter((row) => row.role === "PLA").length}
-                  </p>
-                  <p>
-                    <strong>Total Courses:</strong>{" "}
-                    {termCoursesToInclude.length}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-between">
-                <button
-                  onClick={() => setCurrentStep(3)}
-                  className="rounded border px-4 py-2"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={createTermInDatabase}
-                  disabled={creatingTerm}
-                  className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
-                >
-                  {creatingTerm ? "Creating..." : "Create Term"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   // User Management Modal
   if (isManagingUsers) {
     return (
@@ -1624,16 +700,12 @@ export default function DashboardContent() {
             <h1 className="text-foreground mb-2 text-3xl font-bold">
               Manage Users
             </h1>
-            <p className="text-muted-foreground">
-              Add professors, TAs, and PLAs manually
-            </p>
+            {userManagementError && (
+              <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
+                {userManagementError}
+              </div>
+            )}
           </div>
-
-          {userManagementError && (
-            <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-              {userManagementError}
-            </div>
-          )}
 
           <div className="bg-card border-border rounded-lg border p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -2069,24 +1141,12 @@ export default function DashboardContent() {
                     </button>
                   )}
 
-                  <button
-                    onClick={() => {
-                      setIsCreatingTerm(true);
-                      setCurrentStep(1);
-                      setNewTermData({
-                        termLetter: "A",
-                        year: new Date().getFullYear(),
-                        staffDueDate: "",
-                        professorDueDate: "",
-                      });
-                      setCsvData([]);
-                      setTermCoursesToInclude([]);
-                      setTermError(null);
-                    }}
+                  <Link
+                    href="/dashboard/create-term"
                     className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded px-3 py-2 text-sm"
                   >
                     <Plus className="h-4 w-4" /> Create Term
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
