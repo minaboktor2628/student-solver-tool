@@ -581,7 +581,7 @@ export async function syncCourses() {
   }
 }
 
-// Allow running directly with: npx tsx src/scripts/syncCourses.ts
+// Allow running directly with: npx tsx src/lib/sync-courses.ts
 if (require.main === module) {
   syncCourses()
     .then(() => process.exit(0))

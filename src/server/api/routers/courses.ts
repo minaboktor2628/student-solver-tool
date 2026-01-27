@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { syncCourses } from "@/scripts/syncCourses";
+import { syncCourses } from "@/lib/sync-courses";
 import { calculateRequiredHours } from "@/lib/utils";
 
 export const courseRoute = createTRPCRouter({
