@@ -23,7 +23,7 @@ export const FormEntryComments: React.FC<ProfessorCommentBoxProps> = ({
       <h2 className="mb-4 text-xl font-semibold">Any additional comments?</h2>
       <textarea
         value={comments ?? ""}
-        onChange={(e) => setComments(e.target.value)}
+        onChange={(e) => toggleComments(e.target.value)}
         className="w-full rounded-lg border border-gray-300 p-3"
         placeholder="Please leave any additional comments here..."
         rows={4}

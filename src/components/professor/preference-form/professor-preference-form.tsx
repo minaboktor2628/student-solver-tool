@@ -142,24 +142,46 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     }));
   };
 
+  const mutateSections =
+    api.professorForm.updateProfessorSectionsForTerm.useMutation({
+      onSuccess: () => {
+        toast.success("Preferences submitted successfully!");
+        setIsSubmitted(true);
+      },
+      onError: (err) => {
+        console.error("Mutation failed:", err);
+        toast.error("Failed to submit preferences");
+      },
+      onSettled: () => {
+        setIsSubmitting(false);
+      },
+    });
+
   const handleSubmit = () => {
+    if (!sections) {
+      return console.error("no sections are defined");
+    }
+
     setIsSubmitting(true);
-    const payload = data?.sections?.map((s) => ({
+
+    const payload = Object.entries(sections).map(([key, s]) => ({
       sectionId: s.sectionId,
       professorId: userId,
+      professorPreference: {
+        preferredStaffId: preferredStaff[key]?.map((a) => a.id) ?? [],
+        avoidedStaffId: avoidedStaff[key]?.map((a) => a.id) ?? [],
+        timesRequired: timesRequired[key] ?? [],
+        comments: comments?.[key] ?? "",
+      },
     }));
+
+    console.log("Submitting:", payload);
+    payload.forEach((p) => {
+      mutateSections.mutate(p);
+    });
 
     setIsSubmitted(true);
     setIsSubmitting(false);
-
-    console.log("Submitting:", payload);
-    toast.success("Preferences submitted successfully!");
-
-    // api.sectionPreference.upsertMany.mutate(payload)
-    // TODO: create mutation to submit preferences
-    api.professorForm.updateProfessorSectionsForTerm.useMutation({
-      onError: (err) => console.error("Mutation failed:", err),
-    });
   };
   if (loading) {
     return (

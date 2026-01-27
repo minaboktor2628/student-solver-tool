@@ -106,7 +106,6 @@ export const professorFormRoute = createTRPCRouter({
         sectionId: z.string(),
         professorId: z.string(),
         professorPreference: z.object({
-          id: z.string(),
           preferredStaffId: z.array(z.string()),
           avoidedStaffId: z.array(z.string()),
           timesRequired: z.array(
@@ -167,16 +166,19 @@ export const professorFormRoute = createTRPCRouter({
                 },
                 update: {
                   preferredStaff: {
+                    deleteMany: {},
                     create: prefStaffList.map((u) => ({
                       staffId: u.id,
                     })),
                   },
                   avoidedStaff: {
+                    deleteMany: {},
                     create: antiprefStaffList.map((u) => ({
                       staffId: u.id,
                     })),
                   },
                   timesRequired: {
+                    deleteMany: {},
                     create: professorPreference.timesRequired.map((t) => ({
                       hour: t.hour,
                       day: t.day,
