@@ -1,5 +1,6 @@
 import { AcademicLevel, TermLetter } from "@prisma/client";
 import { db } from "@/lib/db";
+import { calculateRequiredHours } from "@/lib/utils";
 
 const prisma = db;
 
@@ -118,17 +119,6 @@ function parseAcademicLevel(level: string): AcademicLevel {
   return level === "Graduate"
     ? AcademicLevel.GRADUATE
     : AcademicLevel.UNDERGRADUATE;
-}
-
-// Calculate required hours based on enrollment
-function calculateRequiredHours(enrollment: number): number {
-  // Round enrollment up to nearest 5
-  const roundedUp = Math.ceil(enrollment / 5) * 5;
-  // Divide by 2
-  const divided = roundedUp / 2;
-  // Round down to nearest 10
-  const requiredHours = Math.floor(divided / 10) * 10;
-  return requiredHours;
 }
 
 async function fetchWPICourses(): Promise<WPICourseEntry[]> {

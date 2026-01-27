@@ -2,13 +2,7 @@ import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { syncCourses } from "@/scripts/syncCourses";
-
-function calculateRequiredHours(enrollment: number): number {
-  const roundedUp = Math.ceil(enrollment / 5) * 5;
-  const divided = roundedUp / 2;
-  const requiredHours = Math.floor(divided / 10) * 10;
-  return requiredHours;
-}
+import { calculateRequiredHours } from "@/lib/utils";
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure

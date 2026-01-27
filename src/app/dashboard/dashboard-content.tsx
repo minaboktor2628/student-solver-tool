@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "@/trpc/react";
+import { calculateRequiredHours } from "@/lib/utils";
 
 // Types
 interface Course {
@@ -139,21 +140,6 @@ export default function DashboardContent() {
   );
   const [editingTermCourseData, setEditingTermCourseData] =
     useState<Course | null>(null);
-
-  // Calculate required hours based on enrollment
-  const calculateRequiredHours = (enrollment: number): number => {
-    // Round enrollment up to nearest 5
-    const roundedUp = Math.ceil(enrollment / 5) * 5;
-    // Divide by 2
-    const divided = roundedUp / 2;
-    // Round down to nearest 10
-    const requiredHours = Math.floor(divided / 10) * 10;
-
-    console.log(
-      `Hours calc: enrollment=${enrollment}, roundedUp=${roundedUp}, divided=${divided}, result=${requiredHours}`,
-    );
-    return requiredHours;
-  };
 
   // Auto-generate term name based on letter and year
   const getTermName = (letter: string, year: number): string => {

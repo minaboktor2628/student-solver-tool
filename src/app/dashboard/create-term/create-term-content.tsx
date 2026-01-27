@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/trpc/react";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { calculateRequiredHours } from "@/lib/utils";
 
 // Types
 interface Course {
@@ -33,13 +34,6 @@ interface NewCourse {
   capacity: number;
   requiredHours: number;
   description: string;
-}
-
-function calculateRequiredHours(enrollment: number): number {
-  const roundedUp = Math.ceil(enrollment / 5) * 5;
-  const divided = roundedUp / 2;
-  const requiredHours = Math.floor(divided / 10) * 10;
-  return requiredHours;
 }
 
 function getTermName(letter: string, year: number): string {

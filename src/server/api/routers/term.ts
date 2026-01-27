@@ -6,13 +6,7 @@ import {
   coordinatorProcedure,
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
-
-function calculateRequiredHours(enrollment: number): number {
-  const roundedUp = Math.ceil(enrollment / 5) * 5;
-  const divided = roundedUp / 2;
-  const requiredHours = Math.floor(divided / 10) * 10;
-  return requiredHours;
-}
+import { calculateRequiredHours } from "@/lib/utils";
 
 export const termRoute = createTRPCRouter({
   getTerms: publicProcedure.query(async ({ ctx }) => {
