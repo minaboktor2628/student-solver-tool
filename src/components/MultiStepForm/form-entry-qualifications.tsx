@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/trpc/react";
+import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 
 export type Section = {
   term: string;
@@ -15,9 +17,9 @@ interface FormEntryQualificationsProps {
   termId: string;
   courses?: Course[];
   onChange?: (selectedSectionIds: string[]) => void;
-  onNext?: () => void;
-  onExit?: () => void;
-  onSubmit?: () => void;
+  onNext: () => void;
+  onExit: () => void;
+  onSubmit: () => void;
 }
 
 const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
@@ -29,8 +31,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   onExit,
   onSubmit,
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
+  const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
+    onError: (error) => {
+      console.error("Failed to save qualifications:", error);
+    },
+  });
 
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
     () => new Set([]),
@@ -52,38 +57,17 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   }, [selectedSections]);
 
   async function handleNextClick() {
-    // If no sections selected, skip to end/homepage
-    if (selectedSections.size === 0) {
-      setIsSaving(true);
-      try {
-        await saveFormMutation.mutateAsync({
-          userId,
-          termId,
-          qualifiedSectionIds: [],
-        });
-        // Exit to homepage instead of going to next step
-        onSubmit?.();
-      } catch (error) {
-        console.error("Failed to save qualifications:", error);
-      } finally {
-        setIsSaving(false);
-      }
-      return;
-    }
+    saveFormMutation.mutate({
+      userId,
+      termId,
+      qualifiedSectionIds:
+        selectedSections.size === 0 ? [] : Array.from(selectedSections),
+    });
 
-    setIsSaving(true);
-    try {
-      await saveFormMutation.mutateAsync({
-        userId,
-        termId,
-        qualifiedSectionIds: Array.from(selectedSections),
-      });
-      onNext?.();
-    } catch (error) {
-      console.error("Failed to save qualifications:", error);
-    } finally {
-      setIsSaving(false);
+    if (selectedSections.size === 0) {
+      onSubmit();
     }
+    onNext();
   }
 
   function isSectionSelected(id: string) {
@@ -130,13 +114,10 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         {courses.map((course) => {
           const courseSelected = isCourseSelected(course);
           return (
-            <div
-              key={course.code}
-              className="rounded-lg border bg-white shadow-sm"
-            >
+            <div key={course.code} className="rounded-lg border shadow-sm">
               <button
                 onClick={() => toggleCourse(course)}
-                className="flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left hover:bg-gray-50"
+                className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left"
               >
                 <div>
                   <div className="text-lg font-medium">
@@ -145,12 +126,10 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                 </div>
                 <div>
                   <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={courseSelected}
                       onChange={() => toggleCourse(course)}
                       aria-label={`Select all sections for ${course.code}`}
-                      className="accent-primary h-4 w-4"
                     />
                   </label>
                 </div>
@@ -161,7 +140,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   {course.sections.map((section) => (
                     <li
                       key={section.id}
-                      className="flex items-center justify-between rounded-md p-2 hover:bg-gray-50"
+                      className="hover:bg-input flex items-center justify-between rounded-md p-2"
                     >
                       <button
                         onClick={() => toggleSection(section.id)}
@@ -172,15 +151,12 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                             {section.term}
                             {section.courseSection} - {section.instructor}
                           </div>
-                          <div className="text-sm text-gray-600">Section</div>
                         </div>
                       </button>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={isSectionSelected(section.id)}
                         onChange={() => toggleSection(section.id)}
                         tabIndex={0}
-                        className="accent-primary h-4 w-4"
                         aria-label={`Select section ${section.term}${section.courseSection} for ${course.code}`}
                       />
                     </li>
@@ -193,23 +169,16 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
       </div>
 
       <div className="mt-4 flex gap-3">
-        {onNext && (
-          <button
-            onClick={handleNextClick}
-            disabled={isSaving}
-            className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
-          >
-            Next
-          </button>
-        )}
-        {onExit && (
-          <button
-            onClick={onExit}
-            className="rounded-lg bg-gray-300 px-4 py-2 hover:bg-gray-400"
-          >
-            Back
-          </button>
-        )}
+        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
+          Next
+        </Button>
+        <Button
+          onClick={onExit}
+          variant="outline"
+          disabled={saveFormMutation.isPending}
+        >
+          Back
+        </Button>
       </div>
     </div>
   );

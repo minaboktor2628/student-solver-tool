@@ -1,7 +1,6 @@
 import { api } from "@/trpc/react";
 import { useTerm } from "../term-combobox";
 import { Button } from "../ui/button";
-import { useState } from "react";
 
 interface AvailabilityProps {
   onNext: () => void;
@@ -16,25 +15,21 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
   onNext,
   onExit,
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
   const updateAvailabilityMutation =
-    api.studentForm.setAvailabilityForTerm.useMutation();
+    api.studentForm.setAvailabilityForTerm.useMutation({
+      onError: (error) => {
+        console.error("Failed to update availability:", error);
+      },
+    });
 
-  async function handleYNClick(answer: boolean) {
-    setIsSaving(true);
-    try {
-      await updateAvailabilityMutation.mutateAsync({
-        userId,
-        termId,
-        isAvailable: answer,
-      });
-      if (answer === true) onNext();
-      else onExit();
-    } catch (error) {
-      console.error("Failed to save availability:", error);
-    } finally {
-      setIsSaving(false);
-    }
+  function handleYNClick(answer: boolean) {
+    updateAvailabilityMutation.mutate({
+      userId,
+      termId,
+      isAvailable: answer,
+    });
+    if (answer === true) onNext();
+    else onExit();
   }
 
   const { selectedTerm } = useTerm();
@@ -47,15 +42,14 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
       <div className="flex flex-col justify-center gap-4">
         <Button
           onClick={() => handleYNClick(true)}
-          className=""
-          disabled={isSaving}
+          disabled={updateAvailabilityMutation.isPending}
         >
           Yes
         </Button>
         <Button
           onClick={() => handleYNClick(false)}
           variant="outline"
-          disabled={isSaving}
+          disabled={updateAvailabilityMutation.isPending}
         >
           No
         </Button>

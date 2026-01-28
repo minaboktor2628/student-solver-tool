@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { api } from "@/trpc/react";
+import { Button } from "../ui/button";
 
 type TokenType = "prefer" | "strong";
 
@@ -23,8 +24,8 @@ interface CoursePreferencesProps {
   selectedSectionIds: string[];
   /** mapping from section id to token type */
   onChange?: (mapping: Record<string, TokenType | undefined>) => void;
-  onNext?: () => void;
-  onExit?: () => void;
+  onNext: () => void;
+  onExit: () => void;
 }
 
 const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
@@ -38,8 +39,12 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   onNext,
   onExit,
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
+  const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
+    onError: (error) => {
+      console.error("Failed to save preferences:", error);
+    },
+  });
+
   // Filter courses to only show sections that were selected in qualifications
   const filteredCourses = useMemo(() => {
     if (!coursesProp) return [];
@@ -57,22 +62,15 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
     {},
   );
 
-  async function handleNextClick() {
-    setIsSaving(true);
-    try {
-      await saveFormMutation.mutateAsync({
-        userId,
-        termId,
-        qualifiedSectionIds,
-        sectionPreferences: mapping,
-        comments,
-      });
-      onNext?.();
-    } catch (error) {
-      console.error("Failed to save preferences:", error);
-    } finally {
-      setIsSaving(false);
-    }
+  function handleNextClick() {
+    saveFormMutation.mutate({
+      userId,
+      termId,
+      qualifiedSectionIds,
+      sectionPreferences: mapping,
+      comments,
+    });
+    onNext();
   }
 
   const originalNumStrongTokens = 1;
@@ -188,7 +186,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                         handleDrop(section.id, token);
                       }
                     }}
-                    className="flex items-center justify-between rounded-md p-2 hover:bg-gray-50"
+                    className="flex items-center justify-between rounded-md p-2"
                   >
                     <div>
                       <div className="font-medium">
@@ -216,7 +214,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                               : "Prefer"}
                           </span>
                           <span className="ml-1 text-xs leading-none font-bold">
-                            ×
+                            x
                           </span>
                         </button>
                       ) : (
@@ -234,23 +232,16 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       </div>
 
       <div className="mt-4 flex gap-3">
-        {onNext && (
-          <button
-            onClick={handleNextClick}
-            disabled={isSaving}
-            className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
-          >
-            Next
-          </button>
-        )}
-        {onExit && (
-          <button
-            onClick={onExit}
-            className="rounded-lg bg-gray-300 px-4 py-2 hover:bg-gray-400"
-          >
-            Back
-          </button>
-        )}
+        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
+          Next
+        </Button>
+        <Button
+          onClick={onExit}
+          variant="outline"
+          disabled={saveFormMutation.isPending}
+        >
+          Back
+        </Button>
       </div>
     </div>
   );

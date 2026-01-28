@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { api } from "@/trpc/react";
 import { BaseScheduleSelector } from "@/lib/schedule-selector";
+import { Button } from "../ui/button";
 
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
 
@@ -22,25 +23,21 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   initialSelection = [],
 }) => {
   const [selection, setSelection] = useState<Date[]>(initialSelection);
-  const [isSaving, setIsSaving] = useState(false);
-  const saveFormMutation = api.studentForm.saveStudentForm.useMutation();
+  const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
+    onError: (error) => {
+      console.error("Failed to save form:", error);
+    },
+  });
 
   async function handleNextClick() {
     const weekly = selectionToWeekly(selection);
 
-    setIsSaving(true);
-    try {
-      await saveFormMutation.mutateAsync({
-        userId,
-        termId,
-        weeklyAvailability: weekly,
-      });
-      onNext();
-    } catch (error) {
-      console.error("Failed to save form:", error);
-    } finally {
-      setIsSaving(false);
-    }
+    saveFormMutation.mutate({
+      userId,
+      termId,
+      weeklyAvailability: weekly,
+    });
+    onNext();
   }
 
   function dayLetterFromDate(d: Date): WeeklySlot["day"] | null {
@@ -81,7 +78,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
         Select the times you're available for this term
       </h2>
 
-      <div className="bg-white p-4 shadow-sm">
+      <div className="border p-4 shadow-sm">
         <BaseScheduleSelector
           selection={selection}
           onChange={(newSelection: Date[]) => setSelection(newSelection)}
@@ -89,19 +86,16 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
       </div>
 
       <div className="mt-4 flex gap-3">
-        <button
-          onClick={handleNextClick}
-          disabled={isSaving}
-          className="bg-primary/70 hover:bg-primary/100 rounded-lg px-4 py-2 text-white disabled:opacity-50"
-        >
+        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
           Next
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={onExit}
-          className="rounded-lg bg-gray-300 px-4 py-2 hover:bg-gray-400"
+          variant="outline"
+          disabled={saveFormMutation.isPending}
         >
           Back
-        </button>
+        </Button>
       </div>
     </div>
   );
