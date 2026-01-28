@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
-import { db } from "@/server/db";
 import { TRPCError } from "@trpc/server";
 
 /**
@@ -20,9 +19,9 @@ export const studentFormRoute = createTRPCRouter({
   /** Fetch all sections for a given term, grouped by courseCode */
   getSections: assistantProcedure
     .input(z.object({ termId: z.string() }))
-    .query(async ({ input: { termId } }) => {
+    .query(async ({ input: { termId }, ctx }) => {
       // Fetch sections for the requested term and include the professor relation
-      const rows = await db.section.findMany({
+      const rows = await ctx.db.section.findMany({
         where: { term: { id: termId } },
         select: {
           term: { select: { termLetter: true, year: true } },
@@ -46,7 +45,7 @@ export const studentFormRoute = createTRPCRouter({
         map.get(code)!.push(r);
       }
 
-      const courses = Array.from(map.entries()).map(([courseCode, items]) => ({
+      const sections = Array.from(map.entries()).map(([courseCode, items]) => ({
         code: courseCode,
         title: items[0].courseTitle,
         sections: items.map((it) => ({
@@ -63,7 +62,7 @@ export const studentFormRoute = createTRPCRouter({
         })),
       }));
 
-      return { courses };
+      return { sections };
     }),
 
   getWeeklyAvailability: assistantProcedure
@@ -77,9 +76,7 @@ export const studentFormRoute = createTRPCRouter({
 
   getQualifications: assistantProcedure
     .input(baseInput)
-    .query(async ({ input, ctx }) => {
-      const { userId, termId } = input;
-
+    .query(async ({ input: { userId, termId }, ctx }) => {
       if (
         !(
           ctx.session.user.roles.includes("COORDINATOR") ||
@@ -93,7 +90,7 @@ export const studentFormRoute = createTRPCRouter({
       }
 
       // Find the staff preference for this user and term
-      const staffPref = await db.staffPreference.findUnique({
+      const staffPref = await ctx.db.staffPreference.findUnique({
         where: { userId_termId: { userId, termId } },
         include: {
           qualifiedForSections: {
@@ -113,23 +110,20 @@ export const studentFormRoute = createTRPCRouter({
 
   getPreferences: assistantProcedure
     .input(baseInput)
-    .query(async ({ input }) => {
-      const { userId, termId } = input;
-
+    .query(async ({ input: { userId, termId }, ctx }) => {
       // TODO: query prefer/strong tokens on StaffPreference.StaffPreferencePreferredSection
 
       return { preferences: {} as Record<string, string> };
     }),
 
-  getComments: assistantProcedure.input(baseInput).query(async ({ input }) => {
-    const { userId, termId } = input;
+  getComments: assistantProcedure
+    .input(baseInput)
+    .query(async ({ input: { userId, termId }, ctx }) => {
+      // TODO: Query StaffPreference.comments
 
-    // TODO: Query StaffPreference.comments
+      return { comments: null as string | null };
+    }),
 
-    return { comments: null as string | null };
-  }),
-
-  /** Insert or update the complete student form for a staff member and term */
   saveStudentForm: assistantProcedure
     .input(
       baseInput.extend({
@@ -149,105 +143,133 @@ export const studentFormRoute = createTRPCRouter({
         comments: z.string().optional(),
       }),
     )
-    .mutation(async ({ input, ctx }) => {
-      const {
-        userId,
-        termId,
-        weeklyAvailability,
-        qualifiedSectionIds,
-        sectionPreferences,
-        comments,
-      } = input;
-
-      if (
-        !(
-          ctx.session.user.roles.includes("COORDINATOR") ||
-          ctx.session.user.id === userId
-        )
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: `Cannot access qualifications for other users.`,
-        });
-      }
-
-      const result = await db.$transaction(async (tx) => {
-        const term = await tx.term.findUniqueOrThrow({
-          where: { id: termId },
-        });
-
-        // 2. Upsert StaffPreference
-        const staffPref = await tx.staffPreference.upsert({
-          where: { userId_termId: { userId, termId: term.id } },
-          update: {
-            ...(comments !== undefined && { comments: comments || null }),
-            updatedAt: new Date(),
-          },
-          create: {
-            userId,
-            termId: term.id,
-            comments: comments || null,
-          },
-        });
-
-        // 3. Upsert qualified sections (replace existing)
-        if (qualifiedSectionIds !== undefined) {
-          // Delete existing qualifications
-          await tx.staffPreferenceQualifiedSection.deleteMany({
-            where: { staffPreferenceId: staffPref.id },
+    .mutation(
+      async ({
+        input: {
+          userId,
+          termId,
+          weeklyAvailability,
+          qualifiedSectionIds,
+          sectionPreferences,
+          comments,
+        },
+        ctx,
+      }) => {
+        if (
+          !(
+            ctx.session.user.roles.includes("COORDINATOR") ||
+            ctx.session.user.id === userId
+          )
+        ) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `Cannot access qualifications for other users.`,
           });
-          // Create new qualifications if array is not empty
-          if (qualifiedSectionIds.length > 0) {
-            await tx.staffPreferenceQualifiedSection.createMany({
-              data: qualifiedSectionIds.map((sectionId) => ({
-                staffPreferenceId: staffPref.id,
-                sectionId,
-              })),
-            });
-          }
         }
 
-        // 4. Upsert preferred sections (replace existing)
-        if (sectionPreferences && Object.keys(sectionPreferences).length > 0) {
-          // Delete existing preferences
-          await tx.staffPreferencePreferredSection.deleteMany({
-            where: { staffPreferenceId: staffPref.id },
+        const result = await ctx.db.$transaction(async (tx) => {
+          // 1. Verify user exists
+          const user = await tx.user.findUnique({
+            where: { id: userId },
           });
-          // Create new preferences
-          for (const [sectionId, rank] of Object.entries(sectionPreferences)) {
-            if (rank) {
-              await tx.staffPreferencePreferredSection.create({
-                data: {
+
+          if (!user) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `User with ID ${userId} not found.`,
+            });
+          }
+
+          // 2. Verify term exists
+          const term = await tx.term.findUniqueOrThrow({
+            where: { id: termId },
+          });
+
+          if (!term) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Term with ID ${termId} not found.`,
+            });
+          }
+
+          // 3. Upsert StaffPreference
+          const staffPref = await tx.staffPreference.upsert({
+            where: { userId_termId: { userId, termId: term.id } },
+            update: {
+              ...(comments !== undefined && { comments: comments || null }),
+              updatedAt: new Date(),
+            },
+            create: {
+              userId,
+              termId: term.id,
+              comments: comments || null,
+            },
+          });
+
+          // 4. Upsert qualified sections (replace existing)
+          if (qualifiedSectionIds !== undefined) {
+            // Delete existing qualifications
+            await tx.staffPreferenceQualifiedSection.deleteMany({
+              where: { staffPreferenceId: staffPref.id },
+            });
+            // Create new qualifications if array is not empty
+            if (qualifiedSectionIds.length > 0) {
+              await tx.staffPreferenceQualifiedSection.createMany({
+                data: qualifiedSectionIds.map((sectionId) => ({
                   staffPreferenceId: staffPref.id,
                   sectionId,
-                  rank: rank === "strong" ? "STRONGLY_PREFER" : "PREFER",
-                },
+                })),
               });
             }
           }
-        }
 
-        // 5. Upsert availability times (replace existing)
-        if (weeklyAvailability && weeklyAvailability.length > 0) {
-          // Delete existing availability
-          await tx.staffAvailableHour.deleteMany({
-            where: { staffPreferenceId: staffPref.id },
-          });
-          // Create new availability
-          await tx.staffAvailableHour.createMany({
-            data: weeklyAvailability.map(({ day, hour }) => ({
-              day: day as any,
-              hour,
-              staffPreferenceId: staffPref.id,
-            })),
-          });
-        }
+          // 5. Upsert preferred sections (replace existing)
+          if (
+            sectionPreferences &&
+            Object.keys(sectionPreferences).length > 0
+          ) {
+            // Delete existing preferences
+            await tx.staffPreferencePreferredSection.deleteMany({
+              where: { staffPreferenceId: staffPref.id },
+            });
+            // Create new preferences
+            for (const [sectionId, rank] of Object.entries(
+              sectionPreferences,
+            )) {
+              if (rank) {
+                await tx.staffPreferencePreferredSection.create({
+                  data: {
+                    staffPreferenceId: staffPref.id,
+                    sectionId,
+                    rank: rank === "strong" ? "STRONGLY_PREFER" : "PREFER",
+                  },
+                });
+              }
+            }
+          }
 
-        return { ok: true, staffPreferenceId: staffPref.id };
-      });
+          // 6. Upsert availability times (replace existing)
+          if (weeklyAvailability && weeklyAvailability.length > 0) {
+            // Delete existing availability
+            await tx.staffAvailableHour.deleteMany({
+              where: { staffPreferenceId: staffPref.id },
+            });
+            // Create new availability
+            await tx.staffAvailableHour.createMany({
+              data: weeklyAvailability.map(({ day, hour }) => ({
+                day: day as any,
+                hour,
+                staffPreferenceId: staffPref.id,
+              })),
+            });
+          }
 
-      return result;
-    }),
+          return { ok: true, staffPreferenceId: staffPref.id };
+        });
+
+        return result;
+      },
+    ),
 
   setAvailabilityForTerm: assistantProcedure
     .input(
@@ -255,9 +277,8 @@ export const studentFormRoute = createTRPCRouter({
         isAvailable: z.boolean(),
       }),
     )
-    .mutation(async ({ input }) => {
-      const { userId, termId, isAvailable } = input;
-      const result = await db.staffPreference.updateMany({
+    .mutation(async ({ input: { userId, termId, isAvailable }, ctx }) => {
+      const result = await ctx.db.staffPreference.updateMany({
         where: { userId, termId },
         data: { isAvailableForTerm: isAvailable },
       });
