@@ -24,8 +24,12 @@ const ScheduleSelector = dynamic(
 
 type CoursesCardProps = {
   sections: Record<string, SectionWithProfessorPreference> | undefined;
+  isSubmitted: boolean;
 };
-export const CoursesCard: React.FC<CoursesCardProps> = ({ sections }) => {
+export const CoursesCard: React.FC<CoursesCardProps> = ({
+  sections,
+  isSubmitted,
+}) => {
   const calendarStart = new Date(1970, 0, 5);
   const dayMap: Record<WeeklySlot["day"], number> = {
     M: 0,
@@ -81,65 +85,73 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({ sections }) => {
                 {course.courseCode}-{course.courseSection} -{" "}
                 {course.courseTitle}
               </h3>
-
-              <h4 className="mt-2 font-medium">Preferred Assistants</h4>
-              {course.professorPreference?.preferredStaff?.length ? (
-                <ul className="ml-4 list-disc">
-                  {course.professorPreference.preferredStaff.map(
-                    (assistant) => (
-                      <li key={assistant.id}>{assistant.name}</li>
-                    ),
+              {isSubmitted && (
+                <div>
+                  <h4 className="mt-2 font-medium">Preferred Assistants</h4>
+                  {course.professorPreference?.preferredStaff?.length ? (
+                    <ul className="ml-4 list-disc">
+                      {course.professorPreference.preferredStaff.map(
+                        (assistant) => (
+                          <li key={assistant.id}>{assistant.name}</li>
+                        ),
+                      )}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No preferred assistants
+                    </p>
                   )}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No preferred assistants</p>
-              )}
 
-              <h4 className="mt-2 font-medium">Avoided Assistants</h4>
-              {course.professorPreference?.avoidedStaff?.length ? (
-                <ul className="ml-4 list-disc">
-                  {course.professorPreference.avoidedStaff.map((assistant) => (
-                    <li key={assistant.id}>{assistant.name}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">No avoided assistants</p>
-              )}
+                  <h4 className="mt-2 font-medium">Avoided Assistants</h4>
+                  {course.professorPreference?.avoidedStaff?.length ? (
+                    <ul className="ml-4 list-disc">
+                      {course.professorPreference.avoidedStaff.map(
+                        (assistant) => (
+                          <li key={assistant.id}>{assistant.name}</li>
+                        ),
+                      )}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No avoided assistants
+                    </p>
+                  )}
 
-              <h4 className="mt-2 font-medium">
-                {" "}
-                Required availability for Assistants{" "}
-              </h4>
-              {course.professorPreference?.timesRequired?.length ? (
-                <div className="pointer-events-none max-w-[800px]">
-                  <ScheduleSelector
-                    selection={timesRequiredToDate(
-                      course.professorPreference.timesRequired,
-                      calendarStart,
-                    )}
-                    numDays={5}
-                    startDate={calendarStart}
-                    renderDateLabel={(d: Date) => {
-                      const letter = dayLetterFromDate(d) ?? "";
-                      return (
-                        <div className="text-sm font-medium">{letter}</div>
-                      );
-                    }}
-                    minTime={8}
-                    maxTime={21}
-                    hourlyChunks={1}
-                  />
+                  <h4 className="mt-2 font-medium">
+                    Required availability for Assistants
+                  </h4>
+                  {course.professorPreference?.timesRequired?.length ? (
+                    <div className="pointer-events-none max-w-[800px]">
+                      <ScheduleSelector
+                        selection={timesRequiredToDate(
+                          course.professorPreference.timesRequired,
+                          calendarStart,
+                        )}
+                        numDays={5}
+                        startDate={calendarStart}
+                        renderDateLabel={(d: Date) => {
+                          const letter = dayLetterFromDate(d) ?? "";
+                          return (
+                            <div className="text-sm font-medium">{letter}</div>
+                          );
+                        }}
+                        minTime={8}
+                        maxTime={21}
+                        hourlyChunks={1}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No required times</p>
+                  )}
+                  <h4 className="mt-2 font-medium">Comments</h4>
+                  {course.professorPreference?.comments?.length ? (
+                    <div className="ml-4 list-disc">
+                      {course.professorPreference.comments}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No comments</p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-gray-500">No required times</p>
-              )}
-              <h4 className="mt-2 font-medium">Comments</h4>
-              {course.professorPreference?.comments?.length ? (
-                <div className="ml-4 list-disc">
-                  {course.professorPreference.comments}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">No comments</p>
               )}
             </div>
           ))}

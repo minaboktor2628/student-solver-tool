@@ -56,53 +56,56 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     useState<Record<string, SectionWithProfessorPreference>>();
 
   useEffect(() => {
+    if (!data) return;
+
     setLoading(true);
-    if (data) {
-      const initialValues: Record<string, SectionWithProfessorPreference> = {};
-      data?.sections.forEach((s) => {
-        initialValues[s.sectionId] = {
-          sectionId: s.sectionId,
-          courseCode: s.courseCode,
-          courseSection: s.courseSection,
-          courseTitle: s.courseTitle,
-          meetingPattern: s.meetingPattern,
-          enrollment: s.enrollment,
-          capacity: s.capacity,
-          requiredHours: s.requiredHours,
-          availableAssistants: s.availableAssistants.map((a) => ({
+
+    const initialValues: Record<string, SectionWithProfessorPreference> = {};
+
+    data?.sections.forEach((s) => {
+      initialValues[s.sectionId] = {
+        sectionId: s.sectionId,
+        courseCode: s.courseCode,
+        courseSection: s.courseSection,
+        courseTitle: s.courseTitle,
+        meetingPattern: s.meetingPattern,
+        enrollment: s.enrollment,
+        capacity: s.capacity,
+        requiredHours: s.requiredHours,
+        availableAssistants: s.availableAssistants.map((a) => ({
+          id: a.id,
+          name: a.name,
+          email: a.email,
+          hours: a.hours,
+          roles: a.roles,
+        })),
+        professorPreference: {
+          preferredStaff: s.professorPreference?.preferredStaff?.map((a) => ({
             id: a.id,
             name: a.name,
             email: a.email,
             hours: a.hours,
-            roles: a.roles,
+            roles: (a.roles ?? []).map((r) => ({ role: r })),
           })),
-          professorPreference: {
-            preferredStaff: s.professorPreference?.preferredStaff?.map((a) => ({
-              id: a.id,
-              name: a.name,
-              email: a.email,
-              hours: a.hours,
-              roles: (a.roles ?? []).map((r) => ({ role: r })),
-            })),
-            avoidedStaff: s.professorPreference?.avoidedStaff?.map((a) => ({
-              id: a.id,
-              name: a.name,
-              email: a.email,
-              hours: a.hours,
-              roles: (a.roles ?? []).map((r) => ({ role: r })),
-            })),
-            timesRequired: s.professorPreference?.timesRequired?.map((a) => ({
-              day: a.day,
-              hour: a.hour,
-            })),
-            comments: s.professorPreference?.comments,
-          },
-        };
-      });
-      setSections(initialValues);
-      setLoading(false);
-    }
-  }, [data?.sections]);
+          avoidedStaff: s.professorPreference?.avoidedStaff?.map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+            hours: a.hours,
+            roles: (a.roles ?? []).map((r) => ({ role: r })),
+          })),
+          timesRequired: s.professorPreference?.timesRequired?.map((a) => ({
+            day: a.day,
+            hour: a.hour,
+          })),
+          comments: s.professorPreference?.comments,
+        },
+      };
+    });
+
+    setSections(initialValues);
+    setLoading(false);
+  }, [data]);
 
   const handlePreferredStaffChange = (
     sectionId: string,

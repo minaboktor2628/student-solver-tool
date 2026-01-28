@@ -1,16 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
-import { NumCoursesCard } from "@/components/professor/professor-dashboard/num-courses-card";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
 import { useTerm } from "@/components/term-combobox";
 import { Header } from "@/components/professor/professor-dashboard/header";
 import { api } from "@/trpc/react";
-import type {
-  SectionWithProfessorPreference,
-  Assistant,
-  TimesRequiredOutput,
-} from "@/types/professor";
+import type { SectionWithProfessorPreference } from "@/types/professor";
 
 /*Data I need to fetch from queries
 From signed in User get name
@@ -36,8 +31,7 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
     useState<Record<string, SectionWithProfessorPreference>>();
   const username = professorData?.info?.professor;
   const deadlineDate = professorData?.info?.term?.termProfDueDate;
-  const isSubmitted = false;
-  const [numCourses, setNumCourses] = useState<number>();
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(true);
 
   useEffect(() => {
     if (data?.sections) {
@@ -81,9 +75,12 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
             comments: s.professorPreference?.comments,
           },
         };
+        if (!s.professorPreference.preferredStaff) {
+          setIsSubmitted(false);
+        }
       });
       setSections(initialValues);
-      setNumCourses(Object.values(initialValues).length);
+      console.log(data?.sections);
     }
   }, [data?.sections]);
 
@@ -94,12 +91,8 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
         deadlineDate={deadlineDate ?? new Date()}
         isSubmitted={isSubmitted}
       />
-      <NumCoursesCard
-        numberOfCourses={numCourses ?? 0}
-        isSubmitted={isSubmitted}
-      />
       {/* Courses Overview */}
-      <CoursesCard sections={sections} />
+      <CoursesCard sections={sections} isSubmitted={isSubmitted} />
     </div>
   );
 };
