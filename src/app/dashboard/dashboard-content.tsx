@@ -67,12 +67,6 @@ interface TermData {
   status: "draft" | "published";
 }
 
-interface CSVRow {
-  email: string;
-  name: string;
-  role: "TA" | "PLA" | "PROFESSOR";
-}
-
 interface UserToAdd {
   name: string;
   email: string;
@@ -80,7 +74,6 @@ interface UserToAdd {
 }
 
 const LOCAL_TERMS_KEY = "sata:terms";
-const LOCAL_SELECTED_TERM_KEY = "sata:selectedTerm";
 const DEFAULT_TERM = "Spring 2025";
 
 export default function DashboardContent() {
@@ -103,7 +96,6 @@ export default function DashboardContent() {
   const [usersToAdd, setUsersToAdd] = useState<UserToAdd[]>([
     { name: "", email: "", role: "PLA" },
   ]);
-  const [isAddingUser, setIsAddingUser] = useState(false);
   const [userManagementError, setUserManagementError] = useState<string | null>(
     null,
   );
@@ -134,42 +126,16 @@ export default function DashboardContent() {
   );
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  // For term creation: editing courses in the selection list
-  const [editingTermCourseId, setEditingTermCourseId] = useState<string | null>(
-    null,
-  );
-  const [editingTermCourseData, setEditingTermCourseData] =
-    useState<Course | null>(null);
-
-  // Auto-generate term name based on letter and year
-  const getTermName = (letter: string, year: number): string => {
-    switch (letter) {
-      case "A":
-        return `A/Fall ${year}`;
-      case "B":
-        return `B ${year}`;
-      case "C":
-        return `C/Spring ${year}`;
-      case "D":
-        return `D ${year}`;
-      default:
-        return `${letter} ${year}`;
-    }
-  };
-
   // tRPC mutations and queries
   const getTermsQuery = api.term.getAllTerms.useQuery(undefined, {
     enabled: false,
   });
   const getDashboardQuery = api.dashboard.getDashboardData.useQuery(
-    { termId: selectedTerm || "" },
+    { termId: selectedTerm ?? "" },
     { enabled: !!selectedTerm },
   );
   const deleteTermMutation = api.term.deleteTerm.useMutation();
   const publishTermMutation = api.term.publishTerm.useMutation();
-  const getAllCoursesQuery = api.courses.getAllCourses.useQuery(undefined, {
-    enabled: false,
-  });
   const createCoursesMutation = api.courses.createCourses.useMutation();
   const updateCourseMutation = api.courses.updateCourse.useMutation();
   const deleteCourseMutation = api.courses.deleteCourse.useMutation();
@@ -221,7 +187,7 @@ export default function DashboardContent() {
           status: "published",
         })),
       );
-      setSelectedTerm(initialTerms[0] || DEFAULT_TERM);
+      setSelectedTerm(initialTerms[0] ?? DEFAULT_TERM);
     } finally {
       setLoadingTerms(false);
     }
@@ -250,7 +216,7 @@ export default function DashboardContent() {
       }
 
       // Transform courses with graduate semester course handling
-      const transformedCourses = (data.courses || []).map((course: any) => {
+      const transformedCourses = (data.courses ?? []).map((course: any) => {
         // Check if it's a graduate semester course
         const isGradSemester = course.description?.includes("GRAD_SEMESTER");
         const isDisplayOnly = course.description?.includes(
@@ -263,23 +229,20 @@ export default function DashboardContent() {
         );
 
         // Determine term display
-        let termDisplay = course.term || "Unknown Term";
+        let termDisplay = course.term ?? "Unknown Term";
         let spansTerms = null;
 
         if (isGradSemester) {
           // Extract which terms it spans
-          const isPrimary = course.description?.includes(
-            "GRAD_SEMESTER_PRIMARY",
-          );
           const currentTermLetter =
-            terms.find((t) => t.id === termId)?.termLetter || "";
+            terms.find((t) => t.id === termId)?.termLetter ?? "";
 
           if (currentTermLetter === "A" || currentTermLetter === "B") {
             spansTerms = "A+B";
-            termDisplay = `A+B Terms ${terms.find((t) => t.id === termId)?.year || ""}`;
+            termDisplay = `A+B Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
           } else if (currentTermLetter === "C" || currentTermLetter === "D") {
             spansTerms = "C+D";
-            termDisplay = `C+D Terms ${terms.find((t) => t.id === termId)?.year || ""}`;
+            termDisplay = `C+D Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
           }
 
           // For display-only sections, show special term info
@@ -306,14 +269,14 @@ export default function DashboardContent() {
 
       setCourses(transformedCourses);
       setStaff(
-        (data.staff || []).map((s: any) => ({
+        (data.staff ?? []).map((s: any) => ({
           ...s,
-          role: s.roles?.[0] || "PLA",
+          role: s.roles?.[0] ?? "PLA",
           submitted: s.hasPreferences,
         })),
       );
       setProfessors(
-        (data.professors || []).map((p: any) => ({
+        (data.professors ?? []).map((p: any) => ({
           ...p,
           submitted: true,
         })),
@@ -442,7 +405,7 @@ export default function DashboardContent() {
     } catch (err: any) {
       console.error("Error updating course:", err);
       setSyncMessage(
-        `✗ Failed to update course: ${err.message || "Unknown error"}`,
+        `✗ Failed to update course: ${err.message ?? "Unknown error"}`,
       );
     } finally {
       setIsSavingEdit(false);
@@ -479,7 +442,7 @@ export default function DashboardContent() {
     setSyncMessage(null);
     try {
       const response = await syncCoursesMutation.mutateAsync();
-      if (response && (response.success || response.created !== undefined)) {
+      if (response && (response.success ?? response.created !== undefined)) {
         setSyncMessage(
           `✓ Synced! Created: ${response.created ?? 0}, Updated: ${response.updated ?? 0}, Skipped: ${response.skipped ?? 0}`,
         );
@@ -553,7 +516,7 @@ export default function DashboardContent() {
       }
     } catch (err: any) {
       console.error("Error saving users:", err);
-      setUserManagementError(err.message || "Failed to save users");
+      setUserManagementError(err.message ?? "Failed to save users");
     } finally {
       setIsSavingUsers(false);
     }
@@ -633,7 +596,7 @@ export default function DashboardContent() {
       }
     } catch (err: any) {
       console.error("Error saving courses:", err);
-      setCourseManagementError(err.message || "Failed to save courses");
+      setCourseManagementError(err.message ?? "Failed to save courses");
     } finally {
       setIsSavingCourses(false);
     }
@@ -812,7 +775,7 @@ export default function DashboardContent() {
             <p className="text-muted-foreground">
               Add courses manually{" "}
               {selectedTerm
-                ? `to ${terms.find((t) => t.id === selectedTerm)?.name || selectedTerm}`
+                ? `to ${terms.find((t) => t.id === selectedTerm)?.name ?? selectedTerm}`
                 : ""}
             </p>
           </div>

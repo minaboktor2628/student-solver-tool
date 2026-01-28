@@ -172,49 +172,41 @@ export const staffRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      try {
-        const { email, name, role, hours } = input;
+      const { email, name, role, hours } = input;
 
-        // Check if user already exists
-        const existingUser = await ctx.db.user.findUnique({
-          where: { email },
-        });
+      // Check if user already exists
+      const existingUser = await ctx.db.user.findUnique({
+        where: { email },
+      });
 
-        if (existingUser) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "User with this email already exists",
-          });
-        }
-
-        const user = await ctx.db.user.create({
-          data: {
-            email,
-            name,
-            hours,
-            roles: {
-              create: {
-                role: role as any,
-              },
-            },
-          },
-          include: {
-            roles: true,
-          },
-        });
-
-        return {
-          success: true,
-          message: "User created successfully",
-          userId: user.id,
-          user,
-        };
-      } catch (error) {
-        if (error instanceof TRPCError) throw error;
+      if (existingUser) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create user",
+          code: "BAD_REQUEST",
+          message: "User with this email already exists",
         });
       }
+
+      const user = await ctx.db.user.create({
+        data: {
+          email,
+          name,
+          hours,
+          roles: {
+            create: {
+              role: role as any,
+            },
+          },
+        },
+        include: {
+          roles: true,
+        },
+      });
+
+      return {
+        success: true,
+        message: "User created successfully",
+        userId: user.id,
+        user,
+      };
     }),
 });

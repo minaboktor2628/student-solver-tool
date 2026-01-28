@@ -72,9 +72,9 @@ function parseCSV(csvText: string): CSVRow[] {
     .slice(1)
     .map((line, lineIndex) => {
       const values = line.split(",").map((v) => v.trim());
-      const email = values[emailIndex] || "";
-      const name = values[nameIndex] || "";
-      const role = (values[roleIndex] || "").toUpperCase();
+      const email = values[emailIndex] ?? "";
+      const name = values[nameIndex] ?? "";
+      const role = (values[roleIndex] ?? "").toUpperCase();
 
       return { email, name, role, lineIndex: lineIndex + 2 };
     })
@@ -100,7 +100,7 @@ function parseCSV(csvText: string): CSVRow[] {
 
       return true;
     })
-    .map(({ lineIndex, ...row }) => row);
+    .map(({ lineIndex: _lineIndex, ...row }) => row);
 }
 
 export default function CreateTermContent() {
@@ -191,7 +191,7 @@ export default function CreateTermContent() {
         return;
       }
 
-      const allCourses = data.courses || [];
+      const allCourses = data.courses ?? [];
       setTermCoursesToInclude(allCourses);
 
       if (allCourses.length === 0) {
@@ -224,7 +224,7 @@ export default function CreateTermContent() {
       courseTitle: newCourse.courseTitle,
       professorName: newCourse.professorName,
       enrollment: newCourse.enrollment,
-      capacity: newCourse.capacity || 0,
+      capacity: newCourse.capacity ?? 0,
       requiredHours: calculatedHours,
       description: newCourse.description,
     };
@@ -322,7 +322,7 @@ export default function CreateTermContent() {
       }
     } catch (err: any) {
       console.error("Error creating term:", err);
-      setTermError(err.message || "Failed to create term");
+      setTermError(err.message ?? "Failed to create term");
     } finally {
       setCreatingTerm(false);
     }
@@ -632,7 +632,7 @@ export default function CreateTermContent() {
                       type="number"
                       value={newCourse.enrollment}
                       onChange={(e) => {
-                        const enrollment = parseInt(e.target.value) || 0;
+                        const enrollment = parseInt(e.target.value) ?? 0;
                         setNewCourse((prev) => ({ ...prev, enrollment }));
                       }}
                       className="w-full rounded border px-3 py-2 text-sm"
@@ -652,7 +652,7 @@ export default function CreateTermContent() {
                       onChange={(e) =>
                         setNewCourse((prev) => ({
                           ...prev,
-                          capacity: parseInt(e.target.value) || 0,
+                          capacity: parseInt(e.target.value) ?? 0,
                         }))
                       }
                       className="w-full rounded border px-3 py-2 text-sm"
@@ -707,7 +707,7 @@ export default function CreateTermContent() {
                           </label>
                           <input
                             type="text"
-                            value={editingTermCourseData?.courseCode || ""}
+                            value={editingTermCourseData?.courseCode ?? ""}
                             onChange={(e) =>
                               setEditingTermCourseData((prev) =>
                                 prev
@@ -724,7 +724,7 @@ export default function CreateTermContent() {
                           </label>
                           <input
                             type="text"
-                            value={editingTermCourseData?.courseTitle || ""}
+                            value={editingTermCourseData?.courseTitle ?? ""}
                             onChange={(e) =>
                               setEditingTermCourseData((prev) =>
                                 prev
@@ -741,7 +741,7 @@ export default function CreateTermContent() {
                           </label>
                           <input
                             type="text"
-                            value={editingTermCourseData?.professorName || ""}
+                            value={editingTermCourseData?.professorName ?? ""}
                             onChange={(e) =>
                               setEditingTermCourseData((prev) =>
                                 prev
@@ -758,13 +758,13 @@ export default function CreateTermContent() {
                           </label>
                           <input
                             type="number"
-                            value={editingTermCourseData?.enrollment || 0}
+                            value={editingTermCourseData?.enrollment ?? 0}
                             onChange={(e) =>
                               setEditingTermCourseData((prev) =>
                                 prev
                                   ? {
                                       ...prev,
-                                      enrollment: parseInt(e.target.value) || 0,
+                                      enrollment: parseInt(e.target.value) ?? 0,
                                     }
                                   : null,
                               )
@@ -776,13 +776,13 @@ export default function CreateTermContent() {
                           <label className="mb-1 block text-xs">Capacity</label>
                           <input
                             type="number"
-                            value={editingTermCourseData?.capacity || 0}
+                            value={editingTermCourseData?.capacity ?? 0}
                             onChange={(e) =>
                               setEditingTermCourseData((prev) =>
                                 prev
                                   ? {
                                       ...prev,
-                                      capacity: parseInt(e.target.value) || 0,
+                                      capacity: parseInt(e.target.value) ?? 0,
                                     }
                                   : null,
                               )

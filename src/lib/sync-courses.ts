@@ -1,5 +1,5 @@
 import { AcademicLevel, TermLetter } from "@prisma/client";
-import { db } from "@/lib/db";
+import { db } from "@/server/db";
 import { calculateRequiredHours } from "@/lib/utils";
 
 const prisma = db;
@@ -137,7 +137,7 @@ async function fetchWPICourses(): Promise<WPICourseEntry[]> {
       if (entry.Subject && entry.Subject.includes("Computer Science"))
         return true;
 
-      const courseSection = entry.Course_Section || "";
+      const courseSection = entry.Course_Section ?? "";
       // Match: CS 1000, CS500, CS 500, CS5003, CS 5003, CS600, CS 600, etc.
       return /^CS\s*\d+/.test(courseSection);
     });
@@ -233,10 +233,10 @@ async function createOrUpdateSection(
   const { enrolled, capacity } = parseEnrollment(course.Enrolled_Capacity);
   const courseCode = extractCourseCode(course.Course_Section);
   const courseTitle = course.Course_Title.replace(/^[A-Z]+\s+\d+\s+-\s+/, "");
-  const courseSection = extractSectionType(course.Course_Section) || "01";
+  const courseSection = extractSectionType(course.Course_Section) ?? "01";
 
   // Enhanced description
-  let enhancedDescription = course.Course_Description || "";
+  let enhancedDescription = course.Course_Description ?? "";
   if (isGradSemester) {
     if (isPrimary) {
       enhancedDescription = `[GRAD_SEMESTER_PRIMARY - spans both terms] ${enhancedDescription}`;
@@ -401,7 +401,7 @@ export async function syncCourses() {
             const [termLetter, year] = key.split("-");
             return {
               termLetter: termLetter as TermLetter,
-              year: parseInt(year || "0"),
+              year: parseInt(year ?? "0"),
             };
           }),
         },
