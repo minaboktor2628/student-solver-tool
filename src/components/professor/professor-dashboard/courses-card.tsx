@@ -82,7 +82,7 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({
           {Object.values(sections ?? {}).map((course) => (
             <div key={course.courseCode} className="rounded-lg border p-4">
               <h3 className="font-semibold">
-                {course.courseCode}-{course.courseSection} -{" "}
+                {course.courseCode}-{course.courseSection}
                 {course.courseTitle}
               </h3>
               {isSubmitted && (

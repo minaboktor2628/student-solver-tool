@@ -19,7 +19,6 @@ import {
 import { Button } from "../../ui/button";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
-import { LoadingSpinner } from "../../loading-spinner";
 import { SelectAssistantPref } from "./select-assistant-pref";
 import { SelectAssistantAntipref } from "./select-assistant-antipref";
 import { SelectRequiredTimes } from "./select-required-times";
@@ -43,7 +42,6 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   >({});
   const [comments, setComments] =
     useState<Record<string, string | null | undefined>>();
-  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -57,8 +55,6 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
 
   useEffect(() => {
     if (!data) return;
-
-    setLoading(true);
 
     const initialValues: Record<string, SectionWithProfessorPreference> = {};
 
@@ -104,8 +100,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     });
 
     setSections(initialValues);
-    setLoading(false);
-  }, [data]);
+  }, [data?.sections]);
 
   const handlePreferredStaffChange = (
     sectionId: string,
@@ -185,13 +180,6 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     setIsSubmitted(true);
     setIsSubmitting(false);
   };
-  if (loading) {
-    return (
-      <div>
-        <LoadingSpinner />
-      </div>
-    );
-  }
 
   if (error) {
     return <div>Error loading sections: {error.message}</div>;

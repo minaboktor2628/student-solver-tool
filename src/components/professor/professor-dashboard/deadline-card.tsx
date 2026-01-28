@@ -48,7 +48,6 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
             </div>
             <div className="mt-4">
               <span className="text-2xl font-semibold">
-                {" "}
                 Due Date&nbsp; - &nbsp;
                 {deadlineDate.toLocaleDateString("en-US", {
                   weekday: "long",
@@ -71,7 +70,6 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
             </div>
             <div>
               <span className="text-2xl font-semibold">
-                {" "}
                 Due Date&nbsp; - &nbsp;
                 {deadlineDate.toLocaleDateString("en-US", {
                   weekday: "long",
@@ -92,7 +90,7 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
                 <Button className="w-full sm:w-auto" size="lg">
                   {isOverdue
                     ? "Edit Preferences (Will be overdue)"
-                    : "Edit Preferences (Will override previous preferences"}
+                    : "Edit Preferences (Will override previous preferences)"}
                 </Button>
               </Link>
               <p className="text-muted-foreground mt-2 text-sm">

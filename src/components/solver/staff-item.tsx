@@ -77,7 +77,7 @@ export function StaffItem({
               <ol className="mx-4 list-disc">
                 {preferedSections.map((s) => (
                   <li key={s.section.id}>
-                    {s.section.courseCode} - {s.section.courseSection}{" "}
+                    {s.section.courseCode} - {s.section.courseSection}
                     <span className="text-sm font-medium">({s.rank})</span>
                   </li>
                 ))}
