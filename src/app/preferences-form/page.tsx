@@ -1,6 +1,6 @@
+import { LoadingSpinner } from "@/components/loading-spinner";
 import MultiStepFormModal from "@/components/MultiStepForm/multi-step-form-modal";
 import { auth } from "@/server/auth";
-import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Preferences Form",
@@ -11,7 +11,7 @@ export default async function PreferencesFormPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    return <LoadingSpinner />;
   }
 
   return (

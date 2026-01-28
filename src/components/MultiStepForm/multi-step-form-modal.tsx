@@ -135,7 +135,6 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         <FormEntryComments
           userId={userId}
           termId={selectedId ?? ""}
-          initialText={comments}
           onSubmit={handleSubmit}
           onExit={() => setStep(4)}
         />
