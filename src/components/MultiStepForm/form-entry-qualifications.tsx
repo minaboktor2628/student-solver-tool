@@ -16,7 +16,7 @@ interface FormEntryQualificationsProps {
   userId: string;
   termId: string;
   courses?: Course[];
-  onChange?: (selectedSectionIds: string[]) => void;
+  onChange: (selectedSectionIds: string[]) => void;
   onNext: () => void;
   onBack: () => void;
   onSubmit: () => void;
@@ -53,7 +53,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   }, [courses]);
 
   useEffect(() => {
-    onChange?.(Array.from(selectedSections));
+    onChange(Array.from(selectedSections));
   }, [selectedSections]);
 
   async function handleNextClick() {
@@ -107,7 +107,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   return (
     <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
-        Select courses and sections you qualified to work for
+        Select courses and sections you are qualified to work for
       </h2>
 
       <div className="grid grid-cols-1 gap-4">

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import FormEntryAvailability from "./form-entry-availability";
 import FormEntryTimes from "./form-entry-times";
 import ProgressIndicator from "./progress-indicator";
@@ -16,22 +16,12 @@ interface MultiStepFormModalProps {
   inline?: boolean;
   /** Required: user ID of the authenticated user */
   userId: string;
-  /** User role (e.g., "PLA", "TA") */
-  userRole?: string;
-  /** Optional context: staff and term to load data for */
-  staffId?: string;
-  termLetter?: "A" | "B" | "C" | "D";
-  year?: number;
 }
 
 const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   onClose,
   inline = false,
   userId,
-  userRole,
-  staffId,
-  termLetter,
-  year,
 }) => {
   // Data collected from each step, initialized from database
   const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
@@ -47,7 +37,6 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
 
   const handleNext = () => setStep((s) => s + 1);
   const handleBack = () => setStep((s) => Math.max(1, s - 1));
-  const handleExit = () => onClose?.();
 
   const handleSubmit = () => {
     router.push("/");
