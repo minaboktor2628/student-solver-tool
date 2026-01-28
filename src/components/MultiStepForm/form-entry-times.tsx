@@ -11,7 +11,7 @@ interface FormEntryTimesProps {
   userId: string;
   termId: string;
   onNext: () => void;
-  onExit: () => void;
+  onBack: () => void;
   initialSelection?: Date[];
 }
 
@@ -19,7 +19,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   userId,
   termId,
   onNext,
-  onExit,
+  onBack,
   initialSelection = [],
 }) => {
   const [selection, setSelection] = useState<Date[]>(initialSelection);
@@ -78,7 +78,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
         Select the times you're available for this term
       </h2>
 
-      <div className="border p-4 shadow-sm">
+      <div className="border-secondary rounded-lg border p-4 shadow-sm">
         <BaseScheduleSelector
           selection={selection}
           onChange={(newSelection: Date[]) => setSelection(newSelection)}
@@ -90,7 +90,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
           Next
         </Button>
         <Button
-          onClick={onExit}
+          onClick={onBack}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >

@@ -8,14 +8,14 @@ interface FormEntryCommentsProps {
   userId: string;
   termId: string;
   onSubmit: () => void;
-  onExit: () => void;
+  onBack: () => void;
 }
 
 const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
   userId,
   termId,
   onSubmit,
-  onExit,
+  onBack,
 }) => {
   const [comments, setComments] = useState("");
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
@@ -50,7 +50,7 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
           Submit
         </Button>
         <Button
-          onClick={onExit}
+          onClick={onBack}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >

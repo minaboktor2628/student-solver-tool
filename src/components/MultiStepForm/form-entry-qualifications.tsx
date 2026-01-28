@@ -18,7 +18,7 @@ interface FormEntryQualificationsProps {
   courses?: Course[];
   onChange?: (selectedSectionIds: string[]) => void;
   onNext: () => void;
-  onExit: () => void;
+  onBack: () => void;
   onSubmit: () => void;
 }
 
@@ -28,7 +28,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   courses = [],
   onChange,
   onNext,
-  onExit,
+  onBack,
   onSubmit,
 }) => {
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
@@ -115,7 +115,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
           const courseSelected = isCourseSelected(course);
           return (
             <div key={course.code} className="rounded-lg border shadow-sm">
-              <button
+              <div
                 onClick={() => toggleCourse(course)}
                 className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left"
               >
@@ -133,7 +133,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                     />
                   </label>
                 </div>
-              </button>
+              </div>
 
               <div className="border-t p-3">
                 <ul className="space-y-2">
@@ -173,7 +173,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
           Next
         </Button>
         <Button
-          onClick={onExit}
+          onClick={onBack}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >
