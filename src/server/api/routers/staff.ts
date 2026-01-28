@@ -209,4 +209,151 @@ export const staffRoute = createTRPCRouter({
         user,
       };
     }),
+
+  getAllUsers: coordinatorProcedure.query(async ({ ctx }) => {
+    const users = await ctx.db.user.findMany({
+      include: {
+        roles: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return {
+      users: users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        hours: user.hours,
+        roles: user.roles.map((r) => r.role),
+      })),
+    };
+  }),
+
+  updateUser: coordinatorProcedure
+    .input(
+      z.object({
+        userId: z.string(),
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        role: z.string().optional(),
+        hours: z.number().optional(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { userId, name, email, role, hours } = input;
+
+      // Check if user exists
+      const existingUser = await ctx.db.user.findUnique({
+        where: { id: userId },
+        include: { roles: true },
+      });
+
+      if (!existingUser) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      // Check if coordinator role
+      const isCoordinator = existingUser.roles.some(
+        (r) => r.role === "COORDINATOR",
+      );
+      if (isCoordinator) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Cannot edit coordinator users",
+        });
+      }
+
+      // If email is being changed, check if new email already exists
+      if (email && email !== existingUser.email) {
+        const emailExists = await ctx.db.user.findUnique({
+          where: { email },
+        });
+        if (emailExists) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Email already in use",
+          });
+        }
+      }
+
+      // Update user
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (hours !== undefined) updateData.hours = hours;
+
+      const user = await ctx.db.user.update({
+        where: { id: userId },
+        data: updateData,
+        include: { roles: true },
+      });
+
+      // Update role if provided and different
+      if (role && !existingUser.roles.some((r) => r.role === role)) {
+        // Delete old roles (except COORDINATOR)
+        await ctx.db.userRole.deleteMany({
+          where: {
+            userId,
+            role: { not: "COORDINATOR" },
+          },
+        });
+
+        // Create new role
+        await ctx.db.userRole.create({
+          data: {
+            userId,
+            role: role as any,
+          },
+        });
+      }
+
+      return {
+        success: true,
+        message: "User updated successfully",
+        user,
+      };
+    }),
+
+  deleteUser: coordinatorProcedure
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { userId } = input;
+
+      // Check if user exists and is not a coordinator
+      const user = await ctx.db.user.findUnique({
+        where: { id: userId },
+        include: { roles: true },
+      });
+
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      // Prevent deletion of coordinator
+      const isCoordinator = user.roles.some((r) => r.role === "COORDINATOR");
+      if (isCoordinator) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Cannot delete coordinator users",
+        });
+      }
+
+      // Delete user (cascade should handle related records)
+      await ctx.db.user.delete({
+        where: { id: userId },
+      });
+
+      return {
+        success: true,
+        message: "User deleted successfully",
+      };
+    }),
 });

@@ -1,10 +1,12 @@
 import type { PermissionCheck } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 import {
+  BookOpenIcon,
   ComputerIcon,
   HomeIcon,
   InfoIcon,
   ScanFaceIcon,
+  UsersIcon,
   UserStarIcon,
   type LucideProps,
 } from "lucide-react";
@@ -44,6 +46,16 @@ export const ROUTES: NavItem[] = [
         label: "Create Term",
         href: "/dashboard/create-term",
         icon: ComputerIcon,
+      },
+      {
+        label: "Manage Users",
+        href: "/dashboard/manage-users",
+        icon: UsersIcon,
+      },
+      {
+        label: "Manage Courses",
+        href: "/dashboard/manage-courses",
+        icon: BookOpenIcon,
       },
       {
         label: "Solver",

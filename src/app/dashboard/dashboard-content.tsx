@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Users,
   CheckCircle,
@@ -13,16 +14,12 @@ import {
   Database,
   Plus,
   Trash2,
-  Edit,
   Calendar,
   Eye,
   UserPlus,
   BookOpen,
-  Save,
-  X,
 } from "lucide-react";
 import { api } from "@/trpc/react";
-import { calculateRequiredHours } from "@/lib/utils";
 
 // Types
 interface Course {
@@ -67,16 +64,12 @@ interface TermData {
   status: "draft" | "published";
 }
 
-interface UserToAdd {
-  name: string;
-  email: string;
-  role: "TA" | "PLA" | "PROFESSOR";
-}
-
 const LOCAL_TERMS_KEY = "sata:terms";
 const DEFAULT_TERM = "Spring 2025";
 
 export default function DashboardContent() {
+  const router = useRouter();
+
   // UI state
   const [selectedView, setSelectedView] = useState("overview");
   const [courses, setCourses] = useState<Course[]>([]);
@@ -91,41 +84,6 @@ export default function DashboardContent() {
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [loadingTerms, setLoadingTerms] = useState(false);
 
-  // User management state
-  const [isManagingUsers, setIsManagingUsers] = useState(false);
-  const [usersToAdd, setUsersToAdd] = useState<UserToAdd[]>([
-    { name: "", email: "", role: "PLA" },
-  ]);
-  const [userManagementError, setUserManagementError] = useState<string | null>(
-    null,
-  );
-  const [isSavingUsers, setIsSavingUsers] = useState(false);
-
-  // Course management state (outside term creation)
-  const [isManagingCourses, setIsManagingCourses] = useState(false);
-  const [coursesToAdd, setCoursesToAdd] = useState<Course[]>([]);
-  const [newCourse, setNewCourse] = useState({
-    courseCode: "",
-    courseTitle: "",
-    professorName: "",
-    enrollment: 0,
-    capacity: 0,
-    requiredHours: 0,
-    description: "",
-  });
-  const [isAddingCourse, setIsAddingCourse] = useState(false);
-  const [courseManagementError, setCourseManagementError] = useState<
-    string | null
-  >(null);
-  const [isSavingCourses, setIsSavingCourses] = useState(false);
-
-  // EDITING STATES
-  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
-  const [editingCourseData, setEditingCourseData] = useState<Course | null>(
-    null,
-  );
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-
   // tRPC mutations and queries
   const getTermsQuery = api.term.getAllTerms.useQuery(undefined, {
     enabled: false,
@@ -136,11 +94,7 @@ export default function DashboardContent() {
   );
   const deleteTermMutation = api.term.deleteTerm.useMutation();
   const publishTermMutation = api.term.publishTerm.useMutation();
-  const createCoursesMutation = api.courses.createCourses.useMutation();
-  const updateCourseMutation = api.courses.updateCourse.useMutation();
-  const deleteCourseMutation = api.courses.deleteCourse.useMutation();
   const syncCoursesMutation = api.courses.syncCourses.useMutation();
-  const createUserMutation = api.staff.createUser.useMutation();
 
   // Initialize terms from API
   useEffect(() => {
@@ -343,99 +297,6 @@ export default function DashboardContent() {
     }
   };
 
-  // COURSE EDITING FUNCTIONS (for main dashboard)
-  const startEditCourse = (course: Course) => {
-    setEditingCourseId(course.id);
-    setEditingCourseData({ ...course });
-  };
-
-  const cancelEditCourse = () => {
-    setEditingCourseId(null);
-    setEditingCourseData(null);
-  };
-
-  const saveEditCourse = async () => {
-    if (!editingCourseData || !editingCourseId) return;
-
-    if (
-      !editingCourseData.courseCode.trim() ||
-      !editingCourseData.courseTitle.trim() ||
-      !editingCourseData.professorName.trim()
-    ) {
-      setSyncMessage("✗ Course code, title, and professor name are required");
-      setTimeout(() => setSyncMessage(null), 3000);
-      return;
-    }
-
-    setIsSavingEdit(true);
-
-    try {
-      // Recalculate hours if enrollment changed
-      const updatedCourse = {
-        ...editingCourseData,
-        requiredHours: calculateRequiredHours(editingCourseData.enrollment),
-      };
-
-      // Update via tRPC
-      const response = await updateCourseMutation.mutateAsync({
-        id: editingCourseId,
-        data: {
-          courseCode: updatedCourse.courseCode,
-          courseTitle: updatedCourse.courseTitle,
-          description: updatedCourse.term,
-          enrollment: updatedCourse.enrollment,
-          capacity: updatedCourse.capacity,
-          courseSection: "",
-          meetingPattern: "",
-          academicLevel: "UNDERGRADUATE",
-        },
-      });
-
-      if (response.success) {
-        // Update local state
-        setCourses((prev) =>
-          prev.map((course) =>
-            course.id === editingCourseId ? updatedCourse : course,
-          ),
-        );
-        setSyncMessage("✓ Course updated successfully!");
-        setEditingCourseId(null);
-        setEditingCourseData(null);
-      }
-    } catch (err: any) {
-      console.error("Error updating course:", err);
-      setSyncMessage(
-        `✗ Failed to update course: ${err.message ?? "Unknown error"}`,
-      );
-    } finally {
-      setIsSavingEdit(false);
-      setTimeout(() => setSyncMessage(null), 3000);
-    }
-  };
-
-  const deleteCourse = async (courseId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this course? This will also delete any preferences and assignments associated with it. This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await deleteCourseMutation.mutateAsync({ id: courseId });
-
-      if (response.success) {
-        // Remove from local state
-        setCourses((prev) => prev.filter((course) => course.id !== courseId));
-        setSyncMessage("✓ Course deleted successfully!");
-      }
-    } catch (err) {
-      console.error("Error deleting course:", err);
-      setSyncMessage("✗ Failed to delete course");
-    }
-  };
-
   // Sync courses function (existing)
   const syncCoursesFromWPI = async () => {
     setIsSyncing(true);
@@ -458,147 +319,6 @@ export default function DashboardContent() {
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSyncMessage(null), 5000);
-    }
-  };
-
-  // USER MANAGEMENT FUNCTIONS
-  const addUserRow = () => {
-    setUsersToAdd((prev) => [...prev, { name: "", email: "", role: "PLA" }]);
-  };
-
-  const updateUserRow = (
-    index: number,
-    field: keyof UserToAdd,
-    value: string,
-  ) => {
-    setUsersToAdd((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value } as UserToAdd;
-      return updated;
-    });
-  };
-
-  const removeUserRow = (index: number) => {
-    setUsersToAdd((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const saveUsers = async () => {
-    setIsSavingUsers(true);
-    setUserManagementError(null);
-
-    try {
-      // Validate all users
-      const invalidUsers = usersToAdd.filter(
-        (user) => !user.name.trim() || !user.email.trim() || !user.role,
-      );
-
-      if (invalidUsers.length > 0) {
-        setUserManagementError("Please fill in all fields for each user");
-        return;
-      }
-
-      // Create users via tRPC
-      for (const user of usersToAdd) {
-        await createUserMutation.mutateAsync({
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          hours: 0,
-        });
-      }
-
-      setSyncMessage(`✓ Added ${usersToAdd.length} user(s) successfully!`);
-      setIsManagingUsers(false);
-      setUsersToAdd([{ name: "", email: "", role: "PLA" }]);
-      // Refresh dashboard data if we have a selected term
-      if (selectedTerm) {
-        await fetchDashboardData(selectedTerm);
-      }
-    } catch (err: any) {
-      console.error("Error saving users:", err);
-      setUserManagementError(err.message ?? "Failed to save users");
-    } finally {
-      setIsSavingUsers(false);
-    }
-  };
-
-  // COURSE MANAGEMENT FUNCTIONS (outside term creation)
-  const addCourseToManage = () => {
-    if (
-      !newCourse.courseCode.trim() ||
-      !newCourse.courseTitle.trim() ||
-      !newCourse.professorName.trim()
-    ) {
-      setCourseManagementError(
-        "Course code, title, and professor name are required",
-      );
-      return;
-    }
-
-    // Calculate required hours based on enrollment
-    const calculatedHours = calculateRequiredHours(newCourse.enrollment);
-
-    const courseToAdd: Course = {
-      id: `temp-${Date.now()}`,
-      courseCode: newCourse.courseCode,
-      courseTitle: newCourse.courseTitle,
-      professorName: newCourse.professorName,
-      enrollment: newCourse.enrollment,
-      capacity: newCourse.capacity,
-      requiredHours: calculatedHours,
-      assignedStaff: 0,
-      term: "",
-    };
-
-    setCoursesToAdd((prev) => [...prev, courseToAdd]);
-    setNewCourse({
-      courseCode: "",
-      courseTitle: "",
-      professorName: "",
-      enrollment: 0,
-      capacity: 0,
-      requiredHours: 0,
-      description: "",
-    });
-    setCourseManagementError(null);
-  };
-
-  const removeCourseFromManage = (courseId: string) => {
-    setCoursesToAdd((prev) => prev.filter((course) => course.id !== courseId));
-  };
-
-  const saveCourses = async () => {
-    setIsSavingCourses(true);
-    setCourseManagementError(null);
-
-    try {
-      if (coursesToAdd.length === 0) {
-        setCourseManagementError("No courses to add");
-        return;
-      }
-
-      // Save courses via tRPC
-      const response = await createCoursesMutation.mutateAsync({
-        courses: coursesToAdd as any,
-        termId: selectedTerm ?? undefined,
-      });
-
-      if (response.success) {
-        setSyncMessage(
-          `✓ Added ${coursesToAdd.length} course(s) successfully!`,
-        );
-        setIsManagingCourses(false);
-        setCoursesToAdd([]);
-        // Refresh dashboard data if we have a selected term
-        if (selectedTerm) {
-          await fetchDashboardData(selectedTerm);
-        }
-      }
-    } catch (err: any) {
-      console.error("Error saving courses:", err);
-      setCourseManagementError(err.message ?? "Failed to save courses");
-    } finally {
-      setIsSavingCourses(false);
     }
   };
 
@@ -635,361 +355,6 @@ export default function DashboardContent() {
           <span className="text-muted-foreground text-lg">
             Loading dashboard...
           </span>
-        </div>
-      </div>
-    );
-  }
-
-  // User Management Modal
-  if (isManagingUsers) {
-    return (
-      <div className="bg-background min-h-screen p-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-6">
-            <h1 className="text-foreground mb-2 text-3xl font-bold">
-              Manage Users
-            </h1>
-            {userManagementError && (
-              <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-                {userManagementError}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-card border-border rounded-lg border p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-foreground text-xl font-semibold">
-                Add Users
-              </h2>
-              <button
-                onClick={addUserRow}
-                className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded px-4 py-2 text-white"
-              >
-                <UserPlus className="h-4 w-4" /> Add User Row
-              </button>
-            </div>
-
-            <div className="mb-6 space-y-4">
-              {usersToAdd.map((user, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-4 rounded-lg border bg-gray-50 p-4"
-                >
-                  <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
-                    <div>
-                      <label className="mb-1 block text-sm">Name *</label>
-                      <input
-                        type="text"
-                        placeholder="e.g., John Smith"
-                        value={user.name}
-                        onChange={(e) =>
-                          updateUserRow(index, "name", e.target.value)
-                        }
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm">Email *</label>
-                      <input
-                        type="email"
-                        placeholder="e.g., john.smith@wpi.edu"
-                        value={user.email}
-                        onChange={(e) =>
-                          updateUserRow(index, "email", e.target.value)
-                        }
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm">Role *</label>
-                      <select
-                        value={user.role}
-                        onChange={(e) =>
-                          updateUserRow(
-                            index,
-                            "role",
-                            e.target.value as "TA" | "PLA" | "PROFESSOR",
-                          )
-                        }
-                        className="w-full rounded border px-3 py-2 text-sm"
-                      >
-                        <option value="PLA">PLA</option>
-                        <option value="TA">TA</option>
-                        <option value="PROFESSOR">Professor</option>
-                      </select>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => removeUserRow(index)}
-                    className="p-2 text-red-500 hover:text-red-700"
-                    title="Remove user"
-                    disabled={usersToAdd.length === 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-muted-foreground mb-6 flex items-center justify-between text-sm">
-              <span>
-                {usersToAdd.length} user{usersToAdd.length !== 1 ? "s" : ""} to
-                add
-              </span>
-            </div>
-
-            <div className="mt-6 flex justify-between">
-              <button
-                onClick={() => {
-                  setIsManagingUsers(false);
-                  setUsersToAdd([{ name: "", email: "", role: "PLA" }]);
-                  setUserManagementError(null);
-                }}
-                className="rounded border px-4 py-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveUsers}
-                disabled={isSavingUsers}
-                className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
-              >
-                {isSavingUsers ? "Saving..." : "Save Users"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Course Management Modal (outside term creation)
-  if (isManagingCourses) {
-    return (
-      <div className="bg-background min-h-screen p-8">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-6">
-            <h1 className="text-foreground mb-2 text-3xl font-bold">
-              Manage Courses
-            </h1>
-            <p className="text-muted-foreground">
-              Add courses manually{" "}
-              {selectedTerm
-                ? `to ${terms.find((t) => t.id === selectedTerm)?.name ?? selectedTerm}`
-                : ""}
-            </p>
-          </div>
-
-          {courseManagementError && (
-            <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-              {courseManagementError}
-            </div>
-          )}
-
-          <div className="bg-card border-border rounded-lg border p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-foreground text-xl font-semibold">
-                  Add Courses
-                </h2>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {selectedTerm
-                    ? `Courses will be added to ${terms.find((t) => t.id === selectedTerm)?.name || selectedTerm}`
-                    : "No term selected - courses will be added to the database without term association"}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsAddingCourse(true)}
-                className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded px-4 py-2 text-white"
-              >
-                <BookOpen className="h-4 w-4" /> Add Course
-              </button>
-            </div>
-
-            {/* Add Course Form */}
-            {isAddingCourse && (
-              <div className="mb-4 rounded-lg border bg-gray-50 p-4">
-                <h3 className="mb-3 font-semibold">Add New Course</h3>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-sm">Course Code *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., CS 2102"
-                      value={newCourse.courseCode}
-                      onChange={(e) =>
-                        setNewCourse((prev) => ({
-                          ...prev,
-                          courseCode: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded border px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm">Course Title *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., Object-Oriented Design"
-                      value={newCourse.courseTitle}
-                      onChange={(e) =>
-                        setNewCourse((prev) => ({
-                          ...prev,
-                          courseTitle: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded border px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm">
-                      Professor Name *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g., John Smith"
-                      value={newCourse.professorName}
-                      onChange={(e) =>
-                        setNewCourse((prev) => ({
-                          ...prev,
-                          professorName: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded border px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm">Enrollment *</label>
-                    <input
-                      type="number"
-                      value={newCourse.enrollment}
-                      onChange={(e) => {
-                        const enrollment = parseInt(e.target.value) || 0;
-                        setNewCourse((prev) => ({ ...prev, enrollment }));
-                      }}
-                      className="w-full rounded border px-3 py-2 text-sm"
-                    />
-                    {newCourse.enrollment > 0 && (
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        Calculated hours:{" "}
-                        {calculateRequiredHours(newCourse.enrollment)}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm">Capacity</label>
-                    <input
-                      type="number"
-                      value={newCourse.capacity}
-                      onChange={(e) =>
-                        setNewCourse((prev) => ({
-                          ...prev,
-                          capacity: parseInt(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-full rounded border px-3 py-2 text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="mt-3 flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setIsAddingCourse(false);
-                      setNewCourse({
-                        courseCode: "",
-                        courseTitle: "",
-                        professorName: "",
-                        enrollment: 0,
-                        capacity: 0,
-                        requiredHours: 0,
-                        description: "",
-                      });
-                    }}
-                    className="rounded border px-3 py-1.5 text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={addCourseToManage}
-                    className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-sm text-white"
-                  >
-                    Add Course
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Course List */}
-            <div className="mb-4 max-h-96 overflow-y-auto rounded border">
-              {coursesToAdd.length === 0 ? (
-                <div className="text-muted-foreground p-8 text-center">
-                  No courses added yet. Click "Add Course" to add courses.
-                </div>
-              ) : (
-                coursesToAdd.map((course) => (
-                  <div
-                    key={course.id}
-                    className="flex items-center justify-between border-b p-3 hover:bg-gray-50"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {course.courseCode} - {course.courseTitle}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        Professor: {course.professorName} • Enrollment:{" "}
-                        {course.enrollment}/{course.capacity} • Hours:{" "}
-                        {course.requiredHours}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => removeCourseFromManage(course.id)}
-                      className="p-2 text-red-500 hover:text-red-700"
-                      title="Remove course"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="text-muted-foreground mb-4 flex items-center justify-between text-sm">
-              <span>
-                {coursesToAdd.length} course
-                {coursesToAdd.length !== 1 ? "s" : ""} to add
-              </span>
-            </div>
-
-            <div className="mt-6 flex justify-between">
-              <button
-                onClick={() => {
-                  setIsManagingCourses(false);
-                  setCoursesToAdd([]);
-                  setIsAddingCourse(false);
-                  setNewCourse({
-                    courseCode: "",
-                    courseTitle: "",
-                    professorName: "",
-                    enrollment: 0,
-                    capacity: 0,
-                    requiredHours: 0,
-                    description: "",
-                  });
-                  setCourseManagementError(null);
-                }}
-                className="rounded border px-4 py-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveCourses}
-                disabled={isSavingCourses || coursesToAdd.length === 0}
-                className="bg-primary rounded px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSavingCourses ? "Saving..." : "Save Courses"}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -1211,20 +576,18 @@ export default function DashboardContent() {
 
           <div className="flex items-center gap-3">
             {/* User Management Button - Shows in all views */}
-            <button
-              onClick={() => setIsManagingUsers(true)}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors"
-            >
-              <UserPlus className="h-4 w-4" /> Manage Users
-            </button>
+            <Link href="/dashboard/manage-users">
+              <button className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors">
+                <UserPlus className="h-4 w-4" /> Manage Users
+              </button>
+            </Link>
 
             {/* Course Management Button - Shows in courses view or always */}
-            <button
-              onClick={() => setIsManagingCourses(true)}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors"
-            >
-              <BookOpen className="h-4 w-4" /> Add Courses
-            </button>
+            <Link href="/dashboard/manage-courses">
+              <button className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors">
+                <BookOpen className="h-4 w-4" /> Manage Courses
+              </button>
+            </Link>
 
             {selectedView === "courses" && (
               <button
@@ -1464,9 +827,6 @@ export default function DashboardContent() {
                     <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                       Status
                     </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-border divide-y">
@@ -1486,174 +846,50 @@ export default function DashboardContent() {
                         }`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {editingCourseId === course.id ? (
-                            <div className="flex flex-col gap-2">
-                              <div>
-                                <label className="text-muted-foreground mb-1 block text-xs">
-                                  Course Code
-                                </label>
-                                <input
-                                  type="text"
-                                  value={editingCourseData?.courseCode || ""}
-                                  onChange={(e) =>
-                                    setEditingCourseData((prev) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            courseCode: e.target.value,
-                                          }
-                                        : null,
-                                    )
-                                  }
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                />
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <div className="text-foreground text-sm font-medium">
+                                {course.courseCode}
                               </div>
-                              <div>
-                                <label className="text-muted-foreground mb-1 block text-xs">
-                                  Course Title
-                                </label>
-                                <input
-                                  type="text"
-                                  value={editingCourseData?.courseTitle || ""}
-                                  onChange={(e) =>
-                                    setEditingCourseData((prev) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            courseTitle: e.target.value,
-                                          }
-                                        : null,
-                                    )
-                                  }
-                                  className="w-full rounded border px-2 py-1 text-sm"
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col">
-                              <div className="flex items-center gap-2">
-                                <div className="text-foreground text-sm font-medium">
-                                  {course.courseCode}
-                                </div>
-                                {course.isGradSemesterCourse &&
-                                  !course.isDisplayOnly && (
-                                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-                                      <Calendar className="mr-1 h-3 w-3" />
-                                      Semester ({course.spansTerms})
-                                    </span>
-                                  )}
-                                {course.isDisplayOnly && (
-                                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
-                                    <Eye className="mr-1 h-3 w-3" />
-                                    Display Only
+                              {course.isGradSemesterCourse &&
+                                !course.isDisplayOnly && (
+                                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                    <Calendar className="mr-1 h-3 w-3" />
+                                    Semester ({course.spansTerms})
                                   </span>
                                 )}
-                              </div>
-                              <div className="text-muted-foreground mt-1 text-sm">
-                                {course.courseTitle}
-                                {course.isDisplayOnly && (
-                                  <span className="ml-2 text-xs text-gray-500">
-                                    (Assigned in{" "}
-                                    {course.spansTerms === "A+B" ? "A" : "C"}{" "}
-                                    Term)
-                                  </span>
-                                )}
-                              </div>
+                              {course.isDisplayOnly && (
+                                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
+                                  <Eye className="mr-1 h-3 w-3" />
+                                  Display Only
+                                </span>
+                              )}
                             </div>
-                          )}
+                            <div className="text-muted-foreground mt-1 text-sm">
+                              {course.courseTitle}
+                              {course.isDisplayOnly && (
+                                <span className="ml-2 text-xs text-gray-500">
+                                  (Assigned in{" "}
+                                  {course.spansTerms === "A+B" ? "A" : "C"}{" "}
+                                  Term)
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {editingCourseId === course.id ? (
-                            <input
-                              type="text"
-                              value={editingCourseData?.professorName || ""}
-                              onChange={(e) =>
-                                setEditingCourseData((prev) =>
-                                  prev
-                                    ? { ...prev, professorName: e.target.value }
-                                    : null,
-                                )
-                              }
-                              className="w-full rounded border px-2 py-1 text-sm"
-                            />
-                          ) : (
-                            <div className="text-foreground text-sm">
-                              {course.professorName}
-                            </div>
-                          )}
+                          <div className="text-foreground text-sm">
+                            {course.professorName}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {editingCourseId === course.id ? (
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                value={editingCourseData?.enrollment || 0}
-                                onChange={(e) =>
-                                  setEditingCourseData((prev) =>
-                                    prev
-                                      ? {
-                                          ...prev,
-                                          enrollment:
-                                            parseInt(e.target.value) || 0,
-                                        }
-                                      : null,
-                                  )
-                                }
-                                className="w-20 rounded border px-2 py-1 text-sm"
-                              />
-                              <span>/</span>
-                              <input
-                                type="number"
-                                value={editingCourseData?.capacity || 0}
-                                onChange={(e) =>
-                                  setEditingCourseData((prev) =>
-                                    prev
-                                      ? {
-                                          ...prev,
-                                          capacity:
-                                            parseInt(e.target.value) || 0,
-                                        }
-                                      : null,
-                                  )
-                                }
-                                className="w-20 rounded border px-2 py-1 text-sm"
-                              />
-                            </div>
-                          ) : (
-                            <div className="text-foreground text-sm">
-                              {course.enrollment}/{course.capacity}
-                            </div>
-                          )}
+                          <div className="text-foreground text-sm">
+                            {course.enrollment}/{course.capacity}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {course.isDisplayOnly ? (
                             <span className="text-gray-400">—</span>
-                          ) : editingCourseId === course.id ? (
-                            <div className="flex flex-col">
-                              <input
-                                type="number"
-                                value={editingCourseData?.requiredHours || 0}
-                                onChange={(e) =>
-                                  setEditingCourseData((prev) =>
-                                    prev
-                                      ? {
-                                          ...prev,
-                                          requiredHours:
-                                            parseInt(e.target.value) || 0,
-                                        }
-                                      : null,
-                                  )
-                                }
-                                className="w-20 rounded border px-2 py-1 text-sm"
-                              />
-                              <span className="text-xs text-gray-500">
-                                (Auto:{" "}
-                                {calculateRequiredHours(
-                                  editingCourseData?.enrollment || 0,
-                                )}
-                                h)
-                              </span>
-                            </div>
                           ) : (
                             `${course.requiredHours}h`
                           )}
@@ -1680,51 +916,6 @@ export default function DashboardContent() {
                               h More
                             </span>
                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {editingCourseId === course.id ? (
-                              <>
-                                <button
-                                  onClick={saveEditCourse}
-                                  disabled={isSavingEdit}
-                                  className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
-                                  title="Save changes"
-                                >
-                                  <Save className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={cancelEditCourse}
-                                  className="p-1 text-gray-500 hover:text-gray-700"
-                                  title="Cancel editing"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => startEditCourse(course)}
-                                  className="rounded bg-blue-100 p-2 text-blue-700 hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
-                                  title={
-                                    course.isDisplayOnly
-                                      ? "Cannot edit display-only courses"
-                                      : "Edit course"
-                                  }
-                                  disabled={course.isDisplayOnly}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => deleteCourse(course.id)}
-                                  className="p-1 text-red-500 hover:text-red-700"
-                                  title="Delete course"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </>
-                            )}
-                          </div>
                         </td>
                       </tr>
                     );

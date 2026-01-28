@@ -134,16 +134,9 @@ export const termRoute = createTRPCRouter({
             });
 
             if (!professorUser) {
-              professorUser = await ctx.db.user.create({
-                data: {
-                  email: `${course.professorName.toLowerCase().replace(/\s+/g, ".")}@wpi.edu`,
-                  name: course.professorName,
-                  roles: {
-                    create: {
-                      role: "PROFESSOR",
-                    },
-                  },
-                },
+              throw new TRPCError({
+                code: "NOT_FOUND",
+                message: `Professor "${course.professorName}" not found in the system. Please add them as a user first before creating courses for them.`,
               });
             }
 
