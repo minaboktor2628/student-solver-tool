@@ -5,14 +5,14 @@ import dynamic from "next/dynamic";
 import type { TimesRequiredOutput, WeeklySlot } from "@/types/professor";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
-
-// Dynamic import with no SSR because the schedule selector depends on browser APIs
-const ScheduleSelector = dynamic(
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - dynamic import of a JS module without types
-  () => import("react-schedule-selector").then((mod) => mod.default || mod),
-  { ssr: false },
-);
+import {
+  calculateCoverage,
+  dedupe,
+  slotToDate,
+  dateToSlot,
+  stylesByStatus,
+  BaseScheduleSelector,
+} from "@/lib/schedule-selector";
 
 type SelectRequiredTimesProps = {
   sectionId: string;
@@ -104,6 +104,28 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
     });
   }
 
+  const renderDateCell = (time, _selected, setEl) => {
+    const ref: React.Ref<HTMLDivElement> = (node) => {
+      if (node) setEl(node);
+    };
+
+    const slot = dateToSlot(time);
+    if (!slot) return <div ref={ref} className="h-4" />;
+    return (
+      <div
+        ref={ref}
+        role="gridcell"
+        className={cn(
+          "h-4 rounded-sm",
+          "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
+          _selected
+            ? "bg-primary/85 hover:bg-primary"
+            : "bg-muted/40 hover:bg-muted/60",
+        )}
+      />
+    );
+  };
+
   return (
     <div className="bg-white p-4 shadow-sm">
       <div>
@@ -134,30 +156,8 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
       </div>
       {wantsSpecificTimes && (
         <div>
-          {/* 
-          <BaseScheduleSelector 
+          <BaseScheduleSelector
             selection={selection}
-            numDays={5}
-            minTime={8}
-            maxTime={21}
-            startDate={new Date(1970, 0, 5)}
-            renderDateLabel={(d: Date) => {
-              const letter = dayLetterFromDate(d) ?? "";
-              return <div className="text-sm font-medium">{letter}</div>;
-            }}
-            /> */}
-          {/* ScheduleSelector props: selection is an array of Date objects */}
-          <ScheduleSelector
-            selection={selection}
-            numDays={5}
-            startDate={calendarStart}
-            renderDateLabel={(d: Date) => {
-              const letter = dayLetterFromDate(d) ?? "";
-              return <div className="text-sm font-medium">{letter}</div>;
-            }}
-            minTime={8}
-            maxTime={21}
-            hourlyChunks={1}
             onChange={(newSelection: Date[]) => toggleTime(newSelection)}
           />
         </div>

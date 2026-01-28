@@ -13,14 +13,14 @@ import type {
   TimesRequiredOutput,
   WeeklySlot,
 } from "@/types/professor";
-
-// Dynamic import with no SSR because the schedule selector depends on browser APIs
-const ScheduleSelector = dynamic(
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - dynamic import of a JS module without types
-  () => import("react-schedule-selector").then((mod) => mod.default || mod),
-  { ssr: false },
-);
+import {
+  calculateCoverage,
+  dedupe,
+  slotToDate,
+  dateToSlot,
+  stylesByStatus,
+  BaseScheduleSelector,
+} from "@/lib/schedule-selector";
 
 type CoursesCardProps = {
   sections: Record<string, SectionWithProfessorPreference> | undefined;
@@ -122,22 +122,11 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({
                   </h4>
                   {course.professorPreference?.timesRequired?.length ? (
                     <div className="pointer-events-none max-w-[800px]">
-                      <ScheduleSelector
+                      <BaseScheduleSelector
                         selection={timesRequiredToDate(
                           course.professorPreference.timesRequired,
                           calendarStart,
                         )}
-                        numDays={5}
-                        startDate={calendarStart}
-                        renderDateLabel={(d: Date) => {
-                          const letter = dayLetterFromDate(d) ?? "";
-                          return (
-                            <div className="text-sm font-medium">{letter}</div>
-                          );
-                        }}
-                        minTime={8}
-                        maxTime={21}
-                        hourlyChunks={1}
                       />
                     </div>
                   ) : (
