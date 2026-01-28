@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import dynamic from "next/dynamic";
 import {
   Card,
   CardHeader,
@@ -13,14 +12,7 @@ import type {
   TimesRequiredOutput,
   WeeklySlot,
 } from "@/types/professor";
-import {
-  calculateCoverage,
-  dedupe,
-  slotToDate,
-  dateToSlot,
-  stylesByStatus,
-  BaseScheduleSelector,
-} from "@/lib/schedule-selector";
+import { BaseScheduleSelector } from "@/lib/schedule-selector";
 
 type CoursesCardProps = {
   sections: Record<string, SectionWithProfessorPreference> | undefined;
@@ -52,22 +44,7 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({
       return date;
     });
   }
-  function dayLetterFromDate(d: Date): WeeklySlot["day"] | null {
-    switch (d.getDay()) {
-      case 1:
-        return "M";
-      case 2:
-        return "T";
-      case 3:
-        return "W";
-      case 4:
-        return "R";
-      case 5:
-        return "F";
-      default:
-        return null;
-    }
-  }
+
   return (
     <Card>
       <CardHeader>

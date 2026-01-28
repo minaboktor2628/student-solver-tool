@@ -54,7 +54,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     useState<Record<string, SectionWithProfessorPreference>>();
 
   useEffect(() => {
-    if (!data) return;
+    if (!data?.sections) return;
 
     const initialValues: Record<string, SectionWithProfessorPreference> = {};
 

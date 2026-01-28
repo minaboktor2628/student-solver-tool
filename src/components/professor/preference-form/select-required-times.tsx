@@ -1,18 +1,10 @@
 "use client";
 
 import React from "react";
-import dynamic from "next/dynamic";
 import type { TimesRequiredOutput, WeeklySlot } from "@/types/professor";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
-import {
-  calculateCoverage,
-  dedupe,
-  slotToDate,
-  dateToSlot,
-  stylesByStatus,
-  BaseScheduleSelector,
-} from "@/lib/schedule-selector";
+import { BaseScheduleSelector } from "@/lib/schedule-selector";
 
 type SelectRequiredTimesProps = {
   sectionId: string;
@@ -66,23 +58,6 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
     });
   }
 
-  function dayLetterFromDate(d: Date): WeeklySlot["day"] | null {
-    switch (d.getDay()) {
-      case 1:
-        return "M";
-      case 2:
-        return "T";
-      case 3:
-        return "W";
-      case 4:
-        return "R";
-      case 5:
-        return "F";
-      default:
-        return null;
-    }
-  }
-
   function dateToTimesRequired(
     dates: Date[],
     calendarStart: Date,
@@ -103,28 +78,6 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
       };
     });
   }
-
-  const renderDateCell = (time, _selected, setEl) => {
-    const ref: React.Ref<HTMLDivElement> = (node) => {
-      if (node) setEl(node);
-    };
-
-    const slot = dateToSlot(time);
-    if (!slot) return <div ref={ref} className="h-4" />;
-    return (
-      <div
-        ref={ref}
-        role="gridcell"
-        className={cn(
-          "h-4 rounded-sm",
-          "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
-          _selected
-            ? "bg-primary/85 hover:bg-primary"
-            : "bg-muted/40 hover:bg-muted/60",
-        )}
-      />
-    );
-  };
 
   return (
     <div className="bg-white p-4 shadow-sm">
