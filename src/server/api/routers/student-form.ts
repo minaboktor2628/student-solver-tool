@@ -38,29 +38,31 @@ export const studentFormRoute = createTRPCRouter({
       });
 
       // Group by courseCode to build Course[] shape expected by the frontend
-      const map = new Map<string, any[]>();
+      const courseMap = new Map<string, (typeof rows)[0][]>();
       for (const r of rows) {
         const code = r.courseCode ?? "";
-        if (!map.has(code)) map.set(code, []);
-        map.get(code)!.push(r);
+        if (!courseMap.has(code)) courseMap.set(code, []);
+        courseMap.get(code)!.push(r);
       }
 
-      const sections = Array.from(map.entries()).map(([courseCode, items]) => ({
-        code: courseCode,
-        title: items[0].courseTitle,
-        sections: items.map((it) => ({
-          term: it.term.termLetter,
-          id: it.id,
-          courseSection: it.courseSection,
-          instructor: it.professor?.name ?? null,
-          enrollment: it.enrollment,
-          capacity: it.capacity,
-          academicLevel: it.academicLevel,
-          professor: it.professor
-            ? { id: it.professor.id, name: it.professor.name }
-            : null,
-        })),
-      }));
+      const sections = Array.from(courseMap.entries()).map(
+        ([courseCode, items]) => ({
+          code: courseCode,
+          title: items[0] ? items[0].courseTitle : "",
+          sections: items.map((it) => ({
+            term: it.term.termLetter,
+            id: it.id,
+            courseSection: it.courseSection,
+            instructor: it.professor?.name ?? null,
+            enrollment: it.enrollment,
+            capacity: it.capacity,
+            academicLevel: it.academicLevel,
+            professor: it.professor
+              ? { id: it.professor.id, name: it.professor.name }
+              : null,
+          })),
+        }),
+      );
 
       return { sections };
     }),
@@ -202,7 +204,7 @@ export const studentFormRoute = createTRPCRouter({
             create: {
               userId,
               termId: term.id,
-              comments: comments || null,
+              comments: comments ?? null,
             },
           });
 
@@ -257,7 +259,7 @@ export const studentFormRoute = createTRPCRouter({
             // Create new availability
             await tx.staffAvailableHour.createMany({
               data: weeklyAvailability.map(({ day, hour }) => ({
-                day: day as any,
+                day,
                 hour,
                 staffPreferenceId: staffPref.id,
               })),

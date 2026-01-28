@@ -4,18 +4,29 @@ import { api } from "@/trpc/react";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 
+/*
+Type '{ code: string; title: string; sections: { term: TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: AcademicLevel; professor: { ...; } | null; }[]; }[]' is not assignable to type 'Course[]'.
+  Type '{ code: string; title: string; sections: { term: $Enums.TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: $Enums.AcademicLevel; professor: { ...; } | null; }[]; }' is not assignable to type 'Course'.
+    Types of property 'sections' are incompatible.
+      Type '{ term: TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: AcademicLevel; professor: { ...; } | null; }[]' is not assignable to type 'Section[]'.
+        Type '{ term: $Enums.TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: $Enums.AcademicLevel; professor: { ...; } | null; }' is not assignable to type 'Section'.
+          Types of property 'instructor' are incompatible.
+            Type 'string | null' is not assignable to type 'string'.
+              Type 'null' is not assignable to type 'string'.
+*/
+
 export type Section = {
   term: string;
   id: string;
   courseSection: string;
-  instructor?: string;
+  instructor: string | null;
 };
 export type Course = { code: string; title: string; sections: Section[] };
 
 interface FormEntryQualificationsProps {
   userId: string;
   termId: string;
-  courses?: Course[];
+  courses: Course[];
   onChange: (selectedSectionIds: string[]) => void;
   onNext: () => void;
   onBack: () => void;
@@ -149,7 +160,8 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                         <div>
                           <div className="font-medium">
                             {section.term}
-                            {section.courseSection} - {section.instructor}
+                            {section.courseSection} -{" "}
+                            {section.instructor ?? "TBD"}
                           </div>
                         </div>
                       </button>

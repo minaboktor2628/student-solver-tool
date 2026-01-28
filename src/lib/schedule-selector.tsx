@@ -4,11 +4,9 @@
  * the rest of the app. */
 import type { Day } from "@prisma/client";
 
-import ScheduleSelector, {
-  type ScheduleSelectorProps,
-} from "react-schedule-selector";
+import ScheduleSelector from "react-schedule-selector";
 import { cn } from "./utils";
-export type BaseScheduleSelectorProps = Partial<ScheduleSelectorProps>;
+export type BaseScheduleSelectorProps = Partial<ScheduleSelector["props"]>;
 
 export const START = new Date(1970, 0, 5);
 

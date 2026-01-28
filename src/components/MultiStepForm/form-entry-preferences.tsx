@@ -17,7 +17,7 @@ export type Section = {
   term: string;
   id: string;
   courseSection: string;
-  instructor?: string;
+  instructor: string | null;
 };
 export type Course = { code: string; title: string; sections: Section[] };
 
@@ -194,7 +194,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                           <div className="font-medium">
                             {section.term}
                             {section.courseSection} -{" "}
-                            {section.instructor ?? "No instructor"}
+                            {section.instructor ?? "TBD"}
                           </div>
                           <div className="text-sm text-gray-600">Section</div>
                         </div>
