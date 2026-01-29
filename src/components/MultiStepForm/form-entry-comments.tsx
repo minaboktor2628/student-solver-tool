@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { api } from "@/trpc/react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
+import { toast } from "sonner";
 
 interface FormEntryCommentsProps {
   userId: string;
@@ -21,6 +22,9 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save comments:", error);
+    },
+    onSuccess: (success) => {
+      toast.success("Form saved successfully");
     },
   });
 

@@ -1,6 +1,7 @@
 import { api } from "@/trpc/react";
 import { useTerm } from "../term-combobox";
 import { Button } from "../ui/button";
+import { toast } from "sonner";
 
 interface AvailabilityProps {
   onNext: () => void;
@@ -19,6 +20,9 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
     api.studentForm.setAvailabilityForTerm.useMutation({
       onError: (error) => {
         console.error("Failed to update availability:", error);
+      },
+      onSuccess: () => {
+        toast.success("Form saved successfully");
       },
     });
 

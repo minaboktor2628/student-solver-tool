@@ -234,6 +234,28 @@ export const studentFormRoute = createTRPCRouter({
             await tx.staffPreferencePreferredSection.deleteMany({
               where: { staffPreferenceId: staffPref.id },
             });
+
+            // Ensure max 3 prefer, 1 strong prefer
+            const preferCount = Object.entries(sectionPreferences).filter(
+              ([, rank]) => rank === "prefer",
+            ).length;
+            if (preferCount > 3) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Cannot prefer more than 3 sections.`,
+              });
+            }
+
+            const strongPreferCount = Object.entries(sectionPreferences).filter(
+              ([, rank]) => rank === "strong",
+            ).length;
+            if (strongPreferCount > 1) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Cannot strongly prefer more than 1 section.`,
+              });
+            }
+
             // Create new preferences
             for (const [sectionId, rank] of Object.entries(
               sectionPreferences,

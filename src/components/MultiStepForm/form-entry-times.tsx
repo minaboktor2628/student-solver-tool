@@ -2,8 +2,13 @@
 
 import React, { useState } from "react";
 import { api } from "@/trpc/react";
-import { BaseScheduleSelector } from "@/lib/schedule-selector";
+import {
+  BaseScheduleSelector,
+  dayLetterFromDate,
+  dateToSlot,
+} from "@/lib/schedule-selector";
 import { Button } from "../ui/button";
+import { toast } from "sonner";
 
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
 
@@ -27,6 +32,9 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
     onError: (error) => {
       console.error("Failed to save form:", error);
     },
+    onSuccess: (success) => {
+      toast.success("Form saved successfully");
+    },
   });
 
   async function handleNextClick() {
@@ -40,36 +48,15 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
     onNext();
   }
 
-  function dayLetterFromDate(d: Date): WeeklySlot["day"] | null {
-    switch (d.getDay()) {
-      case 1:
-        return "M";
-      case 2:
-        return "T";
-      case 3:
-        return "W";
-      case 4:
-        return "R";
-      case 5:
-        return "F";
-      default:
-        return null;
-    }
-  }
-
   function selectionToWeekly(sel: Date[]): WeeklySlot[] {
     const set = new Map<string, WeeklySlot>();
     sel.forEach((d) => {
-      const day = dayLetterFromDate(d);
-      if (!day) return;
-      const hour = d.getHours();
-      const key = `${day}:${hour}`;
-      if (!set.has(key)) set.set(key, { day, hour });
+      const slot = dateToSlot(d);
+      if (!slot) return;
+      const key = `${slot.day}:${slot.hour}`;
+      if (!set.has(key)) set.set(key, slot);
     });
-    return Array.from(set.values()).sort((a, b) => {
-      const order = { M: 0, T: 1, W: 2, R: 3, F: 4 } as Record<string, number>;
-      return order[a.day]! - order[b.day]! || a.hour - b.hour;
-    });
+    return Array.from(set.values());
   }
 
   return (

@@ -3,17 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/trpc/react";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
-
-/*
-Type '{ code: string; title: string; sections: { term: TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: AcademicLevel; professor: { ...; } | null; }[]; }[]' is not assignable to type 'Course[]'.
-  Type '{ code: string; title: string; sections: { term: $Enums.TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: $Enums.AcademicLevel; professor: { ...; } | null; }[]; }' is not assignable to type 'Course'.
-    Types of property 'sections' are incompatible.
-      Type '{ term: TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: AcademicLevel; professor: { ...; } | null; }[]' is not assignable to type 'Section[]'.
-        Type '{ term: $Enums.TermLetter; id: string; courseSection: string; instructor: string | null; enrollment: number; capacity: number; academicLevel: $Enums.AcademicLevel; professor: { ...; } | null; }' is not assignable to type 'Section'.
-          Types of property 'instructor' are incompatible.
-            Type 'string | null' is not assignable to type 'string'.
-              Type 'null' is not assignable to type 'string'.
-*/
+import { toast } from "sonner";
+import { Label } from "../ui/label";
 
 export type Section = {
   term: string;
@@ -45,6 +36,9 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save qualifications:", error);
+    },
+    onSuccess: (success) => {
+      toast.success("Form saved successfully");
     },
   });
 
@@ -136,13 +130,14 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   </div>
                 </div>
                 <div>
-                  <label className="inline-flex items-center gap-2">
+                  <Label className="inline-flex items-center gap-2">
                     <Checkbox
                       checked={courseSelected}
+                      onClick={() => toggleCourse(course)}
                       onChange={() => toggleCourse(course)}
                       aria-label={`Select all sections for ${course.code}`}
                     />
-                  </label>
+                  </Label>
                 </div>
               </div>
 
@@ -167,6 +162,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                       </button>
                       <Checkbox
                         checked={isSectionSelected(section.id)}
+                        onClick={() => toggleSection(section.id)}
                         onChange={() => toggleSection(section.id)}
                         tabIndex={0}
                         aria-label={`Select section ${section.term}${section.courseSection} for ${course.code}`}

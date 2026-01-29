@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { Draggable } from "../draggable";
 import { Droppable } from "../droppable";
+import { toast } from "sonner";
 
 type TokenType = "prefer" | "strong";
 
@@ -43,6 +44,9 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save preferences:", error);
+    },
+    onSuccess: (success) => {
+      toast.success("Form saved successfully");
     },
   });
 
