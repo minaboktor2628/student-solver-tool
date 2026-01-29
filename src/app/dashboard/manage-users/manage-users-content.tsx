@@ -145,7 +145,7 @@ export default function ManageUsersContent() {
 
   // Load users on mount
   useEffect(() => {
-    fetchUsers();
+    void fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -173,19 +173,27 @@ export default function ManageUsersContent() {
       const { data } = await getUsersQuery.refetch();
       if (data) {
         // Map and filter out nulls
-        const mappedUsers: User[] = data.users.map((user: any) => ({
-          id: user.id,
-          name: user.name ?? null,
-          email: user.email ?? null,
-          hours: user.hours ?? null,
-          roles: user.roles as Role[],
-        }));
+        const mappedUsers: User[] = data.users.map(
+          (user: {
+            id?: string;
+            name?: string | null;
+            email?: string | null;
+            hours?: number | null;
+            roles?: Role[];
+          }) => ({
+            id: user.id ?? "",
+            name: user.name ?? null,
+            email: user.email ?? null,
+            hours: user.hours ?? null,
+            roles: (user.roles as Role[]) ?? [],
+          }),
+        );
         setUsers(mappedUsers);
         setFilteredUsers(mappedUsers);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching users:", err);
-      setError(err.message ?? "Failed to load users");
+      setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
       setIsLoading(false);
     }
@@ -234,9 +242,9 @@ export default function ManageUsersContent() {
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error adding user:", err);
-      setError(err.message ?? "Failed to add user");
+      setError(err instanceof Error ? err.message : "Failed to add user");
     }
   };
 
@@ -261,9 +269,9 @@ export default function ManageUsersContent() {
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating user:", err);
-      setError(err.message ?? "Failed to update user");
+      setError(err instanceof Error ? err.message : "Failed to update user");
     }
   };
 
@@ -283,9 +291,9 @@ export default function ManageUsersContent() {
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error deleting user:", err);
-      setError(err.message ?? "Failed to delete user");
+      setError(err instanceof Error ? err.message : "Failed to delete user");
       setIsDeleteDialogOpen(false);
     }
   };
