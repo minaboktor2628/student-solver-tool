@@ -4,9 +4,17 @@ import { useState } from "react";
 import { api } from "@/trpc/react";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { calculateRequiredHours } from "@/lib/utils";
+import type { AcademicLevel } from "@prisma/client";
 
-// Types
-interface Course {
+// Types - only CSV parsing has no Prisma equivalent
+interface CSVRow {
+  email: string;
+  name: string;
+  role: string;
+}
+
+// Course type for UI display and editing - flexible to handle API responses and manual entries
+type Course = {
   id: string;
   courseCode: string;
   courseTitle: string;
@@ -14,19 +22,15 @@ interface Course {
   enrollment: number;
   capacity: number;
   requiredHours: number;
-  description?: string;
+  description: string;
   courseSection?: string;
   meetingPattern?: string;
-  academicLevel?: string;
-}
+  academicLevel?: AcademicLevel;
+  termId?: string;
+};
 
-interface CSVRow {
-  email: string;
-  name: string;
-  role: string;
-}
-
-interface NewCourse {
+// Form input for new courses - minimal required fields for creation
+type NewCourse = {
   courseCode: string;
   courseTitle: string;
   professorName: string;
@@ -34,7 +38,10 @@ interface NewCourse {
   capacity: number;
   requiredHours: number;
   description: string;
-}
+  courseSection?: string;
+  meetingPattern?: string;
+  academicLevel?: AcademicLevel;
+};
 
 function getTermName(letter: string, year: number): string {
   switch (letter) {
@@ -133,6 +140,8 @@ export default function CreateTermContent() {
     capacity: 0,
     requiredHours: 0,
     description: "",
+    courseSection: "",
+    meetingPattern: "",
   });
   const [editingTermCourseId, setEditingTermCourseId] = useState<string | null>(
     null,
@@ -174,8 +183,8 @@ export default function CreateTermContent() {
         const parsedData = parseCSV(text);
         setCsvData(parsedData);
         setTermError(null);
-      } catch (err: any) {
-        setTermError(err.message);
+      } catch (err: unknown) {
+        setTermError(err instanceof Error ? err.message : "An error occurred");
       }
     };
     reader.readAsText(file);
@@ -191,7 +200,30 @@ export default function CreateTermContent() {
         return;
       }
 
-      const allCourses = data.courses ?? [];
+      const allCourses = (data.courses ?? []).map((course: unknown) => {
+        const c = course as {
+          id: string;
+          courseCode: string;
+          courseTitle: string;
+          professorName?: string;
+          enrollment: number;
+          capacity: number;
+          requiredHours: number;
+          academicLevel?: AcademicLevel;
+        };
+        return {
+          id: c.id,
+          courseCode: c.courseCode,
+          courseTitle: c.courseTitle,
+          professorName: c.professorName ?? "",
+          enrollment: c.enrollment,
+          capacity: c.capacity,
+          requiredHours: c.requiredHours,
+          description: "",
+          academicLevel: c.academicLevel,
+        } as Course;
+      });
+
       setTermCoursesToInclude(allCourses);
 
       if (allCourses.length === 0) {
@@ -227,6 +259,9 @@ export default function CreateTermContent() {
       capacity: newCourse.capacity ?? 0,
       requiredHours: calculatedHours,
       description: newCourse.description,
+      courseSection: newCourse.courseSection,
+      meetingPattern: newCourse.meetingPattern,
+      academicLevel: newCourse.academicLevel,
     };
 
     setTermCoursesToInclude((prev) => [...prev, courseToAdd]);
@@ -238,6 +273,8 @@ export default function CreateTermContent() {
       capacity: 0,
       requiredHours: 0,
       description: "",
+      courseSection: "",
+      meetingPattern: "",
     });
     setIsAddingCourse(false);
     setTermError(null);
@@ -303,7 +340,7 @@ export default function CreateTermContent() {
           email: string;
           role: "PLA" | "GLA" | "TA" | "COORDINATOR" | "PROFESSOR";
         }>,
-        courses: termCoursesToInclude as any,
+        courses: termCoursesToInclude,
       });
 
       if (response.success) {
@@ -320,9 +357,11 @@ export default function CreateTermContent() {
         setTermCoursesToInclude([]);
         setTermError(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating term:", err);
-      setTermError(err.message ?? "Failed to create term");
+      setTermError(
+        err instanceof Error ? err.message : "Failed to create term",
+      );
     } finally {
       setCreatingTerm(false);
     }
@@ -540,7 +579,7 @@ export default function CreateTermContent() {
                 onClick={() => {
                   if (csvData.length > 0) {
                     setCurrentStep(3);
-                    handleFetchCourses();
+                    void handleFetchCourses();
                   } else {
                     setTermError("Please upload a CSV file first");
                   }
@@ -563,7 +602,7 @@ export default function CreateTermContent() {
                 </h2>
                 <p className="text-muted-foreground mt-1 text-sm">
                   All courses from database. Add new courses or remove any that
-                  shouldn't be included.
+                  shouldn&apos;t be included.
                 </p>
               </div>
               <button
@@ -671,6 +710,8 @@ export default function CreateTermContent() {
                         capacity: 0,
                         requiredHours: 0,
                         description: "",
+                        courseSection: "",
+                        meetingPattern: "",
                       });
                     }}
                     className="rounded border px-3 py-1.5 text-sm"
@@ -691,7 +732,8 @@ export default function CreateTermContent() {
             <div className="mb-4 max-h-96 overflow-y-auto rounded border">
               {termCoursesToInclude.length === 0 ? (
                 <div className="text-muted-foreground p-8 text-center">
-                  No courses loaded. Click "Add Course" to add courses manually.
+                  No courses loaded. Click &quot;Add Course&quot; to add courses
+                  manually.
                 </div>
               ) : (
                 termCoursesToInclude.map((course) => (
