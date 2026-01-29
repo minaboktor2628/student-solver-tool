@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Users,
   CheckCircle,
@@ -74,8 +73,6 @@ const LOCAL_TERMS_KEY = "sata:terms";
 const DEFAULT_TERM = "Spring 2025";
 
 export default function DashboardContent() {
-  const router = useRouter();
-
   // UI state
   const [selectedView, setSelectedView] = useState("overview");
   const [courses, setCourses] = useState<Course[]>([]);
@@ -104,7 +101,7 @@ export default function DashboardContent() {
 
   // Initialize terms from API
   useEffect(() => {
-    fetchTerms();
+    void fetchTerms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -113,17 +110,27 @@ export default function DashboardContent() {
     try {
       const { data } = await getTermsQuery.refetch();
       if (data) {
-        const formattedTerms = data.terms.map((term: any) => ({
-          id: term.id,
-          name: term.name,
-          termLetter: term.termLetter,
-          year: term.year,
-          staffDueDate: term.staffDueDate,
-          professorDueDate: term.professorDueDate,
-          status: (term.active ? "published" : "draft") as
-            | "draft"
-            | "published",
-        }));
+        const formattedTerms = data.terms.map(
+          (term: {
+            id?: string;
+            name?: string;
+            termLetter?: string;
+            year?: number;
+            staffDueDate?: string;
+            professorDueDate?: string;
+            active?: boolean;
+          }) => ({
+            id: term.id ?? "",
+            name: term.name ?? "",
+            termLetter: term.termLetter ?? "A",
+            year: term.year ?? new Date().getFullYear(),
+            staffDueDate: term.staffDueDate ?? "",
+            professorDueDate: term.professorDueDate ?? "",
+            status: (term.active ? "published" : "draft") as
+              | "draft"
+              | "published",
+          }),
+        );
         setTerms(formattedTerms);
         if (formattedTerms.length > 0 && formattedTerms[0]) {
           setSelectedTerm(formattedTerms[0].id);
@@ -156,7 +163,7 @@ export default function DashboardContent() {
   // Fetch dashboard data when term changes
   useEffect(() => {
     if (selectedTerm) {
-      fetchDashboardData(selectedTerm);
+      void fetchDashboardData(selectedTerm);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTerm]);
@@ -176,72 +183,91 @@ export default function DashboardContent() {
       }
 
       // Transform courses with graduate semester course handling
-      const transformedCourses = (data.courses ?? []).map((course: any) => {
-        // Check if it's a graduate semester course
-        const isGradSemester = course.description?.includes("GRAD_SEMESTER");
-        const isDisplayOnly = course.description?.includes(
-          "GRAD_SEMESTER_SECONDARY",
-        );
+      const transformedCourses = (data.courses ?? []).map(
+        (course: {
+          id?: string;
+          courseCode?: string;
+          courseTitle?: string;
+          enrollment?: number;
+          capacity?: number;
+          requiredHours?: number;
+          assignedHours?: number;
+          professorName?: string;
+          term?: string;
+          description?: string;
+        }) => {
+          // Check if it's a graduate semester course
+          const isGradSemester =
+            course.description?.includes("GRAD_SEMESTER") ?? false;
+          const isDisplayOnly =
+            course.description?.includes("GRAD_SEMESTER_SECONDARY") ?? false;
 
-        // Debug logging for ALL courses to see what we're getting
-        console.log(
-          `Course: ${course.courseCode} - Description: "${course.description}" - isGradSemester: ${isGradSemester} - isDisplayOnly: ${isDisplayOnly}`,
-        );
+          // Debug logging for ALL courses to see what we're getting
+          console.log(
+            `Course: ${course.courseCode} - Description: "${course.description}" - isGradSemester: ${isGradSemester} - isDisplayOnly: ${isDisplayOnly}`,
+          );
 
-        // Determine term display
-        let termDisplay = course.term ?? "Unknown Term";
-        let spansTerms = null;
+          // Determine term display
+          let termDisplay = course.term ?? "Unknown Term";
+          let spansTerms = null;
 
-        if (isGradSemester) {
-          // Extract which terms it spans
-          const currentTermLetter =
-            terms.find((t) => t.id === termId)?.termLetter ?? "";
+          if (isGradSemester) {
+            // Extract which terms it spans
+            const currentTermLetter =
+              terms.find((t) => t.id === termId)?.termLetter ?? "";
 
-          if (currentTermLetter === "A" || currentTermLetter === "B") {
-            spansTerms = "A+B";
-            termDisplay = `A+B Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
-          } else if (currentTermLetter === "C" || currentTermLetter === "D") {
-            spansTerms = "C+D";
-            termDisplay = `C+D Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
+            if (currentTermLetter === "A" || currentTermLetter === "B") {
+              spansTerms = "A+B";
+              termDisplay = `A+B Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
+            } else if (currentTermLetter === "C" || currentTermLetter === "D") {
+              spansTerms = "C+D";
+              termDisplay = `C+D Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
+            }
+
+            // For display-only sections, show special term info
+            if (isDisplayOnly) {
+              termDisplay = `${spansTerms} Terms (Display Only)`;
+            }
           }
 
-          // For display-only sections, show special term info
-          if (isDisplayOnly) {
-            termDisplay = `${spansTerms} Terms (Display Only)`;
-          }
-        }
-
-        return {
-          id: course.id,
-          courseCode: course.courseCode,
-          courseTitle: course.courseTitle,
-          enrollment: course.enrollment,
-          capacity: course.capacity,
-          requiredHours: isDisplayOnly ? 0 : course.requiredHours, // 0 for display-only
-          assignedStaff: course.assignedHours,
-          professorName: course.professorName,
-          term: termDisplay,
-          isGradSemesterCourse: isGradSemester,
-          isDisplayOnly: isDisplayOnly,
-          spansTerms: spansTerms,
-        };
-      });
+          return {
+            id: course.id ?? "",
+            courseCode: course.courseCode ?? "",
+            courseTitle: course.courseTitle ?? "",
+            enrollment: course.enrollment ?? 0,
+            capacity: course.capacity ?? 0,
+            requiredHours: isDisplayOnly ? 0 : (course.requiredHours ?? 0), // 0 for display-only
+            assignedStaff: course.assignedHours ?? 0,
+            professorName: course.professorName ?? "",
+            term: termDisplay,
+            isGradSemesterCourse: isGradSemester,
+            isDisplayOnly: isDisplayOnly,
+            spansTerms: spansTerms,
+          };
+        },
+      );
 
       setCourses(transformedCourses);
       setStaff(
-        (data.staff ?? []).map((s: any) => ({
-          ...s,
+        (data.staff ?? []).map((s) => ({
+          id: s.id,
+          name: s.name ?? "",
+          email: s.email ?? "",
+          hours: 0,
           role: s.roles?.[0] ?? "PLA",
           submitted: s.hasPreferences,
         })),
       );
       setProfessors(
-        (data.professors ?? []).map((p: any) => ({
-          ...p,
+        (data.professors ?? []).map((p) => ({
+          id: p.id,
+          name: p.name ?? "",
+          email: p.email ?? "",
+          courseCount: p.courseCount ?? 0,
           submitted: true,
         })),
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching dashboard data:", err);
       setSyncMessage("✗ Failed to load dashboard data");
       setCourses([]);
@@ -259,7 +285,7 @@ export default function DashboardContent() {
 
       if (response.success) {
         setSyncMessage("✓ Term published successfully!");
-        fetchTerms();
+        void fetchTerms();
       } else {
         setSyncMessage(`✗ Failed to publish term`);
       }
@@ -284,7 +310,7 @@ export default function DashboardContent() {
 
       if (response.success) {
         setSyncMessage("✓ Term deleted successfully!");
-        await fetchTerms();
+        void fetchTerms();
         // If we deleted the selected term, select the first available term
         if (selectedTerm === termId) {
           const updatedTerms = terms.filter((t) => t.id !== termId);
@@ -399,7 +425,7 @@ export default function DashboardContent() {
               </h1>
               <p className="text-muted-foreground text-lg">
                 {selectedTerm
-                  ? `${terms.find((t) => t.id === selectedTerm)?.name || selectedTerm} • Course Assignment Overview`
+                  ? `${terms.find((t) => t.id === selectedTerm)?.name ?? selectedTerm} • Course Assignment Overview`
                   : "Select a term"}
               </p>
             </div>
@@ -420,7 +446,8 @@ export default function DashboardContent() {
                     {!loadingTerms &&
                       terms.map((term) => (
                         <option key={term.id} value={term.id}>
-                          {term.name} {term.status === "draft" && "(Draft)"}
+                          {term.name ?? ""}{" "}
+                          {term.status === "draft" && "(Draft)"}
                         </option>
                       ))}
                   </select>
