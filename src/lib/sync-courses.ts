@@ -171,7 +171,7 @@ async function findOrCreateProfessor(instructorName: string): Promise<User> {
   }
 
   // Try to find existing professor by name
-  let professor = await prisma.user.findFirst({
+  const professor = await prisma.user.findFirst({
     where: {
       name: instructorName,
       roles: {
@@ -180,19 +180,11 @@ async function findOrCreateProfessor(instructorName: string): Promise<User> {
     },
   });
 
-  // If not found, create new professor
+  // If not found, throw an error so coordinator can add them properly
   if (!professor) {
-    const emailUsername = instructorName.toLowerCase().replace(/\s+/g, ".");
-    professor = await prisma.user.create({
-      data: {
-        name: instructorName,
-        email: `${emailUsername}@wpi.edu`,
-        roles: {
-          create: { role: "PROFESSOR" },
-        },
-      },
-    });
-    console.log(`Created new professor: ${instructorName}`);
+    throw new Error(
+      `Professor "${instructorName}" not found in database. Please add this professor through the Users page before syncing courses.`,
+    );
   }
 
   return professor;
