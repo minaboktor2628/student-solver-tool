@@ -1,4 +1,5 @@
 import { AcademicLevel, TermLetter } from "@prisma/client";
+import type { User, Term } from "@prisma/client";
 import { db } from "@/server/db";
 import { calculateRequiredHours } from "@/lib/utils";
 
@@ -147,7 +148,7 @@ async function fetchWPICourses(): Promise<WPICourseEntry[]> {
   }
 }
 
-async function findOrCreateProfessor(instructorName: string) {
+async function findOrCreateProfessor(instructorName: string): Promise<User> {
   if (!instructorName || instructorName.trim() === "") {
     // Create or get "Unknown Professor" placeholder
     let unknown = await prisma.user.findFirst({
@@ -197,7 +198,10 @@ async function findOrCreateProfessor(instructorName: string) {
   return professor;
 }
 
-async function findOrCreateTerm(termLetter: TermLetter, year: number) {
+async function findOrCreateTerm(
+  termLetter: TermLetter,
+  year: number,
+): Promise<Term> {
   let term = await prisma.term.findUnique({
     where: {
       termLetter_year: { termLetter, year },
@@ -226,7 +230,7 @@ async function findOrCreateTerm(termLetter: TermLetter, year: number) {
 async function createOrUpdateSection(
   termId: string,
   course: WPICourseEntry,
-  professor: any,
+  professor: User,
   isPrimary: boolean,
   isGradSemester: boolean,
 ) {

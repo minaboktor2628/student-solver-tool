@@ -65,20 +65,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { User as PrismaUser, Role } from "@prisma/client";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  hours: number;
-  roles: string[];
+// User type from Prisma with flattened roles array
+interface User extends Pick<PrismaUser, "id" | "name" | "email" | "hours"> {
+  roles: Role[]; // flattened from UserRole[]
 }
 
 // Zod schemas for validation
 const userFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name is too long"),
   email: z.string().email("Invalid email address"),
-  role: z.enum(["PLA", "TA", "GLA", "PROFESSOR"], {
+  role: z.enum(["PLA", "TA", "GLA", "PROFESSOR"] as const, {
     required_error: "Please select a role",
   }),
   hours: z.coerce.number().min(0, "Hours must be 0 or greater"),
@@ -160,8 +158,8 @@ export default function ManageUsersContent() {
       setFilteredUsers(
         users.filter(
           (user) =>
-            user.name.toLowerCase().includes(query) ||
-            user.email.toLowerCase().includes(query) ||
+            (user.name ?? "").toLowerCase().includes(query) ||
+            (user.email ?? "").toLowerCase().includes(query) ||
             user.roles.some((role) => role.toLowerCase().includes(query)),
         ),
       );
@@ -175,12 +173,12 @@ export default function ManageUsersContent() {
       const { data } = await getUsersQuery.refetch();
       if (data) {
         // Map and filter out nulls
-        const mappedUsers = data.users.map((user) => ({
+        const mappedUsers: User[] = data.users.map((user: any) => ({
           id: user.id,
-          name: user.name ?? "",
-          email: user.email ?? "",
-          hours: user.hours ?? 0,
-          roles: user.roles.map(String),
+          name: user.name ?? null,
+          email: user.email ?? null,
+          hours: user.hours ?? null,
+          roles: user.roles as Role[],
         }));
         setUsers(mappedUsers);
         setFilteredUsers(mappedUsers);
@@ -206,10 +204,10 @@ export default function ManageUsersContent() {
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     editForm.reset({
-      name: user.name,
-      email: user.email,
+      name: user.name ?? "",
+      email: user.email ?? "",
       role: (user.roles[0] ?? "PLA") as "TA" | "PLA" | "PROFESSOR" | "GLA",
-      hours: user.hours,
+      hours: user.hours ?? 0,
     });
     setIsEditDialogOpen(true);
   };

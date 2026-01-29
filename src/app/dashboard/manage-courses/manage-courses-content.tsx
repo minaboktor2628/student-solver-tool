@@ -66,23 +66,26 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateRequiredHours } from "@/lib/utils";
+import type { Section, Term, TermLetter, AcademicLevel } from "@prisma/client";
 
-interface Course {
-  id: string;
-  courseCode: string;
-  courseTitle: string;
-  professorName: string;
-  enrollment: number;
-  capacity: number;
-  requiredHours: number;
-  termId?: string | null;
+// Course type from Prisma Section with flattened professor name
+interface Course
+  extends Pick<
+    Section,
+    | "id"
+    | "courseCode"
+    | "courseTitle"
+    | "enrollment"
+    | "capacity"
+    | "requiredHours"
+  > {
+  professorName: string; // flattened from professor.name
+  termId?: string | null; // optional for forms
 }
 
-interface Term {
-  id: string;
-  name: string;
-  termLetter: string;
-  year: number;
+// Term display type with computed name
+interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
+  name: string; // computed from termLetter + year
 }
 
 // Zod schemas for validation
@@ -111,7 +114,7 @@ export default function ManageCoursesContent() {
   // State
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
+  const [terms, setTerms] = useState<TermDisplay[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -198,7 +201,9 @@ export default function ManageCoursesContent() {
       }
 
       if (termsResult.data) {
-        const formattedTerms = termsResult.data.terms.map((term: any) => ({
+        const formattedTerms: TermDisplay[] = (
+          termsResult.data.terms ?? []
+        ).map((term: any) => ({
           id: term.id,
           name: term.name,
           termLetter: term.termLetter,

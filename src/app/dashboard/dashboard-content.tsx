@@ -20,48 +20,54 @@ import {
   BookOpen,
 } from "lucide-react";
 import { api } from "@/trpc/react";
+import type { Section, User, Term } from "@prisma/client";
 
-// Types
-interface Course {
-  id: string;
-  courseCode: string;
-  courseTitle: string;
-  enrollment: number;
-  capacity: number;
-  requiredHours: number;
-  assignedStaff: number;
-  professorName: string;
-  term: string;
-  isGradSemesterCourse?: boolean;
-  isDisplayOnly?: boolean;
-  spansTerms?: string | null;
+// Dashboard view types - extend Prisma models with computed/view-specific fields
+// Database fields come from Prisma types, only computed/transformed fields defined here
+// See: src/server/api/routers/dashboard.ts for transformation logic
+
+// Course: Section model + computed fields
+interface Course
+  extends Pick<
+    Section,
+    | "id"
+    | "courseCode"
+    | "courseTitle"
+    | "enrollment"
+    | "capacity"
+    | "requiredHours"
+  > {
+  // Computed/transformed fields (not in database)
+  assignedStaff: number; // sum from assignments
+  professorName: string; // flattened from professor.name
+  term: string; // formatted from term.termLetter + year
+  isGradSemesterCourse?: boolean; // parsed from description
+  isDisplayOnly?: boolean; // parsed from description
+  spansTerms?: string | null; // computed
 }
 
-interface StaffMember {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  submitted: boolean;
-  hours?: number;
+// StaffMember: User model + computed fields
+interface StaffMember extends Pick<User, "id" | "name" | "email" | "hours"> {
+  // Computed/transformed fields
+  role: string; // flattened from roles[0].role
+  submitted: boolean; // from hasPreferences check
 }
 
-interface Professor {
-  id: string;
-  name: string;
-  email: string;
+// Professor: User model + computed fields
+interface Professor extends Pick<User, "id" | "name" | "email"> {
+  // Computed fields
   submitted: boolean;
   courseCount: number;
 }
 
-interface TermData {
-  id: string;
-  name: string;
-  termLetter: string;
-  year: number;
-  staffDueDate: string;
-  professorDueDate: string;
-  status: "draft" | "published";
+// TermData: Term model + formatted fields
+interface TermData extends Pick<Term, "id" | "year"> {
+  // Formatted/computed fields
+  name: string; // computed display name
+  termLetter: string; // from Term.termLetter enum
+  staffDueDate: string; // formatted from termStaffDueDate
+  professorDueDate: string; // formatted from termProfessorDueDate
+  status: "draft" | "published"; // from active boolean
 }
 
 const LOCAL_TERMS_KEY = "sata:terms";
@@ -360,7 +366,9 @@ export default function DashboardContent() {
     );
   }
 
-  function copyEmailsToClipboard(people: Array<{ email?: string }>): void {
+  function copyEmailsToClipboard(
+    people: Array<{ email?: string | null }>,
+  ): void {
     const emails = people
       .map((p) => p.email?.trim())
       .filter((e): e is string => !!e);
@@ -372,40 +380,12 @@ export default function DashboardContent() {
     }
 
     const text = emails.join(", ");
-
-    const handleSuccess = () => {
+    navigator.clipboard.writeText(text).then(() => {
       setSyncMessage(
         `✓ Copied ${emails.length} email${emails.length > 1 ? "s" : ""} to clipboard`,
       );
       setTimeout(() => setSyncMessage(null), 3000);
-    };
-
-    const handleFailure = () => {
-      try {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        handleSuccess();
-      } catch {
-        setSyncMessage("✗ Failed to copy emails");
-        setTimeout(() => setSyncMessage(null), 3000);
-      }
-    };
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(text)
-        .then(handleSuccess)
-        .catch(handleFailure);
-    } else {
-      handleFailure();
-    }
+    });
   }
 
   return (
