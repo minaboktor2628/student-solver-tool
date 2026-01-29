@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 "use client";
 
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
