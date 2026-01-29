@@ -72,6 +72,20 @@ interface TermData extends Pick<Term, "id" | "year"> {
 const LOCAL_TERMS_KEY = "sata:terms";
 const DEFAULT_TERM = "Spring 2025";
 
+const parseStoredTerms = (raw: string | null): string[] | null => {
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    const terms = parsed.filter(
+      (item): item is string => typeof item === "string",
+    );
+    return terms.length > 0 ? terms : null;
+  } catch {
+    return null;
+  }
+};
+
 export default function DashboardContent() {
   // UI state
   const [selectedView, setSelectedView] = useState("overview");
@@ -119,17 +133,20 @@ export default function DashboardContent() {
             staffDueDate?: string;
             professorDueDate?: string;
             active?: boolean;
-          }) => ({
-            id: term.id ?? "",
-            name: term.name ?? "",
-            termLetter: term.termLetter ?? "A",
-            year: term.year ?? new Date().getFullYear(),
-            staffDueDate: term.staffDueDate ?? "",
-            professorDueDate: term.professorDueDate ?? "",
-            status: (term.active ? "published" : "draft") as
-              | "draft"
-              | "published",
-          }),
+          }) => {
+            const status: TermData["status"] = term.active
+              ? "published"
+              : "draft";
+            return {
+              id: term.id ?? "",
+              name: term.name ?? "",
+              termLetter: term.termLetter ?? "A",
+              year: term.year ?? new Date().getFullYear(),
+              staffDueDate: term.staffDueDate ?? "",
+              professorDueDate: term.professorDueDate ?? "",
+              status,
+            };
+          },
         );
         setTerms(formattedTerms);
         if (formattedTerms.length > 0 && formattedTerms[0]) {
@@ -140,9 +157,8 @@ export default function DashboardContent() {
       console.error("Error fetching terms:", err);
       // Fallback to local storage if API fails
       const raw = localStorage.getItem(LOCAL_TERMS_KEY);
-      const parsed: string[] | null = raw ? JSON.parse(raw) : null;
-      const initialTerms =
-        Array.isArray(parsed) && parsed.length > 0 ? parsed : [DEFAULT_TERM];
+      const parsed = parseStoredTerms(raw);
+      const initialTerms = parsed ?? [DEFAULT_TERM];
       setTerms(
         initialTerms.map((name) => ({
           id: name,
@@ -345,7 +361,7 @@ export default function DashboardContent() {
       } else {
         setSyncMessage(`✗ Sync failed`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error syncing courses:", err);
       setSyncMessage("✗ Sync failed");
     } finally {
@@ -370,7 +386,7 @@ export default function DashboardContent() {
             100,
         )
       : 0;
-  const totalAvailableHours = staff.reduce((sum, s) => sum + (s.hours || 0), 0);
+  const totalAvailableHours = staff.reduce((sum, s) => sum + (s.hours ?? 0), 0);
   const staffingGap = courses
     .filter((c) => !c.isDisplayOnly)
     .reduce(
@@ -406,12 +422,18 @@ export default function DashboardContent() {
     }
 
     const text = emails.join(", ");
-    navigator.clipboard.writeText(text).then(() => {
-      setSyncMessage(
-        `✓ Copied ${emails.length} email${emails.length > 1 ? "s" : ""} to clipboard`,
-      );
-      setTimeout(() => setSyncMessage(null), 3000);
-    });
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setSyncMessage(
+          `✓ Copied ${emails.length} email${emails.length > 1 ? "s" : ""} to clipboard`,
+        );
+        setTimeout(() => setSyncMessage(null), 3000);
+      })
+      .catch(() => {
+        setSyncMessage("✗ Failed to copy emails");
+        setTimeout(() => setSyncMessage(null), 3000);
+      });
   }
 
   return (
@@ -437,8 +459,12 @@ export default function DashboardContent() {
                 </label>
                 <div className="flex items-center gap-2">
                   <select
-                    value={selectedTerm || ""}
-                    onChange={(e) => setSelectedTerm(e.target.value || null)}
+                    value={selectedTerm ?? ""}
+                    onChange={(e) =>
+                      setSelectedTerm(
+                        e.target.value === "" ? null : e.target.value,
+                      )
+                    }
                     disabled={loadingTerms}
                     className="rounded border px-3 py-2 text-sm"
                   >
