@@ -1,12 +1,12 @@
 import { auth } from "@/server/auth";
-import { redirect } from "next/dist/client/components/navigation";
 import ProfessorHomePageComponent from "@/components/professor/professor-dashboard/professor-homepage";
+import { LoadingSpinner } from "@/components/loading-spinner";
 
 export default async function ProfessorHomePage() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    return <LoadingSpinner />;
   }
 
   return <ProfessorHomePageComponent userId={session.user.id} />;

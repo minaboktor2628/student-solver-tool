@@ -42,8 +42,6 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   >({});
   const [comments, setComments] =
     useState<Record<string, string | null | undefined>>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const { data, error } =
     api.professorForm.getProfessorSectionsForTerm.useQuery({
@@ -142,24 +140,38 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   const mutateSections =
     api.professorForm.updateProfessorSectionsForTerm.useMutation({
       onSuccess: () => {
-        toast.success("Preferences submitted successfully!");
-        setIsSubmitted(true);
+        toast(
+          <div className="container mx-auto max-w-4xl p-6">
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <CheckCircle className="mb-4 h-16 w-16 text-green-600" />
+                  <h2 className="mb-2 text-2xl font-bold">
+                    Preferences Submitted!
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    Your assistant preferences have been successfully submitted.
+                  </p>
+                  <Link href="/professor">
+                    <Button>Return to Dashboard</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>,
+        );
       },
       onError: (err) => {
         console.error("Mutation failed:", err);
         toast.error("Failed to submit preferences");
       },
-      onSettled: () => {
-        setIsSubmitting(false);
-      },
+      onSettled: () => {},
     });
 
   const handleSubmit = () => {
     if (!sections) {
       return console.error("no sections are defined");
     }
-
-    setIsSubmitting(true);
 
     const payload = Object.entries(sections).map(([key, s]) => ({
       sectionId: s.sectionId,
@@ -176,36 +188,10 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     payload.forEach((p) => {
       mutateSections.mutate(p);
     });
-
-    setIsSubmitted(true);
-    setIsSubmitting(false);
   };
 
   if (error) {
     return <div>Error loading sections: {error.message}</div>;
-  }
-
-  if (isSubmitted) {
-    return (
-      <div className="container mx-auto max-w-4xl p-6">
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <CheckCircle className="mb-4 h-16 w-16 text-green-600" />
-              <h2 className="mb-2 text-2xl font-bold">
-                Preferences Submitted!
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Your assistant preferences have been successfully submitted.
-              </p>
-              <Link href="/professor">
-                <Button>Return to Dashboard</Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   return (
@@ -282,8 +268,8 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
         <Link href="/professor">
           <Button variant="outline">Cancel</Button>
         </Link>
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? "Submitting..." : "Submit Preferences"}
+        <Button onClick={handleSubmit} disabled={mutateSections.isPending}>
+          {mutateSections.isPending ? "Submitting..." : "Submit Preferences"}
         </Button>
       </div>
     </div>
