@@ -29,7 +29,7 @@ describe("route protection via middleware + NextAuth", () => {
     cy.loginAs("testta");
     cy.visit("/");
     cy.contains("Home").should("exist");
-    cy.contains("Preferences Form").should("exist");
+    cy.contains("Preferences").should("exist");
     cy.contains("Validate").should("not.exist");
     cy.contains("Docs").should("not.exist");
     cy.contains("About").should("exist");
