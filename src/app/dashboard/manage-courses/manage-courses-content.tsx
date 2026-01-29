@@ -66,7 +66,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateRequiredHours } from "@/lib/utils";
-import type { Section, Term, TermLetter, AcademicLevel } from "@prisma/client";
+import type { Section, Term, TermLetter } from "@prisma/client";
 
 // Course type from Prisma Section with flattened professor name
 interface Course
@@ -159,7 +159,7 @@ export default function ManageCoursesContent() {
 
   // Load data on mount
   useEffect(() => {
-    fetchData();
+    void fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -203,17 +203,24 @@ export default function ManageCoursesContent() {
       if (termsResult.data) {
         const formattedTerms: TermDisplay[] = (
           termsResult.data.terms ?? []
-        ).map((term: any) => ({
-          id: term.id,
-          name: term.name,
-          termLetter: term.termLetter,
-          year: term.year,
-        }));
+        ).map(
+          (term: {
+            id?: string;
+            name?: string;
+            termLetter?: TermLetter;
+            year?: number;
+          }) => ({
+            id: term.id ?? "",
+            name: term.name ?? "",
+            termLetter: term.termLetter ?? ("A" as TermLetter),
+            year: term.year ?? new Date().getFullYear(),
+          }),
+        );
         setTerms(formattedTerms);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching data:", err);
-      setError(err.message ?? "Failed to load data");
+      setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setIsLoading(false);
     }
@@ -272,9 +279,9 @@ export default function ManageCoursesContent() {
       await fetchData();
 
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error adding course:", err);
-      setError(err.message ?? "Failed to add course");
+      setError(err instanceof Error ? err.message : "Failed to add course");
     }
   };
 
@@ -300,9 +307,9 @@ export default function ManageCoursesContent() {
       await fetchData();
 
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error updating course:", err);
-      setError(err.message ?? "Failed to update course");
+      setError(err instanceof Error ? err.message : "Failed to update course");
     }
   };
 
@@ -321,9 +328,9 @@ export default function ManageCoursesContent() {
       await fetchData();
 
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error deleting course:", err);
-      setError(err.message ?? "Failed to delete course");
+      setError(err instanceof Error ? err.message : "Failed to delete course");
       setIsDeleteDialogOpen(false);
     }
   };
