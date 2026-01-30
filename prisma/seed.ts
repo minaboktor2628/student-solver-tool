@@ -173,6 +173,7 @@ async function main() {
       userId: ta.id,
       termId: term.id,
       comments: "Prefer morning labs.",
+      isAvailableForTerm: true,
       timesAvailable: {
         create: [{ day: "F", hour: 12 }],
       },
@@ -198,6 +199,7 @@ async function main() {
       userId: pla.id,
       termId: term.id,
       comments: "Cannot work Fridays.",
+      isAvailableForTerm: true,
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }],
       },
@@ -211,6 +213,7 @@ async function main() {
       userId: pla2.id,
       termId: term.id,
       comments: "Cannot work Fridays.",
+      isAvailableForTerm: true,
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }],
       },
