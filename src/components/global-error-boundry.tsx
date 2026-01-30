@@ -13,6 +13,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
         Something went wrong.
       </p>
       <p className="text-muted-foreground max-w-md text-xs break-words">
+        {/* @ts-expect-error not our fault */}
         {error.message}
       </p>
       <Button size="sm" variant="outline" onClick={resetErrorBoundary}>

@@ -38,7 +38,11 @@ describe("permissions", () => {
       "/dashboard/solver",
       "/dashboard/permissions",
     ]);
-    expect(allowedLinks(ta).map((l) => l.href)).toEqual(["/", "/about"]);
+    expect(allowedLinks(ta).map((l) => l.href)).toEqual([
+      "/",
+      "/about",
+      "/preferences-form",
+    ]);
   });
 
   it("no roles => deny", () => {

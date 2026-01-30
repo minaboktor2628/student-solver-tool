@@ -52,6 +52,12 @@ export const ROUTES: NavItem[] = [
       },
     ],
   },
+  {
+    label: "Preferences",
+    href: "/preferences-form",
+    allowed: ["PLA", "TA"],
+    icon: ScanFaceIcon,
+  },
 ];
 
 function matchesRoute(path: string, node: NavItem) {
