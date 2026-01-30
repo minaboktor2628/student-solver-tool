@@ -37,8 +37,7 @@
     "**/*.tsx",
     "**/*.cjs",
     "**/*.js",
-    ".next/types/**/*.ts",
-    "src/components/professor/select-assistant-pref.tsx"
+    ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
