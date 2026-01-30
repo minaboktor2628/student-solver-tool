@@ -7,12 +7,14 @@ export const professorFormRoute = createTRPCRouter({
     .input(
       z.object({
         professorId: z.string(),
+        //termId: z.string(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const sections = await ctx.db.section.findMany({
         where: {
           professorId: input.professorId,
+          //termId: input.termId,
         },
         include: {
           professorPreference: {

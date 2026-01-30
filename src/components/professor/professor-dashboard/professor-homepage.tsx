@@ -17,7 +17,7 @@ Query sections to see how many sections the professor is teaching
 interface ProfessorHomePageProps {
   userId: string;
 }
-
+// SuspenseQuery
 const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
   const { data } = api.professorForm.getProfessorSectionsForTerm.useQuery({
     professorId: userId,
@@ -32,7 +32,7 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
   const username = professorData?.info?.professor;
   const deadlineDate = professorData?.info?.term?.termProfDueDate;
   const [isSubmitted, setIsSubmitted] = useState<boolean>(true);
-
+  //Remove useEffect
   useEffect(() => {
     if (data?.sections) {
       const initialValues: Record<string, SectionWithProfessorPreference> = {};

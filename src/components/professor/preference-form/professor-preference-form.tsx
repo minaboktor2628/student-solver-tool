@@ -23,7 +23,14 @@ import { SelectAssistantPref } from "./select-assistant-pref";
 import { SelectAssistantAntipref } from "./select-assistant-antipref";
 import { SelectRequiredTimes } from "./select-required-times";
 import { FormEntryComments } from "./comment-box";
+import { useTerm } from "@/components/term-combobox";
+// Have this take in termId and call useTerm from upstream
+// Autoselect the no option for preferences on page load
 
+//Instead of seperate lists of preferred and antiPreferred
+//Send a mutation for every click or onChange
+//Create endpoints that pulls data from the database input: sectionId, professorId  and a single Assistant stating if we prefer them or not, then writes to db
+//New page for each section with a seperate submit button *Won't have to change current api
 interface ProfessorPreferenceFormProps {
   userId: string;
 }
@@ -31,6 +38,8 @@ interface ProfessorPreferenceFormProps {
 const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   userId,
 }) => {
+  const { active: activeTerm } = useTerm();
+
   const [preferredStaff, setPreferredStaff] = useState<
     Record<string, Assistant[]>
   >({});
@@ -43,14 +52,22 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   const [comments, setComments] =
     useState<Record<string, string | null | undefined>>();
 
+  //Fix change in suspenseQuery - different shape than useQuery
   const { data, error } =
-    api.professorForm.getProfessorSectionsForTerm.useQuery({
-      professorId: userId,
-    });
+    api.professorForm.getProfessorSectionsForTerm.useQuery(
+      {
+        //termId: activeTerm.id as string,
+        professorId: userId,
+      },
+      {
+        enabled: !!activeTerm,
+      },
+    );
 
   const [sections, setSections] =
     useState<Record<string, SectionWithProfessorPreference>>();
 
+  // Remove useEffect and make the query for the data on the backend shape the data for the front end
   useEffect(() => {
     if (!data?.sections) return;
 
@@ -189,10 +206,6 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
       mutateSections.mutate(p);
     });
   };
-
-  if (error) {
-    return <div>Error loading sections: {error.message}</div>;
-  }
 
   return (
     <div>
