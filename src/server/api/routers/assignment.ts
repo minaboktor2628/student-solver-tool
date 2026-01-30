@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { solverStrategies } from "@/lib/solver";
 
 export const assignmentRoute = createTRPCRouter({
   set: coordinatorProcedure
@@ -44,7 +45,12 @@ export const assignmentRoute = createTRPCRouter({
     }),
 
   solve: coordinatorProcedure
-    .input(z.object({ termId: z.string() }))
+    .input(
+      z.object({
+        termId: z.string(),
+        solverStrategy: z.enum(solverStrategies),
+      }),
+    )
     .mutation(async ({ input: { termId }, ctx }) => {
       const [sections, staffPreferences] = await Promise.all([
         ctx.db.section.findMany({
