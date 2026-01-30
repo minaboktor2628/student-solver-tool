@@ -1,0 +1,114 @@
+"use client";
+import { useState } from "react";
+import FormEntryAvailability from "./form-entry-availability";
+import FormEntryTimes from "./form-entry-times";
+import ProgressIndicator from "./progress-indicator";
+import FormEntryQualifications from "./form-entry-qualifications";
+import FormEntryPreferences from "./form-entry-preferences";
+import FormEntryComments from "./form-entry-comments";
+import { api } from "@/trpc/react";
+import { useRouter } from "next/navigation";
+import { useTerm } from "@/components/term-combobox";
+
+interface MultiStepFormModalProps {
+  onClose?: () => void;
+  /** If true, render inline (no fixed overlay) so the form can be used as a full page */
+  inline?: boolean;
+  /** Required: user ID of the authenticated user */
+  userId: string;
+}
+
+const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
+  onClose,
+  inline = false,
+  userId,
+}) => {
+  // Data collected from each step, initialized from database
+  const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
+  const router = useRouter();
+  const { selectedId: selectedTermId } = useTerm();
+
+  // fetch sections for the selected term and pass to qualifications UI
+  const [{ sections }] = api.studentForm.getSections.useSuspenseQuery({
+    termId: selectedTermId ?? "",
+  });
+
+  const [step, setStep] = useState(1);
+
+  const handleNext = () => setStep((s) => s + 1);
+  const handleBack = () => setStep((s) => Math.max(1, s - 1));
+
+  const handleSubmit = () => {
+    router.push("/");
+    onClose?.();
+  };
+
+  const container = (
+    <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
+      <ProgressIndicator step={step} totalSteps={5} />
+      {step === 1 && (
+        // doesnt need initial data, can always start form with available/not
+        <FormEntryAvailability
+          userId={userId}
+          termId={selectedTermId ?? ""}
+          onNext={handleNext}
+          onExit={handleSubmit}
+        />
+      )}
+      {step === 2 && (
+        //TODO pass in initial times data
+        <FormEntryTimes
+          userId={userId}
+          termId={selectedTermId ?? ""}
+          onNext={handleNext}
+          onBack={handleBack}
+        />
+      )}
+      {step === 3 && (
+        <FormEntryQualifications
+          userId={userId}
+          termId={selectedTermId ?? ""}
+          courses={sections}
+          onChange={(ids) => setQualifiedSectionIds(ids)}
+          onNext={handleNext}
+          onBack={handleBack}
+          onSubmit={handleSubmit}
+        />
+      )}
+      {step === 4 && (
+        //TODO pass in initial prefs
+        <FormEntryPreferences
+          userId={userId}
+          termId={selectedTermId ?? ""}
+          courses={sections}
+          selectedSectionIds={qualifiedSections}
+          onNext={handleNext}
+          onBack={handleBack}
+        />
+      )}
+      {step === 5 && (
+        //TODO pass in initial comments
+        <FormEntryComments
+          userId={userId}
+          termId={selectedTermId ?? ""}
+          onSubmit={handleSubmit}
+          onBack={handleBack}
+        />
+      )}
+    </div>
+  );
+
+  if (inline) {
+    return container;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="border-foreground bg-background h-[600px] w-[90vw] max-w-2xl overflow-y-auto rounded-2xl border p-10 shadow-lg">
+        {container}
+      </div>
+    </div>
+  );
+};
+
+export default MultiStepFormModal;

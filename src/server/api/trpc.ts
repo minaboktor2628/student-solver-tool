@@ -148,7 +148,7 @@ export const protectedProcedure = t.procedure
 export const assistantProcedure = t.procedure
   .use(timingMiddleware)
   .use(isAuthed)
-  .use(requireRoles(["TA", "PLA"]));
+  .use(requireRoles(["TA", "PLA", "COORDINATOR"]));
 
 /**
  * Professor (authenticated) procedure
@@ -158,7 +158,7 @@ export const assistantProcedure = t.procedure
 export const professorProcedure = t.procedure
   .use(timingMiddleware)
   .use(isAuthed)
-  .use(requireRoles(["PROFESSOR"]));
+  .use(requireRoles(["PROFESSOR", "COORDINATOR"]));
 
 /**
  * Coordinator (authenticated) procedure
