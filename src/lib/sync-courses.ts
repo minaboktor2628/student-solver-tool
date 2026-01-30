@@ -22,7 +22,7 @@ function parseEnrollment(enrolledCapacity: string): {
   enrolled: number;
   capacity: number;
 } {
-  const match = enrolledCapacity.match(/(\d+)\/(\d+)/);
+  const match = /(\d+)\/(\d+)/.exec(enrolledCapacity);
   if (match) {
     return {
       enrolled: parseInt(match[1] ?? "0", 10),
@@ -33,19 +33,19 @@ function parseEnrollment(enrolledCapacity: string): {
 }
 
 function extractCourseCode(courseSection: string): string {
-  const match = courseSection.match(/^([A-Z]+\s+\d+)/);
+  const match = /^([A-Z]+\s+\d+)/.exec(courseSection);
   return match?.[1] ?? courseSection;
 }
 
 function extractSectionType(courseSection: string): string | null {
   // Look for patterns like: CS 3041-D02, CS 3041 D02, CS 3041-DL01, etc.
   // First try to find section after the last space or hyphen before the dash in title
-  const match = courseSection.match(/[-\s]([A-Z]{1,2}\d+)\b/);
+  const match = /[-\s]([A-Z]{1,2}\d+)\b/.exec(courseSection);
   return match?.[1] ?? null;
 }
 
 function isGraduateCourse(courseSection: string): boolean {
-  const match = courseSection.match(/CS\s*(\d+)/);
+  const match = /CS\s*(\d+)/.exec(courseSection);
   if (match) {
     const courseNumber = parseInt(match[1] ?? "0", 10);
     // Graduate course numbers: 500-599, 5000-5999, 600-699, 6000-6999
@@ -93,10 +93,10 @@ function parseTermLetter(termType: string): TermLetter | null {
   const normalized = termType.trim().toUpperCase();
 
   // Match exact term patterns: "A Term", "B Term", etc.
-  if (normalized.match(/\bA\s*TERM\b/)) return TermLetter.A;
-  if (normalized.match(/\bB\s*TERM\b/)) return TermLetter.B;
-  if (normalized.match(/\bC\s*TERM\b/)) return TermLetter.C;
-  if (normalized.match(/\bD\s*TERM\b/)) return TermLetter.D;
+  if (/\bA\s*TERM\b/.exec(normalized)) return TermLetter.A;
+  if (/\bB\s*TERM\b/.exec(normalized)) return TermLetter.B;
+  if (/\bC\s*TERM\b/.exec(normalized)) return TermLetter.C;
+  if (/\bD\s*TERM\b/.exec(normalized)) return TermLetter.D;
 
   // Graduate semesters - map to first term of semester
   if (normalized.includes("FALL") || normalized.includes("FALL SEMESTER")) {
@@ -112,7 +112,7 @@ function parseTermLetter(termType: string): TermLetter | null {
 
 function parseYear(offeringPeriod: string): number | null {
   // Extract year from formats like "2025 Fall B Term" or "2026 Spring C Term"
-  const match = offeringPeriod.match(/(\d{4})/);
+  const match = /(\d{4})/.exec(offeringPeriod);
   return match ? parseInt(match[1] ?? "0", 10) : null;
 }
 
@@ -130,13 +130,15 @@ async function fetchWPICourses(): Promise<WPICourseEntry[]> {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data = await response.json();
+    const data = (await response.json()) as {
+      Report_Entry?: WPICourseEntry[];
+    };
+    const reportEntries = data.Report_Entry ?? [];
 
     // Filter to CS courses only (including graduate courses)
-    return data.Report_Entry.filter((entry: WPICourseEntry) => {
+    return reportEntries.filter((entry: WPICourseEntry) => {
       // Check if Subject contains "Computer Science"
-      if (entry.Subject && entry.Subject.includes("Computer Science"))
-        return true;
+      if (entry.Subject?.includes("Computer Science")) return true;
 
       const courseSection = entry.Course_Section ?? "";
       // Match: CS 1000, CS500, CS 500, CS5003, CS 5003, CS600, CS 600, etc.

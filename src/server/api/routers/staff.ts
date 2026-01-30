@@ -97,7 +97,7 @@ export const staffRoute = createTRPCRouter({
             flags: {
               qualifiedForThisSection,
               notAvoidedByProfessor: !avoidedByProfessor,
-              // we'll fill availableThisTerm after we know assignments
+              // fill availableThisTerm after we know assignments
               availableThisTerm: true,
             },
           };
