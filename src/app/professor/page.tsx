@@ -1,13 +1,13 @@
 import { auth } from "@/server/auth";
-import ProfessorHomePageComponent from "@/components/professor/professor-dashboard/professor-homepage";
+import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
-export default async function ProfessorHomePage() {
+export default async function ProfessorPreferencesPage() {
   const session = await auth();
 
   if (!session?.user?.id) {
     return <LoadingSpinner />;
   }
 
-  return <ProfessorHomePageComponent userId={session.user.id} />;
+  return <ProfessorPreferenceForm userId={session.user.id} />;
 }

@@ -169,7 +169,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                   <p className="text-muted-foreground mb-6">
                     Your assistant preferences have been successfully submitted.
                   </p>
-                  <Link href="/professor">
+                  <Link href="/">
                     <Button>Return to Dashboard</Button>
                   </Link>
                 </div>
