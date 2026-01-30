@@ -323,7 +323,7 @@ export default function SolverPage() {
   }
 
   return (
-    <div className="flex h-[100vh] flex-col">
+    <div className="flex h-[calc(100vh-4rem)] flex-col">
       <AleadyAssignedAlert
         open={warningDialogOpen}
         fromCourse={pendingAssign?.fromSectionCode ?? ""}

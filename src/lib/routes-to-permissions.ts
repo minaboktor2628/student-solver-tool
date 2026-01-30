@@ -2,6 +2,7 @@ import type { PermissionCheck } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 import {
   ComputerIcon,
+  DatabaseIcon,
   HomeIcon,
   InfoIcon,
   ScanFaceIcon,
@@ -49,6 +50,11 @@ export const ROUTES: NavItem[] = [
         label: "Permissions",
         href: "/dashboard/permissions",
         icon: ScanFaceIcon,
+      },
+      {
+        label: "Studio",
+        href: "/dashboard/studio",
+        icon: DatabaseIcon,
       },
     ],
   },
