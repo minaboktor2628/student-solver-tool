@@ -542,7 +542,7 @@ export default function ManageUsersContent() {
                     <FormItem>
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., John Smith" {...field} />
+                        <Input placeholder="e.g., Roman Anthony" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -661,7 +661,7 @@ export default function ManageUsersContent() {
                     <FormItem>
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., John Smith" {...field} />
+                        <Input placeholder="e.g., Marcelo Mayer" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

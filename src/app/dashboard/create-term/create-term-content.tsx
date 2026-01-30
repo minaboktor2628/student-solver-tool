@@ -654,7 +654,7 @@ export default function CreateTermContent() {
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g., John Smith"
+                      placeholder="e.g., Roman Anthony"
                       value={newCourse.professorName}
                       onChange={(e) =>
                         setNewCourse((prev) => ({
