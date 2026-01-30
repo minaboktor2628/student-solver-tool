@@ -557,7 +557,7 @@ export default function ManageUsersContent() {
                       <FormControl>
                         <Input
                           type="email"
-                          placeholder="e.g., jsmith@wpi.edu"
+                          placeholder="e.g., ranthony@wpi.edu"
                           {...field}
                         />
                       </FormControl>
@@ -676,7 +676,7 @@ export default function ManageUsersContent() {
                       <FormControl>
                         <Input
                           type="email"
-                          placeholder="e.g., jsmith@wpi.edu"
+                          placeholder="e.g., mmayer@wpi.edu"
                           {...field}
                         />
                       </FormControl>
