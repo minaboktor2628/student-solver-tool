@@ -3,8 +3,7 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { syncCourses as syncCoursesUtil } from "@/lib/sync-courses";
 import { calculateRequiredHours } from "@/lib/utils";
-import type { TermLetter } from "@prisma/client";
-import { AcademicLevel } from "@prisma/client";
+import { TermLetter, AcademicLevel } from "@prisma/client";
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
@@ -297,11 +296,14 @@ export const courseRoute = createTRPCRouter({
         // Determine which term to use
         let finalTermId = termId;
         if (!finalTermId && selectedTerm) {
-          const termParts = (selectedTerm as string).split(" ");
+          const termParts = selectedTerm.split(" ");
           const termLetter = termParts[0];
           const termYear = termParts[1] ?? "";
 
-          if (!termLetter) {
+          if (
+            !termLetter ||
+            !Object.values(TermLetter).includes(termLetter as TermLetter)
+          ) {
             continue;
           }
 
