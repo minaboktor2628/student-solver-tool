@@ -523,6 +523,8 @@ export default function DashboardContent() {
           </div>
         )}
 
+        <p className="text-muted-foreground mb-8">maybe some graphs</p>
+
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <div className="bg-card border-border rounded-lg border p-6 shadow transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <div className="mb-2 flex items-center justify-between">
@@ -720,13 +722,6 @@ export default function DashboardContent() {
                     );
                   })}
               </div>
-            </div>
-
-            <div className="bg-card border-border rounded-lg border p-6 shadow">
-              <h2 className="text-foreground mb-4 text-xl font-semibold">
-                Analytics
-              </h2>
-              <p className="text-muted-foreground">maybe some graphs</p>
             </div>
           </div>
         )}
