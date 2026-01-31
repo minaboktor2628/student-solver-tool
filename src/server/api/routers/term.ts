@@ -7,6 +7,7 @@ import {
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { calculateRequiredHours } from "@/lib/utils";
+import { TermLetter } from "@prisma/client";
 
 export const termRoute = createTRPCRouter({
   getTerms: publicProcedure.query(async ({ ctx }) => {
@@ -108,64 +109,72 @@ export const termRoute = createTRPCRouter({
       // Create allowed emails
       if (csvData && Array.isArray(csvData)) {
         for (const row of csvData) {
-          try {
-            await ctx.db.allowedEmail.create({
-              data: {
-                email: row.email,
-                role: row.role,
-                termId: term.id,
-              },
-            });
-          } catch (emailError) {
-            // Continue on individual email creation errors
-          }
+          await ctx.db.allowedEmail.create({
+            data: {
+              email: row.email,
+              role: row.role,
+              termId: term.id,
+            },
+          });
         }
       }
 
       // Create sections
       if (courses && Array.isArray(courses) && courses.length > 0) {
         for (const course of courses) {
-          try {
-            // Find or create the professor user
-            let professorUser = await ctx.db.user.findFirst({
-              where: {
-                name: { contains: course.professorName },
-              },
+          const {
+            professorName,
+            courseTitle,
+            courseCode,
+            description,
+            enrollment,
+            capacity,
+            courseSection,
+            meetingPattern,
+          } = course as {
+            professorName?: string;
+            courseTitle?: string;
+            courseCode?: string;
+            description?: string;
+            enrollment?: number;
+            capacity?: number;
+            courseSection?: string;
+            meetingPattern?: string;
+          };
+
+          // Find or create the professor user
+          const professorUser = await ctx.db.user.findFirst({
+            where: {
+              name: { contains: professorName },
+            },
+          });
+
+          if (!professorUser) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: `Professor "${professorName}" not found in the system. Please add them as a user first before creating courses for them.`,
             });
-
-            if (!professorUser) {
-              throw new TRPCError({
-                code: "NOT_FOUND",
-                message: `Professor "${course.professorName}" not found in the system. Please add them as a user first before creating courses for them.`,
-              });
-            }
-
-            // Calculate required hours based on enrollment
-            const calculatedHours = calculateRequiredHours(
-              course.enrollment ?? 0,
-            );
-
-            // Create the section
-            await ctx.db.section.create({
-              data: {
-                termId: term.id,
-                courseTitle: course.courseTitle,
-                courseCode: course.courseCode,
-                description:
-                  course.description ||
-                  `${course.courseCode} - ${course.courseTitle}`,
-                professorId: professorUser.id,
-                enrollment: course.enrollment ?? 0,
-                capacity: course.capacity ?? 0,
-                requiredHours: calculatedHours,
-                academicLevel: "UNDERGRADUATE",
-                courseSection: course.courseSection ?? "01",
-                meetingPattern: course.meetingPattern ?? "TBD",
-              },
-            });
-          } catch (courseError) {
-            // Continue on individual course creation errors
           }
+
+          // Calculate required hours based on enrollment
+          const calculatedHours = calculateRequiredHours(enrollment ?? 0);
+
+          // Create the section
+          await ctx.db.section.create({
+            data: {
+              termId: term.id,
+              courseTitle: courseTitle ?? "",
+              courseCode: courseCode ?? "",
+              description: description ?? `${courseCode} - ${courseTitle}`,
+              professorId: professorUser.id,
+              enrollment: enrollment ?? 0,
+              capacity: capacity ?? 0,
+              requiredHours: calculatedHours,
+              academicLevel: "UNDERGRADUATE",
+              courseSection: courseSection ?? "01",
+              meetingPattern: meetingPattern ?? "TBD",
+            },
+          });
         }
       }
 
@@ -212,7 +221,18 @@ export const termRoute = createTRPCRouter({
     }),
 
   updateTerm: coordinatorProcedure
-    .input(z.object({ id: z.string(), data: z.any() }))
+    .input(
+      z.object({
+        id: z.string(),
+        data: z.object({
+          termLetter: z.nativeEnum(TermLetter).optional(),
+          year: z.number().optional(),
+          termStaffDueDate: z.date().optional(),
+          termProfessorDueDate: z.date().optional(),
+          active: z.boolean().optional(),
+        }),
+      }),
+    )
     .mutation(async ({ input: { id, data }, ctx }) => {
       const updated = await ctx.db.term.update({
         where: { id },

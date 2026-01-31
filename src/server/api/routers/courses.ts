@@ -3,6 +3,7 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { syncCourses as syncCoursesUtil } from "@/lib/sync-courses";
 import { calculateRequiredHours } from "@/lib/utils";
+import { TermLetter, AcademicLevel } from "@prisma/client";
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
@@ -264,78 +265,91 @@ export const courseRoute = createTRPCRouter({
       const createdCourses = [];
 
       for (const courseData of courses) {
-        try {
-          const {
-            courseCode,
-            courseTitle,
-            professorName,
-            enrollment = 0,
-            capacity = 0,
-            academicLevel = "UNDERGRADUATE",
-            courseSection = "01",
-            meetingPattern = "TBD",
-            description = "",
-            term: selectedTerm,
-          } = courseData;
+        const {
+          courseCode,
+          courseTitle,
+          professorName,
+          enrollment = 0,
+          capacity = 0,
+          academicLevel = "UNDERGRADUATE",
+          courseSection = "01",
+          meetingPattern = "TBD",
+          description = "",
+          term: selectedTerm,
+        } = courseData as {
+          courseCode?: string;
+          courseTitle?: string;
+          professorName?: string;
+          enrollment?: number;
+          capacity?: number;
+          academicLevel?: string;
+          courseSection?: string;
+          meetingPattern?: string;
+          description?: string;
+          term?: string;
+        };
 
-          if (!courseCode || !courseTitle || !professorName) {
-            continue;
-          }
-
-          // Determine which term to use
-          let finalTermId = termId;
-          if (!finalTermId && selectedTerm) {
-            const termData = await ctx.db.term.findFirst({
-              where: {
-                termLetter: selectedTerm.split(" ")[0],
-                year: parseInt(selectedTerm.split(" ")[1]),
-              },
-            });
-            finalTermId = termData?.id;
-          }
-
-          if (!finalTermId) {
-            continue;
-          }
-
-          // Find or create professor
-          let professor = await ctx.db.user.findFirst({
-            where: {
-              name: {
-                contains: professorName,
-              },
-            },
-          });
-
-          if (!professor) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: `Professor "${professorName}" not found in the system. Please add them as a user first before creating courses for them.`,
-            });
-          }
-
-          const calculatedHours = calculateRequiredHours(enrollment);
-
-          const createdCourse = await ctx.db.section.create({
-            data: {
-              termId: finalTermId,
-              courseCode,
-              courseTitle,
-              description,
-              professorId: professor.id,
-              enrollment,
-              capacity,
-              requiredHours: calculatedHours,
-              academicLevel,
-              courseSection,
-              meetingPattern,
-            },
-          });
-
-          createdCourses.push(createdCourse);
-        } catch (courseError) {
-          console.error("Error creating course:", courseError);
+        if (!courseCode || !courseTitle || !professorName) {
+          continue;
         }
+
+        // Determine which term to use
+        let finalTermId = termId;
+        if (!finalTermId && selectedTerm) {
+          const termParts = (selectedTerm as string).split(" ");
+          const termLetter = termParts[0] ?? "";
+          const termYear = termParts[1] ?? "";
+          const termData = await ctx.db.term.findFirst({
+            where: {
+              termLetter: termLetter as TermLetter,
+              year: parseInt(termYear),
+            },
+          });
+          finalTermId = termData?.id;
+        }
+
+        if (!finalTermId) {
+          continue;
+        }
+
+        // Find or create professor
+        const professor = await ctx.db.user.findFirst({
+          where: {
+            name: {
+              contains: professorName,
+            },
+          },
+        });
+
+        if (!professor) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Professor "${professorName}" not found in the system. Please add them as a user first before creating courses for them.`,
+          });
+        }
+
+        const calculatedHours = calculateRequiredHours(
+          typeof enrollment === "number" ? enrollment : 0,
+        );
+
+        const createdCourse = await ctx.db.section.create({
+          data: {
+            termId: finalTermId,
+            courseCode: courseCode ?? "",
+            courseTitle: courseTitle ?? "",
+            description: description ?? "",
+            professorId: professor.id,
+            enrollment: typeof enrollment === "number" ? enrollment : 0,
+            capacity: typeof capacity === "number" ? capacity : 0,
+            requiredHours: calculatedHours,
+            academicLevel:
+              (academicLevel as AcademicLevel) ?? AcademicLevel.UNDERGRADUATE,
+            courseSection: courseSection ?? "01",
+            meetingPattern: meetingPattern ?? "TBD",
+          },
+        });
+
+        createdCourses.push(createdCourse);
       }
 
       return {
@@ -366,7 +380,9 @@ export const courseRoute = createTRPCRouter({
         where: { id },
         data: {
           ...data,
-          academicLevel: (data.academicLevel as any) ?? undefined,
+          academicLevel:
+            (data.academicLevel as "UNDERGRADUATE" | "GRADUATE" | undefined) ??
+            undefined,
         },
       });
 

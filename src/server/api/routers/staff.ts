@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { Role } from "@prisma/client";
 
 export const staffRoute = createTRPCRouter({
   getStaffForSection: coordinatorProcedure
@@ -193,7 +194,7 @@ export const staffRoute = createTRPCRouter({
           hours,
           roles: {
             create: {
-              role: role as any,
+              role: role as Role,
             },
           },
         },
@@ -282,7 +283,11 @@ export const staffRoute = createTRPCRouter({
       }
 
       // Update user
-      const updateData: any = {};
+      const updateData: {
+        name?: string;
+        email?: string;
+        hours?: number;
+      } = {};
       if (name !== undefined) updateData.name = name;
       if (email !== undefined) updateData.email = email;
       if (hours !== undefined) updateData.hours = hours;
@@ -307,7 +312,7 @@ export const staffRoute = createTRPCRouter({
         await ctx.db.userRole.create({
           data: {
             userId,
-            role: role as any,
+            role: role as Role,
           },
         });
       }

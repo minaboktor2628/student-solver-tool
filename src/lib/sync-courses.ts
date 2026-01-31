@@ -157,17 +157,15 @@ async function findOrCreateProfessor(instructorName: string): Promise<User> {
       where: { name: "Unknown Professor" },
     });
 
-    if (!unknown) {
-      unknown = await prisma.user.create({
-        data: {
-          name: "Unknown Professor",
-          email: "unknown@wpi.edu",
-          roles: {
-            create: { role: "PROFESSOR" },
-          },
+    unknown ??= await prisma.user.create({
+      data: {
+        name: "Unknown Professor",
+        email: "unknown@wpi.edu",
+        roles: {
+          create: { role: "PROFESSOR" },
         },
-      });
-    }
+      },
+    });
 
     return unknown;
   }
