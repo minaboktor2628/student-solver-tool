@@ -6,6 +6,7 @@ import { api } from "@/trpc/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from "sonner";
 import {
   BookOpen,
   Trash2,
@@ -65,7 +66,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { calculateRequiredHours } from "@/lib/utils";
+import { calculateRequiredAssistantHours } from "@/lib/utils";
 import type { Section, Term, TermLetter } from "@prisma/client";
 
 // Course type from Prisma Section with flattened professor name
@@ -118,8 +119,6 @@ export default function ManageCoursesContent() {
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -188,7 +187,6 @@ export default function ManageCoursesContent() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    setError(null);
     try {
       const [coursesResult, termsResult] = await Promise.all([
         getAllCoursesQuery.refetch(),
@@ -220,7 +218,7 @@ export default function ManageCoursesContent() {
       }
     } catch (err: unknown) {
       console.error("Error fetching data:", err);
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      toast.error(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setIsLoading(false);
     }
@@ -255,9 +253,8 @@ export default function ManageCoursesContent() {
   };
 
   const onSubmitAddCourse = async (values: CourseFormValues) => {
-    setError(null);
     try {
-      const requiredHours = calculateRequiredHours(values.enrollment);
+      const requiredHours = calculateRequiredAssistantHours(values.enrollment);
 
       await createCourseMutation.mutateAsync({
         courses: [
@@ -273,20 +270,17 @@ export default function ManageCoursesContent() {
         termId: selectedTerm ?? undefined,
       });
 
-      setSuccessMessage("Course added successfully!");
+      toast.success("Course added successfully!");
       setIsAddDialogOpen(false);
       addForm.reset();
       await fetchData();
-
-      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: unknown) {
       console.error("Error adding course:", err);
-      setError(err instanceof Error ? err.message : "Failed to add course");
+      toast.error(err instanceof Error ? err.message : "Failed to add course");
     }
   };
 
   const onSubmitEditCourse = async (values: CourseFormValues) => {
-    setError(null);
     if (!selectedCourse) return;
 
     try {
@@ -300,21 +294,20 @@ export default function ManageCoursesContent() {
         },
       });
 
-      setSuccessMessage("Course updated successfully!");
+      toast.success("Course updated successfully!");
       setIsEditDialogOpen(false);
       setSelectedCourse(null);
       editForm.reset();
       await fetchData();
-
-      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: unknown) {
       console.error("Error updating course:", err);
-      setError(err instanceof Error ? err.message : "Failed to update course");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update course",
+      );
     }
   };
 
   const confirmDeleteCourse = async () => {
-    setError(null);
     if (!selectedCourse) return;
 
     try {
@@ -322,15 +315,15 @@ export default function ManageCoursesContent() {
         id: selectedCourse.id,
       });
 
-      setSuccessMessage("Course deleted successfully!");
+      toast.success("Course deleted successfully!");
       setIsDeleteDialogOpen(false);
       setSelectedCourse(null);
       await fetchData();
-
-      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: unknown) {
       console.error("Error deleting course:", err);
-      setError(err instanceof Error ? err.message : "Failed to delete course");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete course",
+      );
       setIsDeleteDialogOpen(false);
     }
   };
@@ -384,20 +377,6 @@ export default function ManageCoursesContent() {
             Add Course
           </Button>
         </div>
-
-        {/* Success Message */}
-        {successMessage && (
-          <div className="mb-4 rounded-lg bg-green-50 p-4 text-green-800">
-            {successMessage}
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-            {error}
-          </div>
-        )}
 
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -633,7 +612,9 @@ export default function ManageCoursesContent() {
                         </FormControl>
                         <FormDescription>
                           Required hours:{" "}
-                          {calculateRequiredHours(Number(field.value) || 0)}
+                          {calculateRequiredAssistantHours(
+                            Number(field.value) || 0,
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -753,7 +734,9 @@ export default function ManageCoursesContent() {
                         </FormControl>
                         <FormDescription>
                           Required hours:{" "}
-                          {calculateRequiredHours(Number(field.value) || 0)}
+                          {calculateRequiredAssistantHours(
+                            Number(field.value) || 0,
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

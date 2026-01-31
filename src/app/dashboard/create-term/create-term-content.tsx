@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { api } from "@/trpc/react";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
-import { calculateRequiredHours } from "@/lib/utils";
+import { calculateRequiredAssistantHours } from "@/lib/utils";
 import type { AcademicLevel } from "@prisma/client";
+import { toast } from "sonner";
 
 // Types - only CSV parsing has no Prisma equivalent
 interface CSVRow {
@@ -130,7 +131,6 @@ export default function CreateTermContent() {
     [],
   );
   const [creatingTerm, setCreatingTerm] = useState(false);
-  const [termError, setTermError] = useState<string | null>(null);
   const [isAddingCourse, setIsAddingCourse] = useState(false);
   const [newCourse, setNewCourse] = useState<NewCourse>({
     courseCode: "",
@@ -163,12 +163,11 @@ export default function CreateTermContent() {
       !newTermData.staffDueDate ||
       !newTermData.professorDueDate
     ) {
-      setTermError("All fields are required");
+      toast.error("All fields are required");
       return;
     }
 
     setCurrentStep(2);
-    setTermError(null);
   };
 
   // Step 2: Handle CSV upload
@@ -182,9 +181,9 @@ export default function CreateTermContent() {
         const text = e.target?.result as string;
         const parsedData = parseCSV(text);
         setCsvData(parsedData);
-        setTermError(null);
+        toast.success("CSV uploaded successfully");
       } catch (err: unknown) {
-        setTermError(err instanceof Error ? err.message : "An error occurred");
+        toast.error(err instanceof Error ? err.message : "An error occurred");
       }
     };
     reader.readAsText(file);
@@ -196,7 +195,7 @@ export default function CreateTermContent() {
       const { data } = await getAllCoursesQuery.refetch();
 
       if (!data?.success) {
-        setTermError("Failed to fetch courses from database");
+        toast.error("Failed to fetch courses from database");
         return;
       }
 
@@ -227,13 +226,13 @@ export default function CreateTermContent() {
       setTermCoursesToInclude(allCourses);
 
       if (allCourses.length === 0) {
-        setTermError("No courses available. Please sync courses first.");
+        toast.error("No courses available. Please sync courses first.");
       } else {
-        setTermError(null);
+        toast.success(`Loaded ${allCourses.length} courses`);
       }
     } catch (err) {
       console.error("Error loading courses:", err);
-      setTermError("Failed to load courses from database");
+      toast.error("Failed to load courses from database");
     }
   };
 
@@ -244,11 +243,13 @@ export default function CreateTermContent() {
       !newCourse.courseTitle.trim() ||
       !newCourse.professorName.trim()
     ) {
-      setTermError("Course code, title, and professor name are required");
+      toast.error("Course code, title, and professor name are required");
       return;
     }
 
-    const calculatedHours = calculateRequiredHours(newCourse.enrollment);
+    const calculatedHours = calculateRequiredAssistantHours(
+      newCourse.enrollment,
+    );
 
     const courseToAdd: Course = {
       id: `temp-${Date.now()}`,
@@ -277,7 +278,7 @@ export default function CreateTermContent() {
       meetingPattern: "",
     });
     setIsAddingCourse(false);
-    setTermError(null);
+    toast.success("Course added to term");
   };
 
   // Edit course in term
@@ -294,13 +295,15 @@ export default function CreateTermContent() {
       !editingTermCourseData.courseTitle.trim() ||
       !editingTermCourseData.professorName.trim()
     ) {
-      setTermError("Course code, title, and professor name are required");
+      toast.error("Course code, title, and professor name are required");
       return;
     }
 
     const updatedCourse = {
       ...editingTermCourseData,
-      requiredHours: calculateRequiredHours(editingTermCourseData.enrollment),
+      requiredHours: calculateRequiredAssistantHours(
+        editingTermCourseData.enrollment,
+      ),
     };
 
     setTermCoursesToInclude((prev) =>
@@ -311,7 +314,7 @@ export default function CreateTermContent() {
 
     setEditingTermCourseId(null);
     setEditingTermCourseData(null);
-    setTermError(null);
+    toast.success("Course updated");
   };
 
   const cancelEditTermCourse = () => {
@@ -323,12 +326,12 @@ export default function CreateTermContent() {
     setTermCoursesToInclude((prev) =>
       prev.filter((course) => course.id !== courseId),
     );
+    toast.success("Course removed from term");
   };
 
   // Step 4: Create term in database
   const createTermInDatabase = async () => {
     setCreatingTerm(true);
-    setTermError(null);
 
     try {
       const response = await createTermMutation.mutateAsync({
@@ -344,7 +347,7 @@ export default function CreateTermContent() {
       });
 
       if (response.success) {
-        alert("✓ Term created successfully!");
+        toast.success("Term created successfully!");
         // Reset form
         setCurrentStep(1);
         setNewTermData({
@@ -355,13 +358,10 @@ export default function CreateTermContent() {
         });
         setCsvData([]);
         setTermCoursesToInclude([]);
-        setTermError(null);
       }
     } catch (err: unknown) {
       console.error("Error creating term:", err);
-      setTermError(
-        err instanceof Error ? err.message : "Failed to create term",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to create term");
     } finally {
       setCreatingTerm(false);
     }
@@ -397,12 +397,6 @@ export default function CreateTermContent() {
             ))}
           </div>
         </div>
-
-        {termError && (
-          <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-            {termError}
-          </div>
-        )}
 
         {/* Step 1: Basic Info */}
         {currentStep === 1 && (
@@ -581,7 +575,7 @@ export default function CreateTermContent() {
                     setCurrentStep(3);
                     void handleFetchCourses();
                   } else {
-                    setTermError("Please upload a CSV file first");
+                    toast.error("Please upload a CSV file first");
                   }
                 }}
                 className="bg-primary rounded px-4 py-2 text-white"
@@ -679,7 +673,7 @@ export default function CreateTermContent() {
                     {newCourse.enrollment > 0 && (
                       <p className="text-muted-foreground mt-1 text-xs">
                         Calculated hours:{" "}
-                        {calculateRequiredHours(newCourse.enrollment)}
+                        {calculateRequiredAssistantHours(newCourse.enrollment)}
                       </p>
                     )}
                   </div>

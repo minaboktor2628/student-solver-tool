@@ -1,7 +1,7 @@
 import { AcademicLevel, TermLetter } from "@prisma/client";
 import type { User, Term } from "@prisma/client";
 import { db } from "@/server/db";
-import { calculateRequiredHours } from "@/lib/utils";
+import { calculateRequiredAssistantHours } from "@/lib/utils";
 
 const prisma = db;
 
@@ -253,7 +253,7 @@ async function createOrUpdateSection(
     courseTitle,
     enrollment: enrolled,
     capacity,
-    requiredHours: isPrimary ? calculateRequiredHours(enrolled) : 0,
+    requiredHours: isPrimary ? calculateRequiredAssistantHours(enrolled) : 0,
     professorId: professor.id,
     academicLevel: parseAcademicLevel(course.Academic_Level),
     description: enhancedDescription,

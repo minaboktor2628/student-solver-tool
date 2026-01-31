@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
+import { toast } from "sonner";
 import {
   UserPlus,
   Trash2,
@@ -107,8 +108,6 @@ export default function ManageUsersContent() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -168,7 +167,6 @@ export default function ManageUsersContent() {
 
   const fetchUsers = async () => {
     setIsLoading(true);
-    setError(null);
     try {
       const { data } = await getUsersQuery.refetch();
       if (data) {
@@ -193,7 +191,7 @@ export default function ManageUsersContent() {
       }
     } catch (err: unknown) {
       console.error("Error fetching users:", err);
-      setError(err instanceof Error ? err.message : "Failed to load users");
+      toast.error(err instanceof Error ? err.message : "Failed to load users");
     } finally {
       setIsLoading(false);
     }
@@ -226,7 +224,6 @@ export default function ManageUsersContent() {
   };
 
   const onSubmitAddUser = async (values: UserFormValues) => {
-    setError(null);
     try {
       await createUserMutation.mutateAsync({
         name: values.name,
@@ -235,21 +232,17 @@ export default function ManageUsersContent() {
         hours: values.hours,
       });
 
-      setSuccessMessage("User added successfully!");
+      toast.success("User added successfully!");
       setIsAddDialogOpen(false);
       addForm.reset();
       await fetchUsers();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: unknown) {
       console.error("Error adding user:", err);
-      setError(err instanceof Error ? err.message : "Failed to add user");
+      toast.error(err instanceof Error ? err.message : "Failed to add user");
     }
   };
 
   const onSubmitEditUser = async (values: UserFormValues) => {
-    setError(null);
     if (!selectedUser) return;
 
     try {
@@ -261,22 +254,18 @@ export default function ManageUsersContent() {
         hours: values.hours,
       });
 
-      setSuccessMessage("User updated successfully!");
+      toast.success("User updated successfully!");
       setIsEditDialogOpen(false);
       setSelectedUser(null);
       editForm.reset();
       await fetchUsers();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: unknown) {
       console.error("Error updating user:", err);
-      setError(err instanceof Error ? err.message : "Failed to update user");
+      toast.error(err instanceof Error ? err.message : "Failed to update user");
     }
   };
 
   const confirmDeleteUser = async () => {
-    setError(null);
     if (!selectedUser) return;
 
     try {
@@ -284,16 +273,13 @@ export default function ManageUsersContent() {
         userId: selectedUser.id,
       });
 
-      setSuccessMessage("User deleted successfully!");
+      toast.success("User deleted successfully!");
       setIsDeleteDialogOpen(false);
       setSelectedUser(null);
       await fetchUsers();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: unknown) {
       console.error("Error deleting user:", err);
-      setError(err instanceof Error ? err.message : "Failed to delete user");
+      toast.error(err instanceof Error ? err.message : "Failed to delete user");
       setIsDeleteDialogOpen(false);
     }
   };
@@ -352,20 +338,6 @@ export default function ManageUsersContent() {
             Add User
           </Button>
         </div>
-
-        {/* Success Message */}
-        {successMessage && (
-          <div className="mb-4 rounded-lg bg-green-50 p-4 text-green-800">
-            {successMessage}
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-800">
-            {error}
-          </div>
-        )}
 
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
