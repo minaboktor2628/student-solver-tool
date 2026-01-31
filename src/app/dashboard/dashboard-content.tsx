@@ -721,6 +721,13 @@ export default function DashboardContent() {
                   })}
               </div>
             </div>
+
+            <div className="bg-card border-border rounded-lg border p-6 shadow">
+              <h2 className="text-foreground mb-4 text-xl font-semibold">
+                Analytics
+              </h2>
+              <p className="text-muted-foreground">maybe some graphs</p>
+            </div>
           </div>
         )}
 
