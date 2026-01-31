@@ -93,11 +93,11 @@ const ROLE_OPTIONS = [
 ];
 
 const ROLE_COLORS: Record<string, string> = {
-  PLA: "bg-blue-100 text-blue-800 border-blue-300",
-  TA: "bg-green-100 text-green-800 border-green-300",
-  GLA: "bg-indigo-100 text-indigo-800 border-indigo-300",
-  PROFESSOR: "bg-purple-100 text-purple-800 border-purple-300",
-  COORDINATOR: "bg-orange-100 text-orange-800 border-orange-300",
+  PLA: "bg-primary/20 text-primary border-primary/30",
+  TA: "bg-success/20 text-success border-success/30",
+  GLA: "bg-accent/20 text-accent border-accent/30",
+  PROFESSOR: "bg-violet-200 text-violet-900 border-violet-300",
+  COORDINATOR: "bg-warning/20 text-warning border-warning/30",
 };
 
 export default function ManageUsersContent() {
@@ -285,7 +285,9 @@ export default function ManageUsersContent() {
   };
 
   const getRoleBadgeClass = (role: string): string => {
-    return ROLE_COLORS[role] ?? "bg-gray-100 text-gray-800 border-gray-300";
+    return (
+      ROLE_COLORS[role] ?? "bg-muted/20 text-muted-foreground border-muted/30"
+    );
   };
 
   // Count users by role for stats
@@ -478,7 +480,7 @@ export default function ManageUsersContent() {
                                   ? "Cannot delete coordinator"
                                   : "Delete user"
                               }
-                              className="text-red-600 hover:text-red-700"
+                              className="text-destructive hover:text-destructive/80"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -749,7 +751,7 @@ export default function ManageUsersContent() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDeleteUser}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-destructive hover:bg-destructive/90"
               >
                 {deleteUserMutation.isPending ? (
                   <>

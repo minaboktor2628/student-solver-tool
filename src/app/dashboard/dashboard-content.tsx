@@ -20,6 +20,20 @@ import {
 } from "lucide-react";
 import { api } from "@/trpc/react";
 import type { Section, User, Term } from "@prisma/client";
+import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Dashboard view types - extend Prisma models with computed/view-specific fields
 // Database fields come from Prisma types, only computed/transformed fields defined here
@@ -70,7 +84,6 @@ interface TermData extends Pick<Term, "id" | "year"> {
 }
 
 const LOCAL_TERMS_KEY = "sata:terms";
-const DEFAULT_TERM = "Spring 2025";
 
 const parseStoredTerms = (raw: string | null): string[] | null => {
   if (!raw) return null;
@@ -94,7 +107,6 @@ export default function DashboardContent() {
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // Term state
   const [terms, setTerms] = useState<TermData[]>([]);
@@ -149,7 +161,12 @@ export default function DashboardContent() {
           },
         );
         setTerms(formattedTerms);
-        if (formattedTerms.length > 0 && formattedTerms[0]) {
+
+        // Select active term if it exists, otherwise select first term
+        const activeTerm = formattedTerms.find((t) => t.status === "published");
+        if (activeTerm) {
+          setSelectedTerm(activeTerm.id);
+        } else if (formattedTerms.length > 0 && formattedTerms[0]) {
           setSelectedTerm(formattedTerms[0].id);
         }
       }
@@ -158,19 +175,21 @@ export default function DashboardContent() {
       // Fallback to local storage if API fails
       const raw = localStorage.getItem(LOCAL_TERMS_KEY);
       const parsed = parseStoredTerms(raw);
-      const initialTerms = parsed ?? [DEFAULT_TERM];
-      setTerms(
-        initialTerms.map((name) => ({
-          id: name,
-          name,
-          termLetter: "A",
-          year: new Date().getFullYear(),
-          staffDueDate: "",
-          professorDueDate: "",
-          status: "published",
-        })),
-      );
-      setSelectedTerm(initialTerms[0] ?? DEFAULT_TERM);
+      if (parsed && parsed.length > 0 && parsed[0]) {
+        setTerms(
+          parsed.map((name) => ({
+            id: name,
+            name,
+            termLetter: "A",
+            year: new Date().getFullYear(),
+            staffDueDate: "",
+            professorDueDate: "",
+            status: "published",
+          })),
+        );
+        setSelectedTerm(parsed[0]);
+      }
+      // If no fallback available, terms stay empty
     } finally {
       setLoadingTerms(false);
     }
@@ -191,7 +210,7 @@ export default function DashboardContent() {
 
       if (!data) {
         console.error("Dashboard API error");
-        setSyncMessage(`✗ Dashboard API error`);
+        toast.error("Dashboard API error");
         setCourses([]);
         setStaff([]);
         setProfessors([]);
@@ -285,7 +304,7 @@ export default function DashboardContent() {
       );
     } catch (err: unknown) {
       console.error("Error fetching dashboard data:", err);
-      setSyncMessage("✗ Failed to load dashboard data");
+      toast.error("Failed to load dashboard data");
       setCourses([]);
       setStaff([]);
       setProfessors([]);
@@ -300,14 +319,14 @@ export default function DashboardContent() {
       const response = await publishTermMutation.mutateAsync({ id: termId });
 
       if (response.success) {
-        setSyncMessage("✓ Term published successfully!");
+        toast.success("Term published successfully!");
         void fetchTerms();
       } else {
-        setSyncMessage(`✗ Failed to publish term`);
+        toast.error("Failed to publish term");
       }
     } catch (err) {
       console.error("Error publishing term:", err);
-      setSyncMessage("✗ Failed to publish term");
+      toast.error("Failed to publish term");
     }
   };
 
@@ -325,7 +344,7 @@ export default function DashboardContent() {
       const response = await deleteTermMutation.mutateAsync({ id: termId });
 
       if (response.success) {
-        setSyncMessage("✓ Term deleted successfully!");
+        toast.success("Term deleted successfully!");
         void fetchTerms();
         // If we deleted the selected term, select the first available term
         if (selectedTerm === termId) {
@@ -337,36 +356,34 @@ export default function DashboardContent() {
           );
         }
       } else {
-        setSyncMessage(`✗ Failed to delete term`);
+        toast.error("Failed to delete term");
       }
     } catch (err) {
       console.error("Error deleting term:", err);
-      setSyncMessage("✗ Failed to delete term");
+      toast.error("Failed to delete term");
     }
   };
 
   // Sync courses function (existing)
   const syncCoursesFromWPI = async () => {
     setIsSyncing(true);
-    setSyncMessage(null);
     try {
       const response = await syncCoursesMutation.mutateAsync();
       if (response && (response.success ?? response.created !== undefined)) {
-        setSyncMessage(
-          `✓ Synced! Created: ${response.created ?? 0}, Updated: ${response.updated ?? 0}, Skipped: ${response.skipped ?? 0}`,
+        toast.success(
+          `Synced! Created: ${response.created ?? 0}, Updated: ${response.updated ?? 0}, Skipped: ${response.skipped ?? 0}`,
         );
         if (selectedTerm) {
           await fetchDashboardData(selectedTerm);
         }
       } else {
-        setSyncMessage(`✗ Sync failed`);
+        toast.error("Sync failed");
       }
     } catch (err: unknown) {
       console.error("Error syncing courses:", err);
-      setSyncMessage("✗ Sync failed");
+      toast.error("Sync failed");
     } finally {
       setIsSyncing(false);
-      setTimeout(() => setSyncMessage(null), 5000);
     }
   };
 
@@ -416,8 +433,7 @@ export default function DashboardContent() {
       .filter((e): e is string => !!e);
 
     if (emails.length === 0) {
-      setSyncMessage("✗ No emails to copy");
-      setTimeout(() => setSyncMessage(null), 3000);
+      toast.error("No emails to copy");
       return;
     }
 
@@ -425,14 +441,12 @@ export default function DashboardContent() {
     void navigator.clipboard
       .writeText(text)
       .then(() => {
-        setSyncMessage(
-          `✓ Copied ${emails.length} email${emails.length > 1 ? "s" : ""} to clipboard`,
+        toast.success(
+          `Copied ${emails.length} email${emails.length > 1 ? "s" : ""} to clipboard`,
         );
-        setTimeout(() => setSyncMessage(null), 3000);
       })
       .catch(() => {
-        setSyncMessage("✗ Failed to copy emails");
-        setTimeout(() => setSyncMessage(null), 3000);
+        toast.error("Failed to copy emails");
       });
   }
 
@@ -454,46 +468,48 @@ export default function DashboardContent() {
 
             <div className="flex items-center gap-3">
               <div className="text-sm">
-                <label className="text-muted-foreground mb-1 block text-xs">
+                <Label className="text-muted-foreground mb-1 block text-xs">
                   Term
-                </label>
+                </Label>
                 <div className="flex items-center gap-2">
-                  <select
+                  <Select
                     value={selectedTerm ?? ""}
-                    onChange={(e) =>
-                      setSelectedTerm(
-                        e.target.value === "" ? null : e.target.value,
-                      )
+                    onValueChange={(value) =>
+                      setSelectedTerm(value === "" ? null : value)
                     }
                     disabled={loadingTerms}
-                    className="rounded border px-3 py-2 text-sm"
                   >
-                    {loadingTerms ? <option>Loading…</option> : null}
-                    {!loadingTerms &&
-                      terms.map((term) => (
-                        <option key={term.id} value={term.id}>
-                          {term.name ?? ""}{" "}
-                          {term.status === "draft" && "(Draft)"}
-                        </option>
-                      ))}
-                  </select>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue
+                        placeholder={loadingTerms ? "Loading…" : "Select term"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!loadingTerms &&
+                        terms.map((term) => (
+                          <SelectItem key={term.id} value={term.id}>
+                            {term.name ?? ""}{" "}
+                            {term.status === "draft" && "(Draft)"}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
 
                   {selectedTerm && (
-                    <button
+                    <Button
                       onClick={() => deleteTerm(selectedTerm)}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded px-3 py-2 text-sm"
+                      size="sm"
                       title="Delete term"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </Button>
                   )}
 
-                  <Link
-                    href="/dashboard/create-term"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded px-3 py-2 text-sm"
-                  >
-                    <Plus className="h-4 w-4" /> Create Term
-                  </Link>
+                  <Button asChild size="sm">
+                    <Link href="/dashboard/create-term">
+                      <Plus className="h-4 w-4" /> Create Term
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -503,28 +519,17 @@ export default function DashboardContent() {
         {selectedTerm &&
           terms.find((t) => t.id === selectedTerm)?.status === "draft" && (
             <div className="mb-6">
-              <button
-                onClick={() => publishTerm(selectedTerm)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded px-4 py-2"
-              >
+              <Button onClick={() => publishTerm(selectedTerm)} size="default">
                 <Calendar className="h-4 w-4" /> Publish Term
-              </button>
+              </Button>
               <p className="text-muted-foreground mt-1 text-sm">
                 Once published, staff and professors can submit preferences
               </p>
             </div>
           )}
 
-        {syncMessage && (
-          <div
-            className={`mb-6 rounded-lg p-4 ${syncMessage.startsWith("✓") ? "bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-200" : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200"}`}
-          >
-            {syncMessage}
-          </div>
-        )}
-
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <div className="bg-card border-border rounded-lg border p-6 shadow transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <div className="mb-2 flex items-center justify-between">
               <Users className="text-primary h-8 w-8" />
               <span className="text-foreground text-2xl font-bold">
@@ -534,17 +539,14 @@ export default function DashboardContent() {
             <p className="text-muted-foreground text-sm font-medium">
               Staff Submissions
             </p>
-            <div className="bg-muted mt-3 h-2 rounded-full">
-              <div
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{ width: `${staffSubmissionRate}%` }}
-              />
+            <div className="mt-3">
+              <Progress value={staffSubmissionRate} className="h-2" />
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-card border-border rounded-lg border p-6 shadow transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <div className="mb-2 flex items-center justify-between">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <CheckCircle className="text-success h-8 w-8" />
               <span className="text-foreground text-2xl font-bold">
                 {professors.filter((p) => p.submitted).length}/
                 {professors.length}
@@ -553,17 +555,14 @@ export default function DashboardContent() {
             <p className="text-muted-foreground text-sm font-medium">
               Professor Submissions
             </p>
-            <div className="bg-muted mt-3 h-2 rounded-full">
-              <div
-                className="h-2 rounded-full bg-green-500 transition-all"
-                style={{ width: `${profSubmissionRate}%` }}
-              />
+            <div className="mt-3">
+              <Progress value={profSubmissionRate} className="h-2" />
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-card border-border rounded-lg border p-6 shadow transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <div className="mb-2 flex items-center justify-between">
-              <Clock className="h-8 w-8 text-purple-500" />
+              <Clock className="text-primary h-8 w-8" />
               <span className="text-foreground text-2xl font-bold">
                 {totalAvailableHours}h
               </span>
@@ -574,11 +573,11 @@ export default function DashboardContent() {
             <p className="text-muted-foreground mt-2 text-xs">
               From submitted preferences
             </p>
-          </div>
+          </Card>
 
-          <div className="bg-card border-border rounded-lg border p-6 shadow transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
             <div className="mb-2 flex items-center justify-between">
-              <AlertCircle className="h-8 w-8 text-orange-500" />
+              <AlertCircle className="text-warning h-8 w-8" />
               <span className="text-foreground text-2xl font-bold">
                 {staffingGap}
               </span>
@@ -587,59 +586,65 @@ export default function DashboardContent() {
               Staffing Gap
             </p>
             <p className="text-muted-foreground mt-2 text-xs">Hours needed</p>
-          </div>
+          </Card>
         </div>
 
         <div className="border-border mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="border-border flex gap-2 border-b">
-            {["overview", "pending", "courses"].map((view) => (
-              <button
-                key={view}
-                onClick={() => setSelectedView(view)}
-                className={`px-4 py-2 font-medium capitalize transition-colors ${
-                  selectedView === view
-                    ? "text-primary border-primary border-b-2"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {view}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            value={selectedView}
+            onValueChange={(value) => setSelectedView(value)}
+            className="border-border gap-0 border-b"
+          >
+            <TabsList className="bg-transparent p-0">
+              {[
+                { value: "overview", label: "Overview" },
+                { value: "pending", label: "Pending" },
+                { value: "courses", label: "Courses" },
+              ].map((view) => (
+                <TabsTrigger
+                  key={view.value}
+                  value={view.value}
+                  className="data-[state=active]:border-primary rounded-none border-b-2 border-transparent px-3 capitalize data-[state=active]:bg-transparent"
+                >
+                  {view.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           <div className="flex items-center gap-3">
             {/* User Management Button - Shows in all views */}
-            <Link href="/dashboard/manage-users">
-              <button className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors">
+            <Button asChild size="sm">
+              <Link href="/dashboard/manage-users">
                 <UserPlus className="h-4 w-4" /> Manage Users
-              </button>
-            </Link>
+              </Link>
+            </Button>
 
             {/* Course Management Button - Shows in courses view or always */}
-            <Link href="/dashboard/manage-courses">
-              <button className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors">
+            <Button asChild size="sm">
+              <Link href="/dashboard/manage-courses">
                 <BookOpen className="h-4 w-4" /> Manage Courses
-              </button>
-            </Link>
+              </Link>
+            </Button>
 
             {selectedView === "courses" && (
-              <button
+              <Button
                 onClick={syncCoursesFromWPI}
                 disabled={isSyncing}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition-colors disabled:opacity-50"
+                size="sm"
               >
                 <Database
                   className={`h-4 w-4 ${isSyncing ? "animate-pulse" : ""}`}
                 />
                 {isSyncing ? "Syncing..." : "Sync from WPI"}
-              </button>
+              </Button>
             )}
           </div>
         </div>
 
         {selectedView === "overview" && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="bg-card border-border rounded-lg border p-6 shadow">
+            <Card className="px-6">
               <h2 className="text-foreground mb-4 text-xl font-semibold">
                 Staff by Role
               </h2>
@@ -660,25 +665,18 @@ export default function DashboardContent() {
                         <span className="text-muted-foreground text-sm">
                           {submitted}/{total} submitted
                         </span>
-                        <div className="bg-muted h-2 w-32 rounded-full">
-                          <div
-                            className="bg-primary h-2 rounded-full"
-                            style={{
-                              width:
-                                total > 0
-                                  ? `${(submitted / total) * 100}%`
-                                  : "0%",
-                            }}
-                          />
-                        </div>
+                        <Progress
+                          value={total > 0 ? (submitted / total) * 100 : 0}
+                          className="h-2 w-32"
+                        />
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </Card>
 
-            <div className="bg-card border-border rounded-lg border p-6 shadow">
+            <Card className="px-6">
               <h2 className="text-foreground mb-4 text-xl font-semibold">
                 Course Staffing Status
               </h2>
@@ -699,126 +697,126 @@ export default function DashboardContent() {
                           <span className="text-foreground flex items-center gap-1 text-sm font-medium">
                             {course.courseCode}
                             {course.isGradSemesterCourse && (
-                              <span className="text-xs text-blue-600">
+                              <span className="text-primary text-xs">
                                 ({course.spansTerms})
                               </span>
                             )}
                           </span>
                           <span
-                            className={`text-sm ${isUnderstaffed ? "text-orange-500" : "text-green-500"}`}
+                            className={`text-sm ${isUnderstaffed ? "text-warning" : "text-success"}`}
                           >
                             {course.assignedStaff}/{course.requiredHours}h
                           </span>
                         </div>
-                        <div className="bg-muted h-1.5 w-full rounded-full">
-                          <div
-                            className={`h-1.5 rounded-full ${isUnderstaffed ? "bg-orange-500" : "bg-green-500"}`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
-                          />
-                        </div>
+                        <Progress
+                          value={Math.min(percentage, 100)}
+                          className={`h-1.5 ${isUnderstaffed ? "bg-warning/20" : "bg-success/20"}`}
+                        />
                       </div>
                     );
                   })}
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
         {selectedView === "pending" && (
           <div className="space-y-6">
-            <div className="bg-card border-border rounded-lg border shadow">
-              <div className="border-border border-b p-6">
+            <Card className="px-6">
+              <div className="border-border border-b pb-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-foreground text-xl font-semibold">
                     Pending Staff Submissions ({pendingStaff.length})
                   </h2>
                   {pendingStaff.length > 0 && (
-                    <button
+                    <Button
                       onClick={() => copyEmailsToClipboard(pendingStaff)}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 transition-colors"
+                      size="sm"
                     >
                       <Mail className="h-4 w-4" /> Copy Emails
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
-              <div className="p-6">
-                {pendingStaff.length === 0 ? (
-                  <p className="text-muted-foreground py-8 text-center">
-                    All staff have submitted their preferences! 🎉
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {pendingStaff.map((person) => (
-                      <div
-                        key={person.id}
-                        className="bg-muted flex items-center justify-between rounded-lg p-3"
-                      >
-                        <div>
-                          <p className="text-foreground font-medium">
-                            {person.name}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {person.email} • {person.role}
-                          </p>
-                        </div>
-                        <XCircle className="h-5 w-5 text-red-500" />
+              {pendingStaff.length === 0 ? (
+                <p className="text-muted-foreground py-8 text-center">
+                  All staff have submitted their preferences! 🎉
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {pendingStaff.map((person) => (
+                    <div
+                      key={person.id}
+                      className="bg-muted flex items-center justify-between rounded-lg p-3"
+                    >
+                      <div>
+                        <p className="text-foreground font-medium">
+                          {person.name}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {person.email} • {person.role}
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                      <Badge variant="destructive">
+                        <XCircle className="h-4 w-4" />
+                        Pending
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
 
-            <div className="bg-card border-border rounded-lg border shadow">
-              <div className="border-border border-b p-6">
+            <Card className="px-6">
+              <div className="border-border border-b pb-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-foreground text-xl font-semibold">
                     Pending Professor Submissions ({pendingProfessors.length})
                   </h2>
                   {pendingProfessors.length > 0 && (
-                    <button
+                    <Button
                       onClick={() => copyEmailsToClipboard(pendingProfessors)}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-lg px-4 py-2 transition-colors"
+                      size="sm"
                     >
                       <Mail className="h-4 w-4" /> Copy Emails
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
-              <div className="p-6">
-                {pendingProfessors.length === 0 ? (
-                  <p className="text-muted-foreground py-8 text-center">
-                    All professors have submitted their preferences! 🎉
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {pendingProfessors.map((person) => (
-                      <div
-                        key={person.id}
-                        className="bg-muted flex items-center justify-between rounded-lg p-3"
-                      >
-                        <div>
-                          <p className="text-foreground font-medium">
-                            {person.name}
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {person.email} • {person.courseCount} courses
-                          </p>
-                        </div>
-                        <XCircle className="h-5 w-5 text-red-500" />
+              {pendingProfessors.length === 0 ? (
+                <p className="text-muted-foreground py-8 text-center">
+                  All professors have submitted their preferences! 🎉
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {pendingProfessors.map((person) => (
+                    <div
+                      key={person.id}
+                      className="bg-muted flex items-center justify-between rounded-lg p-3"
+                    >
+                      <div>
+                        <p className="text-foreground font-medium">
+                          {person.name}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {person.email} • {person.courseCount} courses
+                        </p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                      <Badge variant="destructive">
+                        <XCircle className="h-4 w-4" />
+                        Pending
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
         {selectedView === "courses" && (
-          <div className="bg-card border-border rounded-lg border shadow">
-            <div className="border-border border-b p-6">
+          <Card className="px-6">
+            <div className="border-border border-b pb-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-foreground text-xl font-semibold">
@@ -828,7 +826,7 @@ export default function DashboardContent() {
                     {courses.filter((c) => !c.isDisplayOnly).length} CS courses
                     in database
                     {courses.filter((c) => c.isDisplayOnly).length > 0 && (
-                      <span className="ml-2 text-gray-500">
+                      <span className="text-muted-foreground ml-2">
                         (+{courses.filter((c) => c.isDisplayOnly).length}{" "}
                         display-only)
                       </span>
@@ -873,8 +871,8 @@ export default function DashboardContent() {
                         className={`hover:bg-muted/50 transition-colors ${
                           course.isGradSemesterCourse
                             ? course.isDisplayOnly
-                              ? "bg-gray-50"
-                              : "bg-blue-50"
+                              ? "bg-muted/30"
+                              : "bg-primary/10"
                             : ""
                         }`}
                       >
@@ -886,22 +884,22 @@ export default function DashboardContent() {
                               </div>
                               {course.isGradSemesterCourse &&
                                 !course.isDisplayOnly && (
-                                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                  <Badge variant="default">
                                     <Calendar className="mr-1 h-3 w-3" />
                                     Semester ({course.spansTerms})
-                                  </span>
+                                  </Badge>
                                 )}
                               {course.isDisplayOnly && (
-                                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
+                                <Badge variant="outline">
                                   <Eye className="mr-1 h-3 w-3" />
                                   Display Only
-                                </span>
+                                </Badge>
                               )}
                             </div>
                             <div className="text-muted-foreground mt-1 text-sm">
                               {course.courseTitle}
                               {course.isDisplayOnly && (
-                                <span className="ml-2 text-xs text-gray-500">
+                                <span className="text-muted-foreground ml-2 text-xs">
                                   (Assigned in{" "}
                                   {course.spansTerms === "A+B" ? "A" : "C"}{" "}
                                   Term)
@@ -922,32 +920,32 @@ export default function DashboardContent() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {course.isDisplayOnly ? (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-muted-foreground">—</span>
                           ) : (
-                            `${course.requiredHours}h`
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {course.isDisplayOnly ? (
-                            <span className="text-gray-400">—</span>
-                          ) : (
-                            `${course.assignedStaff}h`
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {course.isDisplayOnly ? (
-                            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                              Display Only
+                            <span className="text-foreground">
+                              {course.requiredHours}h
                             </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {course.isDisplayOnly ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <span className="text-foreground">
+                              {course.assignedStaff}h
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {course.isDisplayOnly ? (
+                            <Badge variant="outline">Display Only</Badge>
                           ) : course.assignedStaff >= course.requiredHours ? (
-                            <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-                              Fully Staffed
-                            </span>
+                            <Badge variant="success">Fully Staffed</Badge>
                           ) : (
-                            <span className="rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                            <Badge variant="warning">
                               Need {course.requiredHours - course.assignedStaff}
                               h More
-                            </span>
+                            </Badge>
                           )}
                         </td>
                       </tr>
@@ -956,7 +954,7 @@ export default function DashboardContent() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         )}
       </div>
     </div>

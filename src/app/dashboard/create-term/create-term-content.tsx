@@ -6,6 +6,26 @@ import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
 import type { AcademicLevel } from "@prisma/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Types - only CSV parsing has no Prisma equivalent
 interface CSVRow {
@@ -382,15 +402,15 @@ export default function CreateTermContent() {
                     step === currentStep
                       ? "bg-primary text-white"
                       : step < currentStep
-                        ? "bg-green-500 text-white"
-                        : "bg-gray-200"
+                        ? "bg-success text-white"
+                        : "bg-muted"
                   }`}
                 >
                   {step < currentStep ? "✓" : step}
                 </div>
                 {step < 4 && (
                   <div
-                    className={`h-1 w-12 ${step < currentStep ? "bg-green-500" : "bg-gray-200"}`}
+                    className={`h-1 w-12 ${step < currentStep ? "bg-success" : "bg-muted"}`}
                   />
                 )}
               </div>
@@ -400,52 +420,56 @@ export default function CreateTermContent() {
 
         {/* Step 1: Basic Info */}
         {currentStep === 1 && (
-          <div className="bg-card border-border rounded-lg border p-6">
+          <Card className="px-6">
             <h2 className="text-foreground mb-4 text-xl font-semibold">
               Term Information
             </h2>
 
-            <div className="mb-4 rounded border border-blue-200 bg-blue-50 p-3">
-              <p className="text-sm font-medium text-blue-900">
+            <Alert className="border-primary/30 bg-primary/10 text-primary mb-4">
+              <AlertTitle className="text-primary text-sm font-medium">
                 Term Name:{" "}
                 <span className="font-bold">
                   {getTermName(newTermData.termLetter, newTermData.year)}
                 </span>
-              </p>
-              <p className="mt-1 text-xs text-blue-700">
+              </AlertTitle>
+              <AlertDescription className="text-primary/70 text-xs">
                 (Auto-generated from term letter and year)
-              </p>
-            </div>
+              </AlertDescription>
+            </Alert>
 
             <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="text-muted-foreground mb-2 block text-sm">
+                <Label className="text-muted-foreground mb-2 block text-sm">
                   Term Letter
-                </label>
-                <select
+                </Label>
+                <Select
                   value={newTermData.termLetter}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setNewTermData(
                       (prev) =>
                         ({
                           ...prev,
-                          termLetter: e.target.value as "A" | "B" | "C" | "D",
+                          termLetter: value as "A" | "B" | "C" | "D",
                         }) as typeof newTermData,
                     )
                   }
-                  className="w-full rounded border px-3 py-2"
                 >
-                  <option value="A">A (Fall)</option>
-                  <option value="B">B</option>
-                  <option value="C">C (Spring)</option>
-                  <option value="D">D</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">A (Fall)</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C">C (Spring)</SelectItem>
+                    <SelectItem value="D">D</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <label className="text-muted-foreground mb-2 block text-sm">
+              <div className="max-w-xs">
+                <Label className="text-muted-foreground mb-2 block text-sm">
                   Year
-                </label>
-                <input
+                </Label>
+                <Input
                   type="number"
                   value={newTermData.year}
                   onChange={(e) =>
@@ -454,17 +478,16 @@ export default function CreateTermContent() {
                       year: parseInt(e.target.value),
                     }))
                   }
-                  className="w-full rounded border px-3 py-2"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-muted-foreground mb-2 block text-sm">
+              <div className="max-w-xs">
+                <Label className="text-muted-foreground mb-2 block text-sm">
                   Staff Preferences Due Date
-                </label>
-                <input
+                </Label>
+                <Input
                   type="datetime-local"
                   value={newTermData.staffDueDate}
                   onChange={(e) =>
@@ -473,14 +496,13 @@ export default function CreateTermContent() {
                       staffDueDate: e.target.value,
                     }))
                   }
-                  className="w-full rounded border px-3 py-2"
                 />
               </div>
-              <div>
-                <label className="text-muted-foreground mb-2 block text-sm">
+              <div className="max-w-xs">
+                <Label className="text-muted-foreground mb-2 block text-sm">
                   Professor Preferences Due Date
-                </label>
-                <input
+                </Label>
+                <Input
                   type="datetime-local"
                   value={newTermData.professorDueDate}
                   onChange={(e) =>
@@ -489,31 +511,22 @@ export default function CreateTermContent() {
                       professorDueDate: e.target.value,
                     }))
                   }
-                  className="w-full rounded border px-3 py-2"
                 />
               </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => window.history.back()}
-                className="rounded border px-4 py-2"
-              >
+              <Button onClick={() => window.history.back()} variant="outline">
                 Cancel
-              </button>
-              <button
-                onClick={handleCreateTermStep1}
-                className="bg-primary rounded px-4 py-2 text-white"
-              >
-                Next: Upload CSV
-              </button>
+              </Button>
+              <Button onClick={handleCreateTermStep1}>Next: Upload CSV</Button>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Step 2: CSV Upload */}
         {currentStep === 2 && (
-          <div className="bg-card border-border rounded-lg border p-6">
+          <Card className="px-6">
             <h2 className="text-foreground mb-4 text-xl font-semibold">
               Upload Staff & Professor CSV
             </h2>
@@ -522,7 +535,7 @@ export default function CreateTermContent() {
               PROFESSOR)
             </p>
 
-            <input
+            <Input
               type="file"
               accept=".csv"
               onChange={handleCSVUpload}
@@ -535,24 +548,24 @@ export default function CreateTermContent() {
                   Uploaded Data Preview:
                 </h3>
                 <div className="max-h-60 overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr>
-                        <th className="border-b p-2 text-left">Name</th>
-                        <th className="border-b p-2 text-left">Email</th>
-                        <th className="border-b p-2 text-left">Role</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {csvData.slice(0, 10).map((row, index) => (
-                        <tr key={index}>
-                          <td className="border-b p-2">{row.name}</td>
-                          <td className="border-b p-2">{row.email}</td>
-                          <td className="border-b p-2">{row.role}</td>
-                        </tr>
+                        <TableRow key={index}>
+                          <TableCell>{row.name}</TableCell>
+                          <TableCell>{row.email}</TableCell>
+                          <TableCell>{row.role}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                   {csvData.length > 10 && (
                     <p className="text-muted-foreground mt-2 text-sm">
                       ... and {csvData.length - 10} more rows
@@ -563,13 +576,10 @@ export default function CreateTermContent() {
             )}
 
             <div className="mt-6 flex justify-between">
-              <button
-                onClick={() => setCurrentStep(1)}
-                className="rounded border px-4 py-2"
-              >
+              <Button onClick={() => setCurrentStep(1)} variant="outline">
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   if (csvData.length > 0) {
                     setCurrentStep(3);
@@ -578,17 +588,16 @@ export default function CreateTermContent() {
                     toast.error("Please upload a CSV file first");
                   }
                 }}
-                className="bg-primary rounded px-4 py-2 text-white"
               >
                 Next: Select Courses
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Step 3: Course Selection */}
         {currentStep === 3 && (
-          <div className="bg-card border-border rounded-lg border p-6">
+          <Card className="px-6">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-foreground text-xl font-semibold">
@@ -599,22 +608,19 @@ export default function CreateTermContent() {
                   shouldn&apos;t be included.
                 </p>
               </div>
-              <button
-                onClick={() => setIsAddingCourse(true)}
-                className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded px-4 py-2 text-white"
-              >
+              <Button onClick={() => setIsAddingCourse(true)} size="sm">
                 <Plus className="h-4 w-4" /> Add Course
-              </button>
+              </Button>
             </div>
 
             {/* Add Course Form */}
             {isAddingCourse && (
-              <div className="mb-4 rounded-lg border bg-gray-50 p-4">
+              <div className="bg-muted/30 mb-4 rounded-lg border p-4">
                 <h3 className="mb-3 font-semibold">Add New Course</h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div>
                     <label className="mb-1 block text-sm">Course Code *</label>
-                    <input
+                    <Input
                       type="text"
                       placeholder="e.g., CS 2102"
                       value={newCourse.courseCode}
@@ -624,12 +630,11 @@ export default function CreateTermContent() {
                           courseCode: e.target.value,
                         }))
                       }
-                      className="w-full rounded border px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
                     <label className="mb-1 block text-sm">Course Title *</label>
-                    <input
+                    <Input
                       type="text"
                       placeholder="e.g., Object-Oriented Design"
                       value={newCourse.courseTitle}
@@ -639,14 +644,13 @@ export default function CreateTermContent() {
                           courseTitle: e.target.value,
                         }))
                       }
-                      className="w-full rounded border px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
                     <label className="mb-1 block text-sm">
                       Professor Name *
                     </label>
-                    <input
+                    <Input
                       type="text"
                       placeholder="e.g., Roman Anthony"
                       value={newCourse.professorName}
@@ -656,19 +660,17 @@ export default function CreateTermContent() {
                           professorName: e.target.value,
                         }))
                       }
-                      className="w-full rounded border px-3 py-2 text-sm"
                     />
                   </div>
                   <div>
                     <label className="mb-1 block text-sm">Enrollment *</label>
-                    <input
+                    <Input
                       type="number"
                       value={newCourse.enrollment}
                       onChange={(e) => {
                         const enrollment = parseInt(e.target.value) ?? 0;
                         setNewCourse((prev) => ({ ...prev, enrollment }));
                       }}
-                      className="w-full rounded border px-3 py-2 text-sm"
                     />
                     {newCourse.enrollment > 0 && (
                       <p className="text-muted-foreground mt-1 text-xs">
@@ -679,7 +681,7 @@ export default function CreateTermContent() {
                   </div>
                   <div>
                     <label className="mb-1 block text-sm">Capacity</label>
-                    <input
+                    <Input
                       type="number"
                       value={newCourse.capacity}
                       onChange={(e) =>
@@ -688,12 +690,11 @@ export default function CreateTermContent() {
                           capacity: parseInt(e.target.value) ?? 0,
                         }))
                       }
-                      className="w-full rounded border px-3 py-2 text-sm"
                     />
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end gap-2">
-                  <button
+                  <Button
                     onClick={() => {
                       setIsAddingCourse(false);
                       setNewCourse({
@@ -708,16 +709,14 @@ export default function CreateTermContent() {
                         meetingPattern: "",
                       });
                     }}
-                    className="rounded border px-3 py-1.5 text-sm"
+                    variant="outline"
+                    size="sm"
                   >
                     Cancel
-                  </button>
-                  <button
-                    onClick={handleAddCourseToTerm}
-                    className="bg-primary hover:bg-primary/90 rounded px-3 py-1.5 text-sm text-white"
-                  >
+                  </Button>
+                  <Button onClick={handleAddCourseToTerm} size="sm">
                     Add Course
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -733,7 +732,7 @@ export default function CreateTermContent() {
                 termCoursesToInclude.map((course) => (
                   <div
                     key={course.id}
-                    className="flex items-center justify-between border-b p-3 hover:bg-gray-50"
+                    className="hover:bg-muted/30 flex items-center justify-between border-b p-3"
                   >
                     {editingTermCourseId === course.id ? (
                       <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
@@ -741,7 +740,7 @@ export default function CreateTermContent() {
                           <label className="mb-1 block text-xs">
                             Course Code *
                           </label>
-                          <input
+                          <Input
                             type="text"
                             value={editingTermCourseData?.courseCode ?? ""}
                             onChange={(e) =>
@@ -751,14 +750,13 @@ export default function CreateTermContent() {
                                   : null,
                               )
                             }
-                            className="w-full rounded border px-2 py-1 text-sm"
                           />
                         </div>
                         <div>
                           <label className="mb-1 block text-xs">
                             Course Title *
                           </label>
-                          <input
+                          <Input
                             type="text"
                             value={editingTermCourseData?.courseTitle ?? ""}
                             onChange={(e) =>
@@ -768,14 +766,13 @@ export default function CreateTermContent() {
                                   : null,
                               )
                             }
-                            className="w-full rounded border px-2 py-1 text-sm"
                           />
                         </div>
                         <div>
                           <label className="mb-1 block text-xs">
                             Professor *
                           </label>
-                          <input
+                          <Input
                             type="text"
                             value={editingTermCourseData?.professorName ?? ""}
                             onChange={(e) =>
@@ -785,14 +782,13 @@ export default function CreateTermContent() {
                                   : null,
                               )
                             }
-                            className="w-full rounded border px-2 py-1 text-sm"
                           />
                         </div>
                         <div>
                           <label className="mb-1 block text-xs">
                             Enrollment
                           </label>
-                          <input
+                          <Input
                             type="number"
                             value={editingTermCourseData?.enrollment ?? 0}
                             onChange={(e) =>
@@ -805,12 +801,11 @@ export default function CreateTermContent() {
                                   : null,
                               )
                             }
-                            className="w-full rounded border px-2 py-1 text-sm"
                           />
                         </div>
                         <div>
                           <label className="mb-1 block text-xs">Capacity</label>
-                          <input
+                          <Input
                             type="number"
                             value={editingTermCourseData?.capacity ?? 0}
                             onChange={(e) =>
@@ -823,7 +818,6 @@ export default function CreateTermContent() {
                                   : null,
                               )
                             }
-                            className="w-full rounded border px-2 py-1 text-sm"
                           />
                         </div>
                       </div>
@@ -844,14 +838,14 @@ export default function CreateTermContent() {
                         <>
                           <button
                             onClick={saveEditTermCourse}
-                            className="p-2 text-green-600 hover:text-green-800"
+                            className="text-success hover:text-success/80 p-2"
                             title="Save changes"
                           >
                             <Save className="h-4 w-4" />
                           </button>
                           <button
                             onClick={cancelEditTermCourse}
-                            className="p-2 text-gray-500 hover:text-gray-700"
+                            className="text-muted-foreground hover:text-foreground p-2"
                             title="Cancel editing"
                           >
                             <X className="h-4 w-4" />
@@ -861,14 +855,14 @@ export default function CreateTermContent() {
                         <>
                           <button
                             onClick={() => startEditTermCourse(course)}
-                            className="p-2 text-blue-500 hover:text-blue-700"
+                            className="text-primary hover:text-primary/80 p-2"
                             title="Edit course"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => removeCourseFromTerm(course.id)}
-                            className="p-2 text-red-500 hover:text-red-700"
+                            className="text-destructive hover:text-destructive/80 p-2"
                             title="Remove course"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -889,26 +883,22 @@ export default function CreateTermContent() {
             </div>
 
             <div className="mt-6 flex justify-between">
-              <button
-                onClick={() => setCurrentStep(2)}
-                className="rounded border px-4 py-2"
-              >
+              <Button onClick={() => setCurrentStep(2)} variant="outline">
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setCurrentStep(4)}
                 disabled={termCoursesToInclude.length === 0}
-                className="bg-primary rounded px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next: Review & Create
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Step 4: Review & Create */}
         {currentStep === 4 && (
-          <div className="bg-card border-border rounded-lg border p-6">
+          <Card>
             <h2 className="text-foreground mb-4 text-xl font-semibold">
               Review Term Setup
             </h2>
@@ -957,21 +947,14 @@ export default function CreateTermContent() {
             </div>
 
             <div className="mt-6 flex justify-between">
-              <button
-                onClick={() => setCurrentStep(3)}
-                className="rounded border px-4 py-2"
-              >
+              <Button onClick={() => setCurrentStep(3)} variant="outline">
                 Back
-              </button>
-              <button
-                onClick={createTermInDatabase}
-                disabled={creatingTerm}
-                className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
-              >
+              </Button>
+              <Button onClick={createTermInDatabase} disabled={creatingTerm}>
                 {creatingTerm ? "Creating..." : "Create Term"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         )}
       </div>
     </div>
