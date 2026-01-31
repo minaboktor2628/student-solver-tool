@@ -306,6 +306,7 @@ export const courseRoute = createTRPCRouter({
 
           const termData = await ctx.db.term.findFirst({
             where: {
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
               termLetter: termLetter as TermLetter,
               year: parseInt(termYear),
             },
