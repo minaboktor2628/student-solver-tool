@@ -305,11 +305,6 @@ export const courseRoute = createTRPCRouter({
             continue;
           }
 
-          const validTermLetters = ["A", "B", "C", "D"] as const;
-          if (!validTermLetters.includes(termLetter as never)) {
-            continue;
-          }
-
           const termData = await ctx.db.term.findFirst({
             where: {
               termLetter: termLetter as TermLetter,
