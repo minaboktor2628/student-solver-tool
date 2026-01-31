@@ -22,7 +22,7 @@ describe("route protection via middleware + NextAuth", () => {
     cy.loginAs("testcoordinator");
     cy.request("/dashboard").its("status").should("eq", 200);
     cy.visit("/dashboard");
-    cy.contains("maybe some graphs").should("exist");
+    cy.contains("STS Coordinator Dashboard").should("exist");
   });
 
   it("nav only shows allowed links for TA", () => {
