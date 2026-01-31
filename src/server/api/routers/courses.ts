@@ -297,11 +297,16 @@ export const courseRoute = createTRPCRouter({
         let finalTermId = termId;
         if (!finalTermId && selectedTerm) {
           const termParts = (selectedTerm as string).split(" ");
-          const termLetter = termParts[0] ?? "";
+          const termLetter = termParts[0];
           const termYear = termParts[1] ?? "";
+
+          if (!termLetter) {
+            continue;
+          }
+
           const termData = await ctx.db.term.findFirst({
             where: {
-              termLetter: termLetter as unknown as TermLetter,
+              termLetter: termLetter as TermLetter,
               year: parseInt(termYear),
             },
           });
