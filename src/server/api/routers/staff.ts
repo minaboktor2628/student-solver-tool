@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { Role } from "@prisma/client";
+import { type Role } from "@prisma/client";
 
 export const staffRoute = createTRPCRouter({
   getStaffForSection: coordinatorProcedure

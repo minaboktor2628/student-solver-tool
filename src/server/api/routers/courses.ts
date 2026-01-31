@@ -3,7 +3,7 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { syncCourses as syncCoursesUtil } from "@/lib/sync-courses";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
-import { TermLetter, AcademicLevel } from "@prisma/client";
+import { type TermLetter, AcademicLevel } from "@prisma/client";
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
@@ -296,7 +296,7 @@ export const courseRoute = createTRPCRouter({
         // Determine which term to use
         let finalTermId = termId;
         if (!finalTermId && selectedTerm) {
-          const termParts = (selectedTerm as string).split(" ");
+          const termParts = selectedTerm.split(" ");
           const termLetter = termParts[0]!;
           const termYear = termParts[1] ?? "";
           const termData = await ctx.db.term.findFirst({
