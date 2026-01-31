@@ -58,8 +58,14 @@ export async function getSolverData(ctx: CtxType, termId: string) {
     ctx.db.staffPreference.findMany({
       where: {
         termId,
-        // Only return users who are NOT locked to a section already this term
         user: {
+          // ignore staff who said they are not available this term/semester
+          staffPreferences: {
+            none: {
+              isAvailableForTerm: false,
+            },
+          },
+          // Only return users who are NOT locked to a section already this term
           sectionAssignments: {
             none: {
               locked: true,
