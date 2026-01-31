@@ -183,7 +183,7 @@ export default function ManageUsersContent() {
             name: user.name ?? null,
             email: user.email ?? null,
             hours: user.hours ?? null,
-            roles: (user.roles as Role[]) ?? [],
+            roles: user.roles! ?? [],
           }),
         );
         setUsers(mappedUsers);
