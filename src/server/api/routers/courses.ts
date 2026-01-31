@@ -3,7 +3,8 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { syncCourses as syncCoursesUtil } from "@/lib/sync-courses";
 import { calculateRequiredHours } from "@/lib/utils";
-import { TermLetter, AcademicLevel } from "@prisma/client";
+import type { TermLetter } from "@prisma/client";
+import { AcademicLevel } from "@prisma/client";
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
@@ -304,9 +305,13 @@ export const courseRoute = createTRPCRouter({
             continue;
           }
 
+          const validTermLetters = ["A", "B", "C", "D"] as const;
+          if (!validTermLetters.includes(termLetter as never)) {
+            continue;
+          }
+
           const termData = await ctx.db.term.findFirst({
             where: {
-              // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
               termLetter: termLetter as TermLetter,
               year: parseInt(termYear),
             },
@@ -348,8 +353,7 @@ export const courseRoute = createTRPCRouter({
             enrollment: typeof enrollment === "number" ? enrollment : 0,
             capacity: typeof capacity === "number" ? capacity : 0,
             requiredHours: calculatedHours,
-            academicLevel:
-              (academicLevel as AcademicLevel) ?? AcademicLevel.UNDERGRADUATE,
+            academicLevel: (academicLevel as AcademicLevel) ?? "UNDERGRADUATE",
             courseSection: courseSection ?? "01",
             meetingPattern: meetingPattern ?? "TBD",
           },
