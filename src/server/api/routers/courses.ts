@@ -2,7 +2,7 @@ import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { syncCourses as syncCoursesUtil } from "@/lib/sync-courses";
-import { calculateRequiredHours } from "@/lib/utils";
+import { calculateRequiredAssistantHours } from "@/lib/utils";
 import { TermLetter, AcademicLevel } from "@prisma/client";
 
 export const courseRoute = createTRPCRouter({
@@ -388,7 +388,7 @@ export const courseRoute = createTRPCRouter({
           });
         }
 
-        const calculatedHours = calculateRequiredHours(
+        const calculatedHours = calculateRequiredAssistantHours(
           typeof enrollment === "number" ? enrollment : 0,
         );
 

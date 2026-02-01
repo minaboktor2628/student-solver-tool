@@ -15,8 +15,6 @@ import {
   Trash2,
   Calendar,
   Eye,
-  UserPlus,
-  BookOpen,
 } from "lucide-react";
 import { api } from "@/trpc/react";
 import type { Section, User, Term, TermLetter } from "@prisma/client";
@@ -591,20 +589,6 @@ export default function DashboardContent() {
           </Tabs>
 
           <div className="flex items-center gap-3">
-            {/* User Management Button - Shows in all views */}
-            <Button asChild size="sm">
-              <Link href="/dashboard/manage-users">
-                <UserPlus className="h-4 w-4" /> Manage Users
-              </Link>
-            </Button>
-
-            {/* Course Management Button - Shows in courses view or always */}
-            <Button asChild size="sm">
-              <Link href="/dashboard/manage-courses">
-                <BookOpen className="h-4 w-4" /> Manage Courses
-              </Link>
-            </Button>
-
             {selectedView === "courses" && (
               <Button
                 onClick={syncCoursesFromWPI}

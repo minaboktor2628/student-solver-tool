@@ -16,13 +16,6 @@ export function calculateRequiredAssistantHours(
   return blocks * 10;
 }
 
-export function calculateRequiredHours(enrollment: number): number {
-  const roundedUp = Math.ceil(enrollment / 5) * 5;
-  const divided = roundedUp / 2;
-  const requiredHours = Math.floor(divided / 10) * 10;
-  return requiredHours;
-}
-
 export const isExcelName = (name: string) => /\.xlsx?$/i.test(name);
 export const isExcelType = (type: string) =>
   type ===

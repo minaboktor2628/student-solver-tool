@@ -6,7 +6,7 @@ import {
   coordinatorProcedure,
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { calculateRequiredHours } from "@/lib/utils";
+import { calculateRequiredAssistantHours } from "@/lib/utils";
 import { TermLetter } from "@prisma/client";
 
 export const termRoute = createTRPCRouter({
@@ -204,7 +204,9 @@ export const termRoute = createTRPCRouter({
           }
 
           // Calculate required hours based on enrollment
-          const calculatedHours = calculateRequiredHours(enrollment ?? 0);
+          const calculatedHours = calculateRequiredAssistantHours(
+            enrollment ?? 0,
+          );
 
           // Create the section
           await ctx.db.section.create({
