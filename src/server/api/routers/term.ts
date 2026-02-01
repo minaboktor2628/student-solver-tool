@@ -76,6 +76,7 @@ export const termRoute = createTRPCRouter({
           )
           .optional(),
         courses: z.array(z.any()).optional(),
+        overwrite: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -86,6 +87,7 @@ export const termRoute = createTRPCRouter({
         professorDueDate,
         csvData,
         courses,
+        overwrite,
       } = input;
 
       // Validate required fields
@@ -93,6 +95,31 @@ export const termRoute = createTRPCRouter({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Missing required fields",
+        });
+      }
+
+      // Check if term already exists
+      const existingTerm = await ctx.db.term.findFirst({
+        where: {
+          termLetter,
+          year: parseInt(year.toString()),
+        },
+      });
+
+      if (existingTerm && !overwrite) {
+        // Return response indicating term exists instead of throwing error
+        return {
+          success: false,
+          exists: true,
+          message: `A term for ${termLetter} ${year} already exists. Choose to overwrite it or try a different term.`,
+          termId: null,
+        };
+      }
+
+      // If overwrite is true and term exists, delete the old one first
+      if (existingTerm && overwrite) {
+        await ctx.db.term.delete({
+          where: { id: existingTerm.id },
         });
       }
 
@@ -119,10 +146,11 @@ export const termRoute = createTRPCRouter({
         }
       }
 
-      // Create sections
+      // Update selected courses with this term
       if (courses && Array.isArray(courses) && courses.length > 0) {
         for (const course of courses) {
           const {
+            id,
             professorName,
             courseTitle,
             courseCode,
@@ -132,6 +160,7 @@ export const termRoute = createTRPCRouter({
             courseSection,
             meetingPattern,
           } = course as {
+            id?: string;
             professorName?: string;
             courseTitle?: string;
             courseCode?: string;
@@ -142,6 +171,24 @@ export const termRoute = createTRPCRouter({
             meetingPattern?: string;
           };
 
+          // If course has an id and we're NOT overwriting, try to update its termId
+          // If we ARE overwriting, always create new sections (old ones were deleted)
+          if (id && !overwrite) {
+            // Check if the section still exists before trying to update
+            const sectionExists = await ctx.db.section.findUnique({
+              where: { id },
+            });
+
+            if (sectionExists) {
+              await ctx.db.section.update({
+                where: { id },
+                data: { termId: term.id },
+              });
+              continue;
+            }
+          }
+
+          // Create a new section (either no id, overwriting, or section was deleted)
           // Find or create the professor user
           const professorUser = await ctx.db.user.findFirst({
             where: {

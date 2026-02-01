@@ -2,15 +2,28 @@
 
 import { useState } from "react";
 import { api } from "@/trpc/react";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/server/api/root";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
-import type { AcademicLevel } from "@prisma/client";
+import type { Section } from "@prisma/client";
 import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -27,42 +40,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Types - only CSV parsing has no Prisma equivalent
 interface CSVRow {
   email: string;
   name: string;
   role: string;
 }
 
-// Course type for UI display and editing - flexible to handle API responses and manual entries
-type Course = {
-  id: string;
-  courseCode: string;
-  courseTitle: string;
-  professorName: string;
-  enrollment: number;
-  capacity: number;
-  requiredHours: number;
-  description: string;
+type Course = Pick<
+  Section,
+  | "id"
+  | "courseCode"
+  | "courseTitle"
+  | "enrollment"
+  | "capacity"
+  | "requiredHours"
+  | "description"
+> & {
   courseSection?: string;
   meetingPattern?: string;
-  academicLevel?: AcademicLevel;
+  academicLevel?: string;
   termId?: string;
+  professorName: string;
 };
 
-// Form input for new courses - minimal required fields for creation
-type NewCourse = {
-  courseCode: string;
-  courseTitle: string;
-  professorName: string;
-  enrollment: number;
-  capacity: number;
-  requiredHours: number;
-  description: string;
-  courseSection?: string;
-  meetingPattern?: string;
-  academicLevel?: AcademicLevel;
-};
+type NewCourse = Omit<Course, "id">;
 
 function getTermName(letter: string, year: number): string {
   switch (letter) {
@@ -168,12 +169,12 @@ export default function CreateTermContent() {
   );
   const [editingTermCourseData, setEditingTermCourseData] =
     useState<Course | null>(null);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
 
   // tRPC mutations
   const createTermMutation = api.term.createTerm.useMutation();
-  const getAllCoursesQuery = api.courses.getAllCourses.useQuery(undefined, {
-    enabled: false,
-  });
+  const syncCoursesForTermMutation =
+    api.courses.syncCoursesForTerm.useMutation();
 
   // Step 1: Validate term info
   const handleCreateTermStep1 = () => {
@@ -209,17 +210,20 @@ export default function CreateTermContent() {
     reader.readAsText(file);
   };
 
-  // Step 3: Fetch all courses from database
+  // Step 3: Sync and fetch courses for this specific term
   const handleFetchCourses = async () => {
     try {
-      const { data } = await getAllCoursesQuery.refetch();
+      const response = await syncCoursesForTermMutation.mutateAsync({
+        termLetter: newTermData.termLetter,
+        year: newTermData.year,
+      });
 
-      if (!data?.success) {
-        toast.error("Failed to fetch courses from database");
+      if (!response?.success) {
+        toast.error("Failed to sync courses from WPI");
         return;
       }
 
-      const allCourses = (data.courses ?? []).map((course: unknown) => {
+      const allCourses = (response.courses ?? []).map((course: unknown) => {
         const c = course as {
           id: string;
           courseCode: string;
@@ -228,7 +232,10 @@ export default function CreateTermContent() {
           enrollment: number;
           capacity: number;
           requiredHours: number;
-          academicLevel?: AcademicLevel;
+          academicLevel?: string;
+          description?: string;
+          courseSection?: string;
+          meetingPattern?: string;
         };
         return {
           id: c.id,
@@ -238,20 +245,26 @@ export default function CreateTermContent() {
           enrollment: c.enrollment,
           capacity: c.capacity,
           requiredHours: c.requiredHours,
-          description: "",
+          description: c.description ?? "",
           academicLevel: c.academicLevel,
+          courseSection: c.courseSection,
+          meetingPattern: c.meetingPattern,
         } as Course;
       });
 
       setTermCoursesToInclude(allCourses);
 
       if (allCourses.length === 0) {
-        toast.error("No courses available. Please sync courses first.");
+        toast.success(
+          "Sync completed! No courses found for this term. You can add them manually.",
+        );
       } else {
-        toast.success(`Loaded ${allCourses.length} courses`);
+        toast.success(
+          `Synced ${allCourses.length} courses from WPI. Review and remove any that don't belong.`,
+        );
       }
     } catch (err) {
-      console.error("Error loading courses:", err);
+      console.error("Error syncing courses:", err);
       toast.error("Failed to load courses from database");
     }
   };
@@ -350,7 +363,7 @@ export default function CreateTermContent() {
   };
 
   // Step 4: Create term in database
-  const createTermInDatabase = async () => {
+  const createTermInDatabase = async (overwrite = false) => {
     setCreatingTerm(true);
 
     try {
@@ -364,6 +377,7 @@ export default function CreateTermContent() {
           role: "PLA" | "GLA" | "TA" | "COORDINATOR" | "PROFESSOR";
         }>,
         courses: termCoursesToInclude,
+        overwrite,
       });
 
       if (response.success) {
@@ -378,10 +392,17 @@ export default function CreateTermContent() {
         });
         setCsvData([]);
         setTermCoursesToInclude([]);
+        setShowOverwriteDialog(false);
+      } else if (response.exists) {
+        // Term already exists - show dialog asking to overwrite
+        setShowOverwriteDialog(true);
+      } else {
+        toast.error("Failed to create term");
       }
     } catch (err: unknown) {
       console.error("Error creating term:", err);
       toast.error(err instanceof Error ? err.message : "Failed to create term");
+      setShowOverwriteDialog(false);
     } finally {
       setCreatingTerm(false);
     }
@@ -601,15 +622,21 @@ export default function CreateTermContent() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-foreground text-xl font-semibold">
-                  Select Courses to Include
+                  Sync and Select Courses
                 </h2>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  All courses from database. Add new courses or remove any that
-                  shouldn&apos;t be included.
+                  We synced courses from WPI for you. Review the list below and
+                  remove any that don&apos;t belong. You can also add courses
+                  manually.
                 </p>
               </div>
-              <Button onClick={() => setIsAddingCourse(true)} size="sm">
-                <Plus className="h-4 w-4" /> Add Course
+              <Button
+                onClick={() => void handleFetchCourses()}
+                variant="outline"
+                size="sm"
+                disabled={syncCoursesForTermMutation.isPending}
+              >
+                🔄 Sync Again
               </Button>
             </div>
 
@@ -950,12 +977,40 @@ export default function CreateTermContent() {
               <Button onClick={() => setCurrentStep(3)} variant="outline">
                 Back
               </Button>
-              <Button onClick={createTermInDatabase} disabled={creatingTerm}>
+              <Button
+                onClick={() => void createTermInDatabase()}
+                disabled={creatingTerm}
+              >
                 {creatingTerm ? "Creating..." : "Create Term"}
               </Button>
             </div>
           </Card>
         )}
+
+        {/* Overwrite Confirmation Dialog */}
+        <AlertDialog
+          open={showOverwriteDialog}
+          onOpenChange={setShowOverwriteDialog}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Term Already Exists</AlertDialogTitle>
+              <AlertDialogDescription>
+                A term for {newTermData.termLetter} {newTermData.year} already
+                exists. Do you want to overwrite it and replace all its data?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => void createTermInDatabase(true)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Overwrite
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

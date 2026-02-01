@@ -294,6 +294,7 @@ export async function syncCourses() {
     console.log("\n=== FILTERING COURSES ===");
     let totalProcessed = 0;
     let filteredOutNotLecture = 0;
+    let filteredOutNotCS = 0;
     let filteredOutWaitlist = 0;
     let filteredOutNoTerm = 0;
 
@@ -312,6 +313,15 @@ export async function syncCourses() {
           rejectedSamples.push(
             `${course.Course_Section} (section type: ${sectionType})`,
           );
+        }
+        continue;
+      }
+
+      // Skip non-CS courses (filter for CS prefix only)
+      if (!course.Course_Section.startsWith("CS ")) {
+        filteredOutNotCS++;
+        if (rejectedSamples.length < 10) {
+          rejectedSamples.push(`${course.Course_Section} (not a CS course)`);
         }
         continue;
       }
@@ -357,6 +367,7 @@ export async function syncCourses() {
 
     console.log(`\nTotal WPI courses processed: ${totalProcessed}`);
     console.log(`Filtered out (not lecture): ${filteredOutNotLecture}`);
+    console.log(`Filtered out (not CS course): ${filteredOutNotCS}`);
     console.log(
       `Filtered out (waitlist/no instructor): ${filteredOutWaitlist}`,
     );

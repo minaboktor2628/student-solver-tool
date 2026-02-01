@@ -199,6 +199,58 @@ export const courseRoute = createTRPCRouter({
     };
   }),
 
+  getCoursesForTermCreation: coordinatorProcedure
+    .input(
+      z.object({
+        termLetter: z.enum(["A", "B", "C", "D"]),
+        year: z.number(),
+      }),
+    )
+    .query(async ({ input: { termLetter, year }, ctx }) => {
+      // Fetch all sections that either:
+      // 1. Already have this term assigned, OR
+      // 2. Have NO term assigned yet (unassigned courses from previous syncs)
+      const sections = await ctx.db.section.findMany({
+        where: {
+          OR: [
+            // Courses already assigned to this term
+            {
+              term: {
+                termLetter: termLetter as TermLetter,
+                year,
+              },
+            },
+            // Unassigned courses (no term) - use condition instead of null
+            {
+              term: null as never,
+            },
+          ],
+        },
+        include: {
+          professor: true,
+          term: true,
+        },
+      });
+
+      return {
+        success: true,
+        courses: sections.map((course) => ({
+          id: course.id,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          professorName: course.professor?.name ?? "Unknown Professor",
+          enrollment: course.enrollment,
+          capacity: course.capacity,
+          requiredHours: course.requiredHours,
+          description: course.description,
+          academicLevel: course.academicLevel,
+          courseSection: course.courseSection,
+          meetingPattern: course.meetingPattern,
+          termId: course.termId,
+        })),
+      };
+    }),
+
   getCourse: coordinatorProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input: { id }, ctx }) => {
@@ -420,4 +472,67 @@ export const courseRoute = createTRPCRouter({
       ...result,
     };
   }),
+
+  syncCoursesForTerm: coordinatorProcedure
+    .input(
+      z.object({
+        termLetter: z.enum(["A", "B", "C", "D"]),
+        year: z.number(),
+      }),
+    )
+    .mutation(async ({ input: { termLetter, year }, ctx }) => {
+      // Sync all courses from WPI
+      const result = await syncCoursesUtil();
+
+      // Find or create the term that matches what we're creating
+      const term = await ctx.db.term.findFirst({
+        where: {
+          termLetter: termLetter as TermLetter,
+          year,
+        },
+      });
+
+      // If term exists, fetch courses assigned to it
+      if (term) {
+        const courses = await ctx.db.section.findMany({
+          where: {
+            termId: term.id,
+          },
+          include: {
+            professor: true,
+            term: true,
+          },
+        });
+
+        const filteredCourses = courses.map((course) => ({
+          id: course.id,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          professorName: course.professor?.name ?? "Unknown Professor",
+          enrollment: course.enrollment,
+          capacity: course.capacity,
+          requiredHours: course.requiredHours,
+          description: course.description,
+          academicLevel: course.academicLevel,
+          courseSection: course.courseSection,
+          meetingPattern: course.meetingPattern,
+          termId: course.termId,
+        }));
+
+        return {
+          success: true,
+          message: `Synced courses from WPI. Found ${filteredCourses.length} courses for ${termLetter} ${year}.`,
+          courses: filteredCourses,
+          syncResult: result,
+        };
+      }
+
+      // Fallback: return empty list if term not found (shouldn't happen after sync)
+      return {
+        success: true,
+        message: `Synced courses from WPI. No courses found for ${termLetter} ${year}.`,
+        courses: [],
+        syncResult: result,
+      };
+    }),
 });

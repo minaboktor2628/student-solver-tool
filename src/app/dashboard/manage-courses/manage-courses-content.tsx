@@ -3,10 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/server/api/root";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+
+type RouterOutputs = inferRouterOutputs<AppRouter>;
 import {
   BookOpen,
   Trash2,
@@ -69,24 +73,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
 import type { Section, Term, TermLetter } from "@prisma/client";
 
-// Course type from Prisma Section with flattened professor name
-interface Course
-  extends Pick<
-    Section,
-    | "id"
-    | "courseCode"
-    | "courseTitle"
-    | "enrollment"
-    | "capacity"
-    | "requiredHours"
-  > {
-  professorName: string; // flattened from professor.name
-  termId?: string | null; // optional for forms
-}
+type GetAllCoursesResponse = RouterOutputs["courses"]["getAllCourses"];
 
-// Term display type with computed name
+type Course = Pick<
+  Section,
+  | "id"
+  | "courseCode"
+  | "courseTitle"
+  | "enrollment"
+  | "capacity"
+  | "requiredHours"
+> & {
+  courseSection?: string;
+  meetingPattern?: string;
+  description?: string;
+  academicLevel?: string;
+  termId?: string | null;
+  professorName: string;
+};
+
 interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
-  name: string; // computed from termLetter + year
+  name: string;
 }
 
 // Zod schemas for validation

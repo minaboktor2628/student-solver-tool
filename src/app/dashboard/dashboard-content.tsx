@@ -19,8 +19,12 @@ import {
   BookOpen,
 } from "lucide-react";
 import { api } from "@/trpc/react";
-import type { Section, User, Term } from "@prisma/client";
+import type { Section, User, Term, TermLetter } from "@prisma/client";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/server/api/root";
 import { toast } from "sonner";
+
+type RouterOutputs = inferRouterOutputs<AppRouter>;
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -35,53 +39,46 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Dashboard view types - extend Prisma models with computed/view-specific fields
-// Database fields come from Prisma types, only computed/transformed fields defined here
-// See: src/server/api/routers/dashboard.ts for transformation logic
+type Course = Pick<
+  Section,
+  | "id"
+  | "courseCode"
+  | "courseTitle"
+  | "enrollment"
+  | "capacity"
+  | "requiredHours"
+  | "description"
+> & {
+  assignedStaff: number;
+  professorName: string;
+  term: string;
+  isGradSemesterCourse?: boolean;
+  isDisplayOnly?: boolean;
+  spansTerms?: string | null;
+};
 
-// Course: Section model + computed fields
-interface Course
-  extends Pick<
-    Section,
-    | "id"
-    | "courseCode"
-    | "courseTitle"
-    | "enrollment"
-    | "capacity"
-    | "requiredHours"
-  > {
-  // Computed/transformed fields (not in database)
-  assignedStaff: number; // sum from assignments
-  professorName: string; // flattened from professor.name
-  term: string; // formatted from term.termLetter + year
-  isGradSemesterCourse?: boolean; // parsed from description
-  isDisplayOnly?: boolean; // parsed from description
-  spansTerms?: string | null; // computed
-}
+type StaffMember = Pick<User, "id" | "name" | "email" | "hours"> & {
+  role: string;
+  submitted: boolean;
+};
 
-// StaffMember: User model + computed fields
-interface StaffMember extends Pick<User, "id" | "name" | "email" | "hours"> {
-  // Computed/transformed fields
-  role: string; // flattened from roles[0].role
-  submitted: boolean; // from hasPreferences check
-}
-
-// Professor: User model + computed fields
-interface Professor extends Pick<User, "id" | "name" | "email"> {
-  // Computed fields
+type Professor = Pick<User, "id" | "name" | "email"> & {
   submitted: boolean;
   courseCount: number;
-}
+};
 
-// TermData: Term model + formatted fields
-interface TermData extends Pick<Term, "id" | "year"> {
-  // Formatted/computed fields
-  name: string; // computed display name
-  termLetter: string; // from Term.termLetter enum
-  staffDueDate: string; // formatted from termStaffDueDate
-  professorDueDate: string; // formatted from termProfessorDueDate
-  status: "draft" | "published"; // from active boolean
-}
+type TermData = Pick<
+  Term,
+  "id" | "termLetter" | "year" | "termStaffDueDate" | "termProfessorDueDate"
+> & {
+  name: string;
+  staffDueDate: string;
+  professorDueDate: string;
+  status: "draft" | "published";
+};
+
+type GetTermsResponse = RouterOutputs["term"]["getAllTerms"]["terms"][number];
+type GetDashboardResponse = RouterOutputs["dashboard"]["getDashboardData"];
 
 const LOCAL_TERMS_KEY = "sata:terms";
 
@@ -100,20 +97,16 @@ const parseStoredTerms = (raw: string | null): string[] | null => {
 };
 
 export default function DashboardContent() {
-  // UI state
   const [selectedView, setSelectedView] = useState("overview");
   const [courses, setCourses] = useState<Course[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Term state
   const [terms, setTerms] = useState<TermData[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [loadingTerms, setLoadingTerms] = useState(false);
 
-  // tRPC mutations and queries
   const getTermsQuery = api.term.getAllTerms.useQuery(undefined, {
     enabled: false,
   });
@@ -136,30 +129,22 @@ export default function DashboardContent() {
     try {
       const { data } = await getTermsQuery.refetch();
       if (data) {
-        const formattedTerms = data.terms.map(
-          (term: {
-            id?: string;
-            name?: string;
-            termLetter?: string;
-            year?: number;
-            staffDueDate?: string;
-            professorDueDate?: string;
-            active?: boolean;
-          }) => {
-            const status: TermData["status"] = term.active
-              ? "published"
-              : "draft";
-            return {
-              id: term.id ?? "",
-              name: term.name ?? "",
-              termLetter: term.termLetter ?? "A",
-              year: term.year ?? new Date().getFullYear(),
-              staffDueDate: term.staffDueDate ?? "",
-              professorDueDate: term.professorDueDate ?? "",
-              status,
-            };
-          },
-        );
+        const formattedTerms = data.terms.map((term: GetTermsResponse) => {
+          const status: TermData["status"] = term.active
+            ? "published"
+            : "draft";
+          return {
+            id: term.id ?? "",
+            name: term.name ?? "",
+            termLetter: (term.termLetter ?? "A") as TermLetter,
+            year: term.year ?? new Date().getFullYear(),
+            termStaffDueDate: new Date(term.staffDueDate ?? ""),
+            termProfessorDueDate: new Date(term.professorDueDate ?? ""),
+            staffDueDate: term.staffDueDate ?? "",
+            professorDueDate: term.professorDueDate ?? "",
+            status,
+          };
+        });
         setTerms(formattedTerms);
 
         // Select active term if it exists, otherwise select first term
@@ -180,11 +165,13 @@ export default function DashboardContent() {
           parsed.map((name) => ({
             id: name,
             name,
-            termLetter: "A",
+            termLetter: "A" as TermLetter,
             year: new Date().getFullYear(),
+            termStaffDueDate: new Date(),
+            termProfessorDueDate: new Date(),
             staffDueDate: "",
             professorDueDate: "",
-            status: "published",
+            status: "published" as const,
           })),
         );
         setSelectedTerm(parsed[0]);
@@ -219,31 +206,21 @@ export default function DashboardContent() {
 
       // Transform courses with graduate semester course handling
       const transformedCourses = (data.courses ?? []).map(
-        (course: {
-          id?: string;
-          courseCode?: string;
-          courseTitle?: string;
-          enrollment?: number;
-          capacity?: number;
-          requiredHours?: number;
-          assignedHours?: number;
-          professorName?: string;
-          term?: string;
-          description?: string;
-        }) => {
+        (course: GetDashboardResponse["courses"][number]) => {
           // Check if it's a graduate semester course
           const isGradSemester =
-            course.description?.includes("GRAD_SEMESTER") ?? false;
+            course.description.includes("GRAD_SEMESTER") ?? false;
           const isDisplayOnly =
-            course.description?.includes("GRAD_SEMESTER_SECONDARY") ?? false;
+            course.description.includes("GRAD_SEMESTER_SECONDARY") ?? false;
 
           // Debug logging for ALL courses to see what we're getting
           console.log(
             `Course: ${course.courseCode} - Description: "${course.description}" - isGradSemester: ${isGradSemester} - isDisplayOnly: ${isDisplayOnly}`,
           );
 
-          // Determine term display
-          let termDisplay = course.term ?? "Unknown Term";
+          // Determine term display - computed from current selected term
+          let termDisplay =
+            terms.find((t) => t.id === termId)?.name ?? "Unknown Term";
           let spansTerms = null;
 
           if (isGradSemester) {
@@ -275,6 +252,7 @@ export default function DashboardContent() {
             assignedStaff: course.assignedHours ?? 0,
             professorName: course.professorName ?? "",
             term: termDisplay,
+            description: course.description,
             isGradSemesterCourse: isGradSemester,
             isDisplayOnly: isDisplayOnly,
             spansTerms: spansTerms,
@@ -299,7 +277,7 @@ export default function DashboardContent() {
           name: p.name ?? "",
           email: p.email ?? "",
           courseCount: p.courseCount ?? 0,
-          submitted: true,
+          submitted: p.hasPreferences ?? false,
         })),
       );
     } catch (err: unknown) {

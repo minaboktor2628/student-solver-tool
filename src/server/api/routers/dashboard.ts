@@ -111,6 +111,7 @@ export const dashboardRoute = createTRPCRouter({
           requiredHours: section.requiredHours,
           assignedHours,
           assignmentCount: section._count.assignments,
+          description: section.description ?? "",
         };
       });
 
@@ -126,6 +127,9 @@ export const dashboardRoute = createTRPCRouter({
                 name: p.name,
                 email: p.email,
                 courseCount: p.teaches.length,
+                hasPreferences: p.teaches.some(
+                  (t) => t.professorPreference != null,
+                ),
               },
             ]),
         ).values(),

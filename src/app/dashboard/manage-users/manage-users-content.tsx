@@ -3,7 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/server/api/root";
 import { toast } from "sonner";
+
+type RouterOutputs = inferRouterOutputs<AppRouter>;
 import {
   UserPlus,
   Trash2,
@@ -66,12 +70,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { User as PrismaUser, Role } from "@prisma/client";
+import type { User as PrismaUser } from "@prisma/client";
 
-// User type from Prisma with flattened roles array
-interface User extends Pick<PrismaUser, "id" | "name" | "email" | "hours"> {
-  roles: Role[]; // flattened from UserRole[]
-}
+type GetAllUsersResponse = RouterOutputs["staff"]["getAllUsers"];
+
+type User = Pick<PrismaUser, "id" | "name" | "email" | "hours"> & {
+  roles: string[];
+};
 
 // Zod schemas for validation
 const userFormSchema = z.object({
@@ -177,7 +182,7 @@ export default function ManageUsersContent() {
             name?: string | null;
             email?: string | null;
             hours?: number | null;
-            roles?: Role[];
+            roles?: string[];
           }) => ({
             id: user.id ?? "",
             name: user.name ?? null,
