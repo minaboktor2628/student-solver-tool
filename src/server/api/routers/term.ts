@@ -102,7 +102,7 @@ export const termRoute = createTRPCRouter({
       const existingTerm = await ctx.db.term.findFirst({
         where: {
           termLetter,
-          year: parseInt(year.toString()),
+          year,
         },
       });
 
@@ -127,7 +127,7 @@ export const termRoute = createTRPCRouter({
       const term = await ctx.db.term.create({
         data: {
           termLetter,
-          year: parseInt(year.toString()),
+          year,
           termStaffDueDate: new Date(staffDueDate),
           termProfessorDueDate: new Date(professorDueDate),
         },
