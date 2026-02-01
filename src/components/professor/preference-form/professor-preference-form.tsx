@@ -1,13 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/dist/client/link";
 import { api } from "@/trpc/react";
-import type {
-  SectionWithProfessorPreference,
-  Assistant,
-  TimesRequiredOutput,
-} from "@/types/professor";
+import type { Assistant, TimesRequiredOutput } from "@/types/professor";
 import {
   Card,
   CardContent,
@@ -24,13 +20,8 @@ import { SelectAssistantAntipref } from "./select-assistant-antipref";
 import { SelectRequiredTimes } from "./select-required-times";
 import { FormEntryComments } from "./comment-box";
 import { useTerm } from "@/components/term-combobox";
-// Have this take in termId and call useTerm from upstream
 // Autoselect the no option for preferences on page load
 
-//Instead of seperate lists of preferred and antiPreferred
-//Send a mutation for every click or onChange
-//Create endpoints that pulls data from the database input: sectionId, professorId  and a single Assistant stating if we prefer them or not, then writes to db
-//New page for each section with a seperate submit button *Won't have to change current api
 interface ProfessorPreferenceFormProps {
   userId: string;
 }
@@ -39,84 +30,62 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   userId,
 }) => {
   const { active: activeTerm } = useTerm();
+  if (!activeTerm) throw new Error("Term is invalid.");
+
+  const [{ sections }] =
+    api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
+      termId: activeTerm.id,
+      professorId: userId,
+    });
 
   const [preferredStaff, setPreferredStaff] = useState<
     Record<string, Assistant[]>
-  >({});
+  >(() => {
+    const initialPreferredStaff: Record<string, Assistant[]> = {};
+
+    sections.forEach((section) => {
+      initialPreferredStaff[section.sectionId] =
+        section.professorPreference.preferredStaff ?? [];
+    });
+
+    return initialPreferredStaff;
+  });
   const [avoidedStaff, setAvoidedStaff] = useState<Record<string, Assistant[]>>(
-    {},
+    () => {
+      const initialAvoidedStaff: Record<string, Assistant[]> = {};
+
+      sections.forEach((section) => {
+        initialAvoidedStaff[section.sectionId] =
+          section.professorPreference.avoidedStaff ?? [];
+      });
+
+      return initialAvoidedStaff;
+    },
   );
   const [timesRequired, setTimesRequired] = useState<
     Record<string, TimesRequiredOutput[]>
-  >({});
-  const [comments, setComments] =
-    useState<Record<string, string | null | undefined>>();
+  >(() => {
+    const initialTimesRequired: Record<string, TimesRequiredOutput[]> = {};
 
-  //Fix change in suspenseQuery - different shape than useQuery
-  const { data, error } =
-    api.professorForm.getProfessorSectionsForTerm.useQuery(
-      {
-        //termId: activeTerm.id as string,
-        professorId: userId,
-      },
-      {
-        enabled: !!activeTerm,
-      },
-    );
-
-  const [sections, setSections] =
-    useState<Record<string, SectionWithProfessorPreference>>();
-
-  // Remove useEffect and make the query for the data on the backend shape the data for the front end
-  useEffect(() => {
-    if (!data?.sections) return;
-
-    const initialValues: Record<string, SectionWithProfessorPreference> = {};
-
-    data?.sections.forEach((s) => {
-      initialValues[s.sectionId] = {
-        sectionId: s.sectionId,
-        courseCode: s.courseCode,
-        courseSection: s.courseSection,
-        courseTitle: s.courseTitle,
-        meetingPattern: s.meetingPattern,
-        enrollment: s.enrollment,
-        capacity: s.capacity,
-        requiredHours: s.requiredHours,
-        availableAssistants: s.availableAssistants.map((a) => ({
-          id: a.id,
-          name: a.name,
-          email: a.email,
-          hours: a.hours,
-          roles: a.roles,
-        })),
-        professorPreference: {
-          preferredStaff: s.professorPreference?.preferredStaff?.map((a) => ({
-            id: a.id,
-            name: a.name,
-            email: a.email,
-            hours: a.hours,
-            roles: (a.roles ?? []).map((r) => ({ role: r })),
-          })),
-          avoidedStaff: s.professorPreference?.avoidedStaff?.map((a) => ({
-            id: a.id,
-            name: a.name,
-            email: a.email,
-            hours: a.hours,
-            roles: (a.roles ?? []).map((r) => ({ role: r })),
-          })),
-          timesRequired: s.professorPreference?.timesRequired?.map((a) => ({
-            day: a.day,
-            hour: a.hour,
-          })),
-          comments: s.professorPreference?.comments,
-        },
-      };
+    sections.forEach((section) => {
+      initialTimesRequired[section.sectionId] =
+        section.professorPreference.timesRequired ?? [];
     });
 
-    setSections(initialValues);
-  }, [data?.sections]);
+    return initialTimesRequired;
+  });
+  const [comments, setComments] = useState<
+    Record<string, string | null | undefined>
+  >(() => {
+    const initialComments: Record<string, string | null | undefined> = {};
 
+    sections.forEach((section) => {
+      initialComments[section.sectionId] =
+        section.professorPreference.comments ?? null;
+    });
+
+    return initialComments;
+  });
   const handlePreferredStaffChange = (
     sectionId: string,
     newPreferredStaff: Assistant[],
@@ -210,7 +179,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   return (
     <div>
       <div className="mb-6 flex items-center gap-4">
-        <Link href="/professor">
+        <Link href="/">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -223,7 +192,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
             handleSubmit();
           }}
         >
-          {Object.values(sections ?? {}).map((section) => (
+          {sections.map((section) => (
             <div key={section.sectionId} className="px-4 py-2">
               <Card>
                 <CardHeader>
@@ -241,7 +210,12 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                   </CardDescription>
                   <SelectAssistantPref
                     sectionId={section.sectionId}
-                    availableAssistants={section.availableAssistants}
+                    availableAssistants={section.availableAssistants.map(
+                      (assistant) => ({
+                        ...assistant,
+                        roles: assistant.roles.map((r) => r.role),
+                      }),
+                    )}
                     preferredStaff={preferredStaff[section.sectionId] ?? []}
                     onChange={(sectionId, preferredStaff) =>
                       handlePreferredStaffChange(sectionId, preferredStaff)
@@ -249,7 +223,12 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                   />
                   <SelectAssistantAntipref
                     sectionId={section.sectionId}
-                    availableAssistants={section.availableAssistants}
+                    availableAssistants={section.availableAssistants.map(
+                      (assistant) => ({
+                        ...assistant,
+                        roles: assistant.roles.map((r) => r.role),
+                      }),
+                    )}
                     avoidedStaff={avoidedStaff[section.sectionId] ?? []}
                     onChange={(sectionId, avoidedStaff) =>
                       handleAvoidedStaffChange(sectionId, avoidedStaff)

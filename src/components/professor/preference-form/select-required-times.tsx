@@ -80,7 +80,7 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
   }
 
   return (
-    <div className="bg-white p-4 shadow-sm">
+    <div className="p-4 shadow-sm">
       <div>
         <Label className="mb-2 block text-base font-medium">
           Do you want to select times that you need assistants available?

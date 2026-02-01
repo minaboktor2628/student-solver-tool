@@ -1,11 +1,9 @@
-import { redirect } from "next/navigation";
 import { auth } from "@/server/auth";
 import ProfessorHomePageComponent from "@/components/professor/professor-dashboard/professor-homepage";
 
 export default async function Home() {
   const session = await auth();
 
-  // Redirect professors to their dashboard
   if (session?.user?.roles?.includes("PROFESSOR")) {
     return <ProfessorHomePageComponent userId={session?.user?.id} />;
   } else {

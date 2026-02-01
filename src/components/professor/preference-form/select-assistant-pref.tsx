@@ -28,7 +28,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
   };
 
   return (
-    <div className="bg-white p-4 shadow-sm">
+    <div className="p-4 shadow-sm">
       <div>
         <Label className="mb-2 block text-base font-medium">
           Do you want to select specific assistants for this course?

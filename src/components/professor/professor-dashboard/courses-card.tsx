@@ -8,14 +8,14 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import type {
-  SectionWithProfessorPreference,
+  ProfessorSection,
   TimesRequiredOutput,
   WeeklySlot,
 } from "@/types/professor";
 import { BaseScheduleSelector } from "@/lib/schedule-selector";
 
 type CoursesCardProps = {
-  sections: Record<string, SectionWithProfessorPreference> | undefined;
+  sections: ProfessorSection[];
   isSubmitted: boolean;
 };
 export const CoursesCard: React.FC<CoursesCardProps> = ({
@@ -59,8 +59,9 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({
           {Object.values(sections ?? {}).map((course) => (
             <div key={course.courseCode} className="rounded-lg border p-4">
               <h3 className="font-semibold">
-                {course.courseCode}-{course.courseSection}
                 {course.courseTitle}
+                <br />
+                {course.courseCode}-{course.courseSection}
               </h3>
               {isSubmitted && (
                 <div>

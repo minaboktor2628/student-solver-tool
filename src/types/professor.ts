@@ -1,8 +1,9 @@
+import type { Day } from "@prisma/client";
+
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
-export type dayEnum = "M" | "T" | "W" | "R" | "F";
 export type Role = "TA" | "PLA" | "GLA" | "PROFESSOR" | "COORDINATOR";
 
-export type SectionWithProfessorPreference = {
+export type ProfessorSection = {
   sectionId: string;
   courseCode: string;
   courseSection: string;
@@ -11,12 +12,40 @@ export type SectionWithProfessorPreference = {
   enrollment: number;
   capacity: number;
   requiredHours: number;
-  availableAssistants: Assistant[];
+  availableAssistants: {
+    name: string | null;
+    id: string;
+    email: string | null;
+    hours: number | null;
+    roles: {
+      role: Role;
+    }[];
+  }[];
   professorPreference: {
-    preferredStaff?: Assistant[];
-    avoidedStaff?: Assistant[];
-    timesRequired?: TimesRequiredOutput[];
-    comments?: string | null;
+    preferredStaff:
+      | {
+          roles: Role[];
+          name: string | null;
+          id: string;
+          email: string | null;
+          hours: number | null;
+        }[]
+      | undefined;
+    avoidedStaff:
+      | {
+          roles: Role[];
+          name: string | null;
+          id: string;
+          email: string | null;
+          hours: number | null;
+        }[]
+      | undefined;
+    timesRequired: {
+      id: string;
+      day: Day;
+      hour: number;
+    }[];
+    comments: string | null | undefined;
   };
 };
 
@@ -25,10 +54,10 @@ export type Assistant = {
   name: string | null;
   email: string | null;
   hours: number | null;
-  roles: { role: Role }[];
+  roles: Role[];
 };
 
 export type TimesRequiredOutput = {
-  day: dayEnum;
+  day: Day;
   hour: number;
 };
