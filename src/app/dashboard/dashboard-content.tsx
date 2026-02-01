@@ -136,7 +136,7 @@ export default function DashboardContent() {
           return {
             id: term.id ?? "",
             name: term.name ?? "",
-            termLetter: (term.termLetter ?? "A") as TermLetter,
+            termLetter: term.termLetter ?? "A",
             year: term.year ?? new Date().getFullYear(),
             termStaffDueDate: new Date(term.staffDueDate ?? ""),
             termProfessorDueDate: new Date(term.professorDueDate ?? ""),
