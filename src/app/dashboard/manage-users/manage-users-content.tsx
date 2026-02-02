@@ -74,7 +74,7 @@ import type { User as PrismaUser } from "@prisma/client";
 
 type GetAllUsersResponse = RouterOutputs["staff"]["getAllUsers"];
 
-type User = Pick<PrismaUser, "id" | "name" | "email" | "hours"> & {
+type User = Pick<PrismaUser, "id" | "name" | "email"> & {
   roles: string[];
 };
 
@@ -85,7 +85,6 @@ const userFormSchema = z.object({
   role: z.enum(["PLA", "TA", "GLA", "PROFESSOR"] as const, {
     required_error: "Please select a role",
   }),
-  hours: z.coerce.number().min(0, "Hours must be 0 or greater"),
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -113,6 +112,7 @@ export default function ManageUsersContent() {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTerm, setActiveTerm] = useState<string | null>(null);
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -127,7 +127,6 @@ export default function ManageUsersContent() {
       name: "",
       email: "",
       role: "PLA",
-      hours: 0,
     },
   });
 
@@ -137,12 +136,12 @@ export default function ManageUsersContent() {
       name: "",
       email: "",
       role: "PLA",
-      hours: 0,
     },
   });
 
   // tRPC queries and mutations
   const getUsersQuery = api.staff.getAllUsers.useQuery();
+  const getTermsQuery = api.term.getAllTerms.useQuery();
   const createUserMutation = api.staff.createUser.useMutation();
   const updateUserMutation = api.staff.updateUser.useMutation();
   const deleteUserMutation = api.staff.deleteUser.useMutation();
@@ -173,26 +172,35 @@ export default function ManageUsersContent() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data } = await getUsersQuery.refetch();
-      if (data) {
+      const [usersResult, termsResult] = await Promise.all([
+        getUsersQuery.refetch(),
+        getTermsQuery.refetch(),
+      ]);
+
+      if (usersResult.data) {
         // Map and filter out nulls
-        const mappedUsers: User[] = data.users.map(
+        const mappedUsers: User[] = usersResult.data.users.map(
           (user: {
             id?: string;
             name?: string | null;
             email?: string | null;
-            hours?: number | null;
             roles?: string[];
           }) => ({
             id: user.id ?? "",
             name: user.name ?? null,
             email: user.email ?? null,
-            hours: user.hours ?? null,
             roles: user.roles! ?? [],
           }),
         );
         setUsers(mappedUsers);
         setFilteredUsers(mappedUsers);
+      }
+
+      if (termsResult.data) {
+        const activeTermData = termsResult.data.terms.find((t) => t.active);
+        if (activeTermData) {
+          setActiveTerm(activeTermData.name ?? null);
+        }
       }
     } catch (err: unknown) {
       console.error("Error fetching users:", err);
@@ -207,7 +215,6 @@ export default function ManageUsersContent() {
       name: "",
       email: "",
       role: "PLA",
-      hours: 0,
     });
     setIsAddDialogOpen(true);
   };
@@ -218,7 +225,6 @@ export default function ManageUsersContent() {
       name: user.name ?? "",
       email: user.email ?? "",
       role: (user.roles[0] ?? "PLA") as "TA" | "PLA" | "PROFESSOR" | "GLA",
-      hours: user.hours ?? 0,
     });
     setIsEditDialogOpen(true);
   };
@@ -234,7 +240,6 @@ export default function ManageUsersContent() {
         name: values.name,
         email: values.email,
         role: values.role,
-        hours: values.hours,
       });
 
       toast.success("User added successfully!");
@@ -256,7 +261,6 @@ export default function ManageUsersContent() {
         name: values.name,
         email: values.email,
         role: values.role,
-        hours: values.hours,
       });
 
       toast.success("User updated successfully!");
@@ -336,7 +340,9 @@ export default function ManageUsersContent() {
                 Manage Users
               </h1>
               <p className="text-muted-foreground text-sm">
-                Add, edit, and remove users from the system
+                {activeTerm
+                  ? `Managing users for ${activeTerm}`
+                  : "Add, edit, and remove users from the system"}
               </p>
             </div>
           </div>
@@ -417,14 +423,13 @@ export default function ManageUsersContent() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Hours</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center">
+                    <TableCell colSpan={4} className="text-center">
                       <div className="text-muted-foreground py-8">
                         {searchQuery
                           ? "No users match your search"
@@ -459,7 +464,6 @@ export default function ManageUsersContent() {
                             ))}
                           </div>
                         </TableCell>
-                        <TableCell>{user.hours}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
@@ -571,27 +575,6 @@ export default function ManageUsersContent() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={addForm.control}
-                  name="hours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hours</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Available hours for this user
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <DialogFooter>
                   <Button
                     type="button"
@@ -686,27 +669,6 @@ export default function ManageUsersContent() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="hours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hours</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Available hours for this user
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

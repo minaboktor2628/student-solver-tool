@@ -112,6 +112,9 @@ const courseFormSchema = z.object({
     .max(100, "Professor name is too long"),
   enrollment: z.coerce.number().min(0, "Enrollment must be 0 or greater"),
   capacity: z.coerce.number().min(0, "Capacity must be 0 or greater"),
+  requiredHours: z.coerce
+    .number()
+    .min(0, "Required hours must be 0 or greater"),
 });
 
 type CourseFormValues = z.infer<typeof courseFormSchema>;
@@ -142,6 +145,7 @@ export default function ManageCoursesContent() {
       professorName: "",
       enrollment: 0,
       capacity: 0,
+      requiredHours: 0,
     },
   });
 
@@ -153,6 +157,7 @@ export default function ManageCoursesContent() {
       professorName: "",
       enrollment: 0,
       capacity: 0,
+      requiredHours: 0,
     },
   });
 
@@ -238,6 +243,7 @@ export default function ManageCoursesContent() {
       professorName: "",
       enrollment: 0,
       capacity: 0,
+      requiredHours: 0,
     });
     setIsAddDialogOpen(true);
   };
@@ -250,6 +256,7 @@ export default function ManageCoursesContent() {
       professorName: course.professorName,
       enrollment: course.enrollment,
       capacity: course.capacity,
+      requiredHours: course.requiredHours,
     });
     setIsEditDialogOpen(true);
   };
@@ -261,8 +268,6 @@ export default function ManageCoursesContent() {
 
   const onSubmitAddCourse = async (values: CourseFormValues) => {
     try {
-      const requiredHours = calculateRequiredAssistantHours(values.enrollment);
-
       await createCourseMutation.mutateAsync({
         courses: [
           {
@@ -271,7 +276,7 @@ export default function ManageCoursesContent() {
             professorName: values.professorName,
             enrollment: values.enrollment,
             capacity: values.capacity,
-            requiredHours,
+            requiredHours: values.requiredHours,
           },
         ],
         termId: selectedTerm ?? undefined,
@@ -298,6 +303,7 @@ export default function ManageCoursesContent() {
           courseTitle: values.courseTitle,
           enrollment: values.enrollment,
           capacity: values.capacity,
+          requiredHours: values.requiredHours,
         },
       });
 
@@ -375,7 +381,9 @@ export default function ManageCoursesContent() {
                 Manage Courses
               </h1>
               <p className="text-muted-foreground text-sm">
-                Add, edit, and remove courses from the system
+                {selectedTerm
+                  ? `Managing courses for ${terms.find((t) => t.id === selectedTerm)?.name ?? "Unknown Term"}`
+                  : "Add, edit, and remove courses from the system"}
               </p>
             </div>
           </div>
@@ -386,7 +394,7 @@ export default function ManageCoursesContent() {
         </div>
 
         {/* Stats Cards */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -396,28 +404,6 @@ export default function ManageCoursesContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{courseStats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">With Term</CardTitle>
-              <Badge variant="outline">Assigned</Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{courseStats.withTerm}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Without Term
-              </CardTitle>
-              <Badge variant="outline">Unassigned</Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {courseStats.withoutTerm}
-              </div>
             </CardContent>
           </Card>
           <Card>
@@ -475,17 +461,15 @@ export default function ManageCoursesContent() {
                   <TableHead>Course Code</TableHead>
                   <TableHead>Course Title</TableHead>
                   <TableHead>Professor</TableHead>
-                  <TableHead>Enrollment</TableHead>
-                  <TableHead>Capacity</TableHead>
+                  <TableHead>Enrollment/Capacity</TableHead>
                   <TableHead>Required Hours</TableHead>
-                  <TableHead>Term</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCourses.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center">
+                    <TableCell colSpan={6} className="text-center">
                       <div className="text-muted-foreground py-8">
                         {searchQuery || selectedTerm
                           ? "No courses match your filters"
@@ -499,28 +483,22 @@ export default function ManageCoursesContent() {
                       <TableCell className="font-medium">
                         {course.courseCode}
                       </TableCell>
-                      <TableCell>{course.courseTitle}</TableCell>
+                      <TableCell
+                        className="max-w-[200px] truncate"
+                        title={course.courseTitle}
+                      >
+                        {course.courseTitle}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <GraduationCap className="text-muted-foreground h-4 w-4" />
                           {course.professorName}
                         </div>
                       </TableCell>
-                      <TableCell>{course.enrollment}</TableCell>
-                      <TableCell>{course.capacity}</TableCell>
-                      <TableCell>{course.requiredHours}h</TableCell>
                       <TableCell>
-                        {course.termId ? (
-                          <Badge variant="outline">
-                            {terms.find((t) => t.id === course.termId)?.name ??
-                              "Unknown"}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">
-                            -
-                          </span>
-                        )}
+                        {course.enrollment}/{course.capacity}
                       </TableCell>
+                      <TableCell>{course.requiredHours}h</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -553,10 +531,7 @@ export default function ManageCoursesContent() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Course</DialogTitle>
-              <DialogDescription>
-                Create a new course. Required hours will be calculated based on
-                enrollment.
-              </DialogDescription>
+              <DialogDescription>Create a new course.</DialogDescription>
             </DialogHeader>
             <Form {...addForm}>
               <form
@@ -617,12 +592,6 @@ export default function ManageCoursesContent() {
                         <FormControl>
                           <Input type="number" min="0" {...field} />
                         </FormControl>
-                        <FormDescription>
-                          Required hours:{" "}
-                          {calculateRequiredAssistantHours(
-                            Number(field.value) || 0,
-                          )}
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -641,6 +610,22 @@ export default function ManageCoursesContent() {
                     )}
                   />
                 </div>
+                <FormField
+                  control={addForm.control}
+                  name="requiredHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Hours</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Number of staff hours required for this course
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <DialogFooter>
                   <Button
                     type="button"
@@ -676,9 +661,7 @@ export default function ManageCoursesContent() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Edit Course</DialogTitle>
-              <DialogDescription>
-                Update course information. Required hours will be recalculated.
-              </DialogDescription>
+              <DialogDescription>Update course information.</DialogDescription>
             </DialogHeader>
             <Form {...editForm}>
               <form
@@ -739,12 +722,6 @@ export default function ManageCoursesContent() {
                         <FormControl>
                           <Input type="number" min="0" {...field} />
                         </FormControl>
-                        <FormDescription>
-                          Required hours:{" "}
-                          {calculateRequiredAssistantHours(
-                            Number(field.value) || 0,
-                          )}
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -763,6 +740,22 @@ export default function ManageCoursesContent() {
                     )}
                   />
                 </div>
+                <FormField
+                  control={editForm.control}
+                  name="requiredHours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Hours</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Number of staff hours required for this course
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <DialogFooter>
                   <Button
                     type="button"

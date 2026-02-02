@@ -474,16 +474,6 @@ export default function DashboardContent() {
                     </SelectContent>
                   </Select>
 
-                  {selectedTerm && (
-                    <Button
-                      onClick={() => deleteTerm(selectedTerm)}
-                      size="sm"
-                      title="Delete term"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-
                   <Button asChild size="sm">
                     <Link href="/dashboard/create-term">
                       <Plus className="h-4 w-4" /> Create Term
@@ -614,7 +604,7 @@ export default function DashboardContent() {
                 Staff by Role
               </h2>
               <div className="space-y-3">
-                {["PLA", "TA", "GLA"].map((role) => {
+                {["PLA", "TA"].map((role) => {
                   const roleStaff = staff.filter((s) => s.role === role);
                   const submitted = roleStaff.filter((s) => s.submitted).length;
                   const total = roleStaff.length;

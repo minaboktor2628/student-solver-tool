@@ -428,6 +428,7 @@ export const courseRoute = createTRPCRouter({
           description: z.string().optional(),
           enrollment: z.number().optional(),
           capacity: z.number().optional(),
+          requiredHours: z.number().optional(),
           courseSection: z.string().optional(),
           meetingPattern: z.string().optional(),
           academicLevel: z.string().optional(),
