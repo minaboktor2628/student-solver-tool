@@ -1,7 +1,11 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { solverStrategies } from "@/lib/solver";
+import {
+  getSolverData,
+  solveAssignments,
+  solverStrategies,
+} from "@/lib/solver";
 
 export const assignmentRoute = createTRPCRouter({
   set: coordinatorProcedure
@@ -51,44 +55,8 @@ export const assignmentRoute = createTRPCRouter({
         solverStrategy: z.enum(solverStrategies),
       }),
     )
-    .mutation(async ({ input: { termId }, ctx }) => {
-      const [sections, staffPreferences] = await Promise.all([
-        ctx.db.section.findMany({
-          where: { termId },
-          include: {
-            assignments: true,
-            preferredPreferences: true,
-            professor: true,
-            professorPreference: true,
-            qualifiedPreferences: true,
-          },
-        }),
-        ctx.db.staffPreference.findMany({
-          where: {
-            termId,
-            // Only return users who are NOT locked to a section already this term
-            user: {
-              sectionAssignments: {
-                none: {
-                  locked: true,
-                  section: {
-                    termId,
-                  },
-                },
-              },
-            },
-          },
-          include: {
-            preferredSections: true,
-            qualifiedForSections: true,
-            timesAvailable: true,
-            user: true,
-          },
-        }),
-      ]);
-
-      // do some solving here and write to the db
-      // frontend will refetch after this function completes, so no need to return anything
-      // ...
+    .mutation(async ({ input: { termId, solverStrategy }, ctx }) => {
+      const solverData = await getSolverData(ctx, termId);
+      solveAssignments(solverStrategy, solverData);
     }),
 });
