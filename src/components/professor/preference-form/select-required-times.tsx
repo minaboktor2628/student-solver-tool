@@ -17,7 +17,9 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
   timesRequired,
   onChange,
 }) => {
-  const [wantsSpecificTimes, setWantsSpecificTimes] = React.useState<boolean>();
+  const [wantsSpecificTimes, setWantsSpecificTimes] = React.useState<boolean>(
+    (timesRequired?.length ?? 0) > 0,
+  );
   const calendarStart = new Date(1970, 0, 5);
   const dayMap: Record<WeeklySlot["day"], number> = {
     M: 0,
@@ -101,6 +103,7 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
             variant={wantsSpecificTimes === false ? "default" : "outline"}
             onClick={() => {
               setWantsSpecificTimes(false);
+              onChange(sectionId, []);
             }}
           >
             No

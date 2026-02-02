@@ -19,7 +19,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
   onChange,
 }) => {
   const [wantsSpecificAssistants, setWantsSpecificAssistants] =
-    React.useState<boolean>();
+    React.useState<boolean>((preferredStaff?.length ?? 0) > 0);
   const toggleAssistant = (assistant: Assistant, checked: boolean) => {
     const newStaff = checked
       ? [...(preferredStaff ?? []), assistant]
@@ -49,6 +49,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
             variant={wantsSpecificAssistants === false ? "default" : "outline"}
             onClick={() => {
               setWantsSpecificAssistants(false);
+              onChange(sectionId, []);
             }}
           >
             No

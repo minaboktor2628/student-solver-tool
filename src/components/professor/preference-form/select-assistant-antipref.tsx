@@ -16,7 +16,7 @@ export const SelectAssistantAntipref: React.FC<
   SelectAssistantPreferenceProps
 > = ({ sectionId, availableAssistants, avoidedStaff, onChange }) => {
   const [wantsAntiPreferences, setWantsAntiPreferences] =
-    React.useState<boolean>();
+    React.useState<boolean>((avoidedStaff?.length ?? 0) > 0);
   const toggleAssistant = (assistant: Assistant, checked: boolean) => {
     const newStaff = checked
       ? [...(avoidedStaff ?? []), assistant]
@@ -41,7 +41,10 @@ export const SelectAssistantAntipref: React.FC<
           <Button
             type="button"
             variant={wantsAntiPreferences === false ? "default" : "outline"}
-            onClick={() => setWantsAntiPreferences(false)}
+            onClick={() => {
+              setWantsAntiPreferences(false);
+              onChange(sectionId, []);
+            }}
           >
             No
           </Button>
