@@ -80,45 +80,7 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-1">
             <div className="flex flex-col space-y-1 overflow-x-auto rounded-md border p-2">
-              <BaseScheduleSelector
-                selection={selection}
-                renderDateCell={(time, _selected, setEl) => {
-                  const ref: React.Ref<HTMLDivElement> = (node) => {
-                    if (node) setEl(node);
-                  };
-
-                  const slot = dateToSlot(time);
-                  if (!slot) return <div ref={ref} className="h-4" />;
-
-                  const k = `${slot.day}:${slot.hour}`;
-                  const needed = neededKeys.has(k);
-                  const assigned = assignedKeys.has(k);
-
-                  const status = needed
-                    ? assigned
-                      ? "needed-assigned"
-                      : "needed-unassigned"
-                    : assigned
-                      ? "not-needed-assigned"
-                      : "not-needed";
-
-                  const { cls, title } = stylesByStatus[status];
-
-                  return (
-                    <div
-                      ref={ref}
-                      title={title}
-                      aria-label={title}
-                      role="gridcell"
-                      className={cn(
-                        "h-4 rounded-sm transition-colors",
-                        "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
-                        cls,
-                      )}
-                    />
-                  );
-                }}
-              />
+              <BaseScheduleSelector selection={selection} />
               <section>
                 <div className="text-muted-foreground">
                   Coverage: <strong>{percent}%</strong> ({totalCovered}/

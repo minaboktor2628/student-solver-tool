@@ -3,6 +3,7 @@ import type { Role } from "@prisma/client";
 import {
   BookOpenIcon,
   ComputerIcon,
+  DatabaseIcon,
   HomeIcon,
   InfoIcon,
   ScanFaceIcon,
@@ -67,7 +68,18 @@ export const ROUTES: NavItem[] = [
         href: "/dashboard/permissions",
         icon: ScanFaceIcon,
       },
+      {
+        label: "Studio",
+        href: "/dashboard/studio",
+        icon: DatabaseIcon,
+      },
     ],
+  },
+  {
+    label: "Preferences",
+    href: "/preferences-form",
+    allowed: ["PLA", "TA"],
+    icon: ScanFaceIcon,
   },
 ];
 
