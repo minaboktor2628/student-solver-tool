@@ -151,7 +151,6 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
         console.error("Mutation failed:", err);
         toast.error("Failed to submit preferences");
       },
-      onSettled: () => {},
     });
 
   const handleSubmit = () => {

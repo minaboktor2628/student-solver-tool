@@ -28,7 +28,7 @@ export const SelectAssistantAntipref: React.FC<
   };
   const [searchTerm, setSearchTerm] = React.useState("");
   const filteredStaff = React.useMemo(() => {
-    let result = availableAssistants;
+    const result = availableAssistants;
 
     const q = normalize(searchTerm).trim();
     if (!q) return result;
@@ -93,37 +93,42 @@ export const SelectAssistantAntipref: React.FC<
                 </button>
               )}
             </div>
-            {filteredStaff.map((staff) => {
-              return (
-                <div
-                  key={staff.id}
-                  className={`flex items-center justify-between rounded-lg border p-3 ${
-                    avoidedStaff?.some((a) => a.id === staff.id)
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:bg-accent"
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      {staff.name}
-                      <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                        {staff.roles}
-                      </span>
+            <div className="max-h-64 overflow-y-auto rounded-lg border p-3">
+              {filteredStaff.map((staff) => {
+                return (
+                  <div key={staff.id} className="p-1">
+                    <div
+                      className={`flex items-center justify-between rounded-lg border p-3 ${
+                        avoidedStaff?.some((a) => a.id === staff.id)
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-accent"
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {staff.name}
+                          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                            {staff.roles}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-sm">
+                          {staff.email}
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        id={`${sectionId}-${staff.id}`}
+                        checked={avoidedStaff?.some((a) => a.id === staff.id)}
+                        onChange={(e) =>
+                          toggleAssistant(staff, e.target.checked)
+                        }
+                        className="text-primary focus:ring-primary h-4 w-4 cursor-pointer rounded border-gray-300"
+                      />
                     </div>
-                    <p className="text-muted-foreground text-sm">
-                      {staff.email}
-                    </p>
                   </div>
-                  <input
-                    type="checkbox"
-                    id={`${sectionId}-${staff.id}`}
-                    checked={avoidedStaff?.some((a) => a.id === staff.id)}
-                    onChange={(e) => toggleAssistant(staff, e.target.checked)}
-                    className="text-primary focus:ring-primary h-4 w-4 cursor-pointer rounded border-gray-300"
-                  />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
