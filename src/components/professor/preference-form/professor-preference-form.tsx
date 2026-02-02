@@ -185,8 +185,18 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
           </Button>
         </Link>
       </div>
-      <div>
+      <div className="flex flex-col items-center justify-center">
+        <Card className="flex w-1/2 items-center justify-center">
+          <div className="w-fit px-8 py-3 text-center text-xl">
+            <CardTitle>
+              Professor Preference Form
+              <br />
+              {activeTerm.termLetter} Term {activeTerm.year}
+            </CardTitle>
+          </div>
+        </Card>
         <form
+          className="w-full"
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit();
