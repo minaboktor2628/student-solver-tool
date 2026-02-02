@@ -1,4 +1,10 @@
 import type { CtxType } from "@/server/api/trpc";
+import type { Section, SectionAssignment } from "@prisma/client";
+import type { IframeHTMLAttributes } from "react";
+import {
+  defaultMarginOfErrorShortAllocationHours,
+  defaultMarginOfErrorOverAllocationHours,
+} from "./constants";
 
 export const solverStrategies = ["greedy", "backTracking"] as const;
 export type SolverStrategy = (typeof solverStrategies)[number];
@@ -17,9 +23,9 @@ export const solverStrategyMap: Record<
     fn: solveGreedy,
   },
   backTracking: {
-    label: "Back tracking search",
-    description: "Takes scheduling into account",
-    fn: solveBackTracking,
+    label: "BTS v1",
+    description: "Takes only qualifications into account",
+    fn: solveBackTracking_v1,
   },
 } as const;
 
@@ -35,9 +41,98 @@ function solveGreedy({ staffPreferences, sections }: SolverData) {
   return;
 }
 
-function solveBackTracking({ staffPreferences, sections }: SolverData) {
+function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
   // TODO:
-  return;
+  //  similar to n queens
+  //
+  //  availableStaff(section) = staffPreferences.filter( available staff ).sort( alphabetical )
+  //  solution(section, i) = take from available staff where binaryStr(i)[index of staff] === 1
+  //  find first valid solution on section 1
+  //  check section 2
+  //  if no valid solution, get next available solution on section 1
+  //  if no valid solution left on section 1, return error/empty
+
+  // returns user ids for all available staff for given section
+  function availableStaff(section: Section): string[] {
+    // get all qualifications for section id
+    const sectionId = section.id;
+
+    return staffPreferences
+      .filter((pref) =>
+        pref.qualifiedForSections
+          .map((qualifiedSection) => qualifiedSection.sectionId)
+          .includes(sectionId),
+      )
+      .map((pref) => pref.userId);
+  }
+
+  // returns section solution (array of user ids) corresponding to encoding i
+  function solutionForSection(section: Section, i: number): string[] | null {
+    const binaryStr = i.toString(2);
+    const staffsToTake = binaryStr.split("").reverse();
+    const staffs = availableStaff(section);
+
+    if (staffsToTake.length > staffs.length) {
+      return null;
+    }
+
+    const solution: string[] = [];
+
+    var j = 0;
+    staffsToTake.forEach((binary) => {
+      const staff = staffs[j];
+      if (binary === "1" && staff !== undefined) {
+        solution.push(staff);
+      }
+      j++;
+    });
+
+    // return array of staffIds
+    return solution;
+  }
+
+  // returns next valid solution for section, after solution corresponding to encoding i
+  // a valid solution has all qualified staff and is within hours needed MOE
+  // if no remaining valid solutione exists, returns null
+  function nextValidSolutionForSection(
+    section: Section,
+    i: number,
+  ): [string[], number] | null {
+    var j = i + 1;
+    while (true) {
+      const sol = solutionForSection(section, j);
+      if (sol === null) {
+        return null;
+      }
+
+      var staffHoursInSolution = 0;
+      sol.forEach((userId) => {
+        staffHoursInSolution +=
+          staffPreferences.find((pref) => {
+            pref.user.id === userId;
+          })?.user.hours ?? 0;
+        // TODO catch this case - shouldn't be an issue due to how solution is found, but still should be handled
+      });
+
+      if (
+        staffHoursInSolution >
+          section.requiredHours - defaultMarginOfErrorShortAllocationHours() &&
+        staffHoursInSolution <
+          section.requiredHours + defaultMarginOfErrorOverAllocationHours()
+      ) {
+        return [sol, j];
+      }
+
+      j++;
+    }
+  }
+
+  //  i = 1
+  //  next valid solution for section i
+  //    if good: next valid solution for section i+1
+  //      if good: next valid solution for section i+2
+  //      if bad: next valid solution for section i
+  //    if bad: return error
 }
 
 // the data we feed the solver function
