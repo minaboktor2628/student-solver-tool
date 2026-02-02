@@ -71,7 +71,7 @@ export const SelectAssistantAntipref: React.FC<
                   <div className="flex items-center gap-2">
                     {staff.name}
                     <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                      {/*staff.roles.map((r) => r.role) */}
+                      {staff.roles}
                     </span>
                   </div>
                   <p className="text-muted-foreground text-sm">{staff.email}</p>
