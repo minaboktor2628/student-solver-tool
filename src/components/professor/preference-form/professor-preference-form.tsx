@@ -159,21 +159,26 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
       return console.error("no sections are defined");
     }
 
-    const payload = Object.entries(sections).map(([key, s]) => ({
-      sectionId: s.sectionId,
+    const sectionsPayload = sections.map((section) => {
+      const id = section.sectionId;
+      return {
+        sectionId: id,
+        professorPreference: {
+          preferredStaffId: preferredStaff[id]?.map((a) => a.id) ?? [],
+          avoidedStaffId: avoidedStaff[id]?.map((a) => a.id) ?? [],
+          timesRequired: timesRequired[id] ?? [],
+          comments: comments?.[id] ?? "",
+        },
+      };
+    });
+
+    const payload = {
       professorId: userId,
-      professorPreference: {
-        preferredStaffId: preferredStaff[key]?.map((a) => a.id) ?? [],
-        avoidedStaffId: avoidedStaff[key]?.map((a) => a.id) ?? [],
-        timesRequired: timesRequired[key] ?? [],
-        comments: comments?.[key] ?? "",
-      },
-    }));
+      sections: sectionsPayload,
+    };
 
     console.log("Submitting:", payload);
-    payload.forEach((p) => {
-      mutateSections.mutate(p);
-    });
+    mutateSections.mutate(payload);
   };
 
   return (

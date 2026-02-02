@@ -105,95 +105,106 @@ export const professorFormRoute = createTRPCRouter({
   updateProfessorSectionsForTerm: professorProcedure
     .input(
       z.object({
-        sectionId: z.string(),
         professorId: z.string(),
-        professorPreference: z.object({
-          preferredStaffId: z.array(z.string()),
-          avoidedStaffId: z.array(z.string()),
-          timesRequired: z.array(
-            z.object({
-              hour: z.number(),
-              day: z.enum(["M", "T", "W", "R", "F"]),
+        sections: z.array(
+          z.object({
+            sectionId: z.string(),
+            professorPreference: z.object({
+              preferredStaffId: z.array(z.string()),
+              avoidedStaffId: z.array(z.string()),
+              timesRequired: z.array(
+                z.object({
+                  hour: z.number(),
+                  day: z.enum(["M", "T", "W", "R", "F"]),
+                }),
+              ),
+              comments: z.string(),
             }),
-          ),
-          comments: z.string(),
-        }),
+          }),
+        ),
       }),
     )
-    .mutation(
-      async ({
-        input: { sectionId, professorId, professorPreference },
-        ctx,
-      }) => {
-        const prefStaffList = await ctx.db.user.findMany({
-          where: {
-            id: {
-              in: professorPreference.preferredStaffId,
-            },
-          },
-        });
-        const antiprefStaffList = await ctx.db.user.findMany({
-          where: {
-            id: {
-              in: professorPreference.avoidedStaffId,
-            },
-          },
-        });
-        return await ctx.db.$transaction(async (tx) => {
-          return await tx.section.update({
-            where: {
-              id: sectionId,
-              professorId: professorId,
-            },
-            data: {
-              professorPreference: {
-                upsert: {
-                  create: {
-                    preferredStaff: {
-                      create: prefStaffList.map((u) => ({
-                        staffId: u.id,
-                      })),
+    .mutation(async ({ input, ctx }) => {
+      const { professorId, sections } = input;
+
+      return await ctx.db.$transaction(async (tx) => {
+        return Promise.all(
+          sections.map(async (section) => {
+            const { sectionId, professorPreference } = section;
+
+            return tx.section.update({
+              where: {
+                id: sectionId,
+                professorId: professorId,
+              },
+              data: {
+                professorPreference: {
+                  upsert: {
+                    create: {
+                      preferredStaff: {
+                        create: professorPreference.preferredStaffId.map(
+                          (id: string) => ({
+                            staffId: id,
+                          }),
+                        ),
+                      },
+                      avoidedStaff: {
+                        create: professorPreference.avoidedStaffId.map(
+                          (id: string) => ({
+                            staffId: id,
+                          }),
+                        ),
+                      },
+                      timesRequired: {
+                        create: professorPreference.timesRequired.map(
+                          (t: {
+                            hour: number;
+                            day: "M" | "T" | "W" | "R" | "F";
+                          }) => ({
+                            hour: t.hour,
+                            day: t.day,
+                          }),
+                        ),
+                      },
+                      comments: professorPreference.comments,
                     },
-                    avoidedStaff: {
-                      create: antiprefStaffList.map((u) => ({
-                        staffId: u.id,
-                      })),
+                    update: {
+                      preferredStaff: {
+                        deleteMany: {},
+                        create: professorPreference.preferredStaffId.map(
+                          (id: string) => ({
+                            staffId: id,
+                          }),
+                        ),
+                      },
+                      avoidedStaff: {
+                        deleteMany: {},
+                        create: professorPreference.avoidedStaffId.map(
+                          (id: string) => ({
+                            staffId: id,
+                          }),
+                        ),
+                      },
+                      timesRequired: {
+                        deleteMany: {},
+                        create: professorPreference.timesRequired.map(
+                          (t: {
+                            hour: number;
+                            day: "M" | "T" | "W" | "R" | "F";
+                          }) => ({
+                            hour: t.hour,
+                            day: t.day,
+                          }),
+                        ),
+                      },
+                      comments: professorPreference.comments,
                     },
-                    timesRequired: {
-                      create: professorPreference.timesRequired.map((t) => ({
-                        hour: t.hour,
-                        day: t.day,
-                      })),
-                    },
-                    comments: professorPreference.comments,
-                  },
-                  update: {
-                    preferredStaff: {
-                      deleteMany: {},
-                      create: prefStaffList.map((u) => ({
-                        staffId: u.id,
-                      })),
-                    },
-                    avoidedStaff: {
-                      deleteMany: {},
-                      create: antiprefStaffList.map((u) => ({
-                        staffId: u.id,
-                      })),
-                    },
-                    timesRequired: {
-                      deleteMany: {},
-                      create: professorPreference.timesRequired.map((t) => ({
-                        hour: t.hour,
-                        day: t.day,
-                      })),
-                    },
-                    comments: professorPreference.comments,
                   },
                 },
               },
-            },
-          });
-        });
-      },
-    ),
+            });
+          }),
+        );
+      });
+    }),
 });
