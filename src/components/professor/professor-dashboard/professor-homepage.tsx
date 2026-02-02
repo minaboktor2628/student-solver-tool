@@ -27,7 +27,12 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
   const username = info.professor;
   const deadlineDate = info.term.termProfDueDate;
   if (!deadlineDate) throw new Error("Deadline Date Invalid");
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(true);
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  for (const section of sections) {
+    if (section?.professorPreference.preferredStaff) {
+      setIsSubmitted(true);
+    }
+  }
 
   return (
     <div className="container mx-auto max-w-6xl p-6">
