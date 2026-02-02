@@ -3,7 +3,7 @@ import DashboardContent from "./dashboard-content";
 export default async function DashboardPage() {
   return (
     <>
-      <p>STS Coordinator Dashboard</p>
+      <p data-testid="dashboard-page">STS Coordinator Dashboard</p>
       <DashboardContent />
     </>
   );

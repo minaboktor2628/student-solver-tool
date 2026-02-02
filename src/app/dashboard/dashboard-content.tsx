@@ -432,7 +432,10 @@ export default function DashboardContent() {
         <div className="mb-8">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h1 className="text-foreground mb-2 text-3xl font-bold sm:text-4xl">
+              <h1
+                className="text-foreground mb-2 text-3xl font-bold sm:text-4xl"
+                data-testid="dashboard-heading"
+              >
                 STS Coordinator Dashboard
               </h1>
               <p className="text-muted-foreground text-lg">
