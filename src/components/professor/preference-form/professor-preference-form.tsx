@@ -20,7 +20,6 @@ import { SelectAssistantAntipref } from "./select-assistant-antipref";
 import { SelectRequiredTimes } from "./select-required-times";
 import { FormEntryComments } from "./comment-box";
 import { useTerm } from "@/components/term-combobox";
-// Autoselect the no option for preferences on page load
 
 interface ProfessorPreferenceFormProps {
   userId: string;
@@ -231,6 +230,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                       }),
                     )}
                     preferredStaff={preferredStaff[section.sectionId] ?? []}
+                    avoidedStaff={avoidedStaff[section.sectionId] ?? []}
                     onChange={(sectionId, preferredStaff) =>
                       handlePreferredStaffChange(sectionId, preferredStaff)
                     }
@@ -243,6 +243,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
                         roles: assistant.roles.map((r) => r.role),
                       }),
                     )}
+                    preferredStaff={preferredStaff[section.sectionId] ?? []}
                     avoidedStaff={avoidedStaff[section.sectionId] ?? []}
                     onChange={(sectionId, avoidedStaff) =>
                       handleAvoidedStaffChange(sectionId, avoidedStaff)
