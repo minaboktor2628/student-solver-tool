@@ -31,11 +31,16 @@ type Permissions = {
     dataType: string;
     action: "view";
   };
+  studioEndpoint: {
+    dataType: never;
+    action: "view" | "call";
+  };
 };
 
 const ROLES = {
   COORDINATOR: {
     pages: { view: canViewPage },
+    studioEndpoint: { view: true, call: true },
   },
   PROFESSOR: {
     pages: { view: canViewPage },

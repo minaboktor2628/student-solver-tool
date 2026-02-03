@@ -26,7 +26,7 @@ export function isCoordinator(session: Session | null) {
   return session?.user.roles.some((r) => r === "COORDINATOR");
 }
 
-export function isStudent(session: Session | null) {
+export function isAssistant(session: Session | null) {
   return session?.user.roles.some((r) => r === "TA" || r === "PLA");
 }
 

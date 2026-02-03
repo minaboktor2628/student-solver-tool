@@ -43,6 +43,12 @@ async function main() {
     }),
     prisma.user.create({
       data: {
+        name: "Matthew Ahrens",
+        email: "mahrens@wpi.edu",
+      },
+    }),
+    prisma.user.create({
+      data: {
         name: "Taylor TA",
         email: "ta.taylor@wpi.edu",
         hours: 20,
@@ -84,7 +90,7 @@ async function main() {
       { userId: pla.id, role: Role.PLA },
       { userId: pla2.id, role: Role.PLA },
       { userId: coordinator.id, role: Role.COORDINATOR },
-      { userId: testprof.id, role: Role.PROFESSOR},
+      { userId: testprof.id, role: Role.PROFESSOR },
     ],
   });
 
@@ -125,7 +131,7 @@ async function main() {
   });
 
   // ----- SECTIONS -----
-  const [discrete, algorithms] = await Promise.all([
+  const [discrete, discrete2, algorithms] = await Promise.all([
     prisma.section.create({
       data: {
         termId: term.id,
@@ -139,6 +145,21 @@ async function main() {
         requiredHours: 20,
         academicLevel: AcademicLevel.UNDERGRADUATE,
         meetingPattern: "m t r",
+      },
+    }),
+    prisma.section.create({
+      data: {
+        termId: term.id,
+        courseTitle: "Discrete Mathematics",
+        courseCode: "CS 2022",
+        description: "Intro to discrete math: sets, logic, relations, graphs.",
+        professorId: testprof.id,
+        courseSection: "LO3",
+        enrollment: 80,
+        capacity: 90,
+        requiredHours: 40,
+        academicLevel: AcademicLevel.UNDERGRADUATE,
+        meetingPattern: "m t r f",
       },
     }),
     prisma.section.create({
@@ -212,7 +233,7 @@ async function main() {
   });
 
   // ----- PROFESSOR PREFERENCES FOR DISCRETE -----
- /* const profPref = await prisma.professorPreference.create({
+  /* const profPref = await prisma.professorPreference.create({
     data: {
       sectionId: discrete.id,
       comments: "Need strong discrete background.",
