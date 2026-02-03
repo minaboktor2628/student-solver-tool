@@ -34,53 +34,54 @@ async function main() {
   });
 
   // ----- USERS -----
-  const [professor, ta, pla, pla2, coordinator, testprof] = await Promise.all([
-    prisma.user.create({
-      data: {
-        name: "Prof. Discrete",
-        email: "prof.discrete@wpi.edu",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Matthew Ahrens",
-        email: "mahrens@wpi.edu",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Taylor TA",
-        email: "ta.taylor@wpi.edu",
-        hours: 20,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Pat PLA",
-        email: "pla.pat@wpi.edu",
-        hours: 10,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Mat PLA",
-        email: "pla.mat@wpi.edu",
-        hours: 10,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Casey Coordinator",
-        email: "coordinator.casey@wpi.edu",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Test Professor",
-        email: "testprof@wpi.edu",
-      },
-    }),
-  ]);
+  const [professor, ahrens, ta, pla, pla2, coordinator, testprof] =
+    await Promise.all([
+      prisma.user.create({
+        data: {
+          name: "Prof. Discrete",
+          email: "prof.discrete@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Matthew Ahrens",
+          email: "mahrens@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Taylor TA",
+          email: "ta.taylor@wpi.edu",
+          hours: 20,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Pat PLA",
+          email: "pla.pat@wpi.edu",
+          hours: 10,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Mat PLA",
+          email: "pla.mat@wpi.edu",
+          hours: 10,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Casey Coordinator",
+          email: "coordinator.casey@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Test Professor",
+          email: "testprof@wpi.edu",
+        },
+      }),
+    ]);
 
   // ----- ROLES -----
   await prisma.userRole.createMany({

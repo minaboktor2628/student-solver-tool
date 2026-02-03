@@ -27,7 +27,17 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
   const username = info.professor;
   const deadlineDate = info.term.termProfDueDate;
   if (!deadlineDate) throw new Error("Deadline Date Invalid");
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(true);
+  const isSubmitted = sections.some((section) => {
+    const pref = section.professorPreference;
+
+    return !!(
+      pref &&
+      ((pref.preferredStaff && pref.preferredStaff.length > 0) ??
+        (pref.avoidedStaff && pref.avoidedStaff.length > 0) ??
+        (pref.timesRequired && pref.timesRequired.length > 0) ??
+        (pref.comments && pref.comments.trim() !== ""))
+    );
+  });
 
   return (
     <div className="container mx-auto max-w-6xl p-6">
