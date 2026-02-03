@@ -32,6 +32,7 @@ import {
 import { UploadAllowedUsersForm } from "./upload-allowed-users-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
 
 // TODO: make this paginated
 export function TermTable() {
@@ -42,17 +43,26 @@ export function TermTable() {
     onSuccess: async () => {
       await utils.term.getTermStats.invalidate();
     },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
 
   const activateTerm = api.term.activateTerm.useMutation({
     onSuccess: async () => {
       await utils.term.getTermStats.invalidate();
     },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
 
   const deactivateTerm = api.term.deactivateTerm.useMutation({
     onSuccess: async () => {
       await utils.term.getTermStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
     },
   });
 
