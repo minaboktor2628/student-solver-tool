@@ -49,7 +49,7 @@ model Term {
 
   staffPreferences StaffPreference[]
   sections         Section[]
-  allowedEmails    AllowedEmail[] // This term's available PLAs/TAs/Professors
+  allowedUsers     AllowedTermUser[] // This term's available PLAs/TAs/Professors
 
   termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
   termProfessorDueDate DateTime // When professors should have their preferences submitted by
@@ -212,7 +212,6 @@ model User {
   name          String?
   email         String?    @unique
   emailVerified DateTime?
-  image         String?
   accounts      Account[]
   sessions      Session[]
   roles         UserRole[]
@@ -225,7 +224,8 @@ model User {
   avoidedInCourses   ProfessorPreferenceAvoidedStaff[]   @relation("ProfPrefAvoidedStaff")
 
   // professor specific
-  teaches Section[] @relation("TeachesSections")
+  teaches          Section[]         @relation("TeachesSections")
+  AllowedTermUsers AllowedTermUser[]
 }
 
 model UserRole {
@@ -236,17 +236,14 @@ model UserRole {
   @@id([userId, role])
 }
 
-model AllowedEmail {
-  id    String @id @default(cuid())
-  email String
-  role  Role
+model AllowedTermUser {
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
 
-  term   Term?   @relation(fields: [termId], references: [id], onDelete: Cascade)
-  termId String?
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String
 
-  @@unique([email, role, termId])
-  @@unique([email, role])
-  @@index([email])
+  @@id([termId, userId])
 }
 
 model Account {

@@ -15,22 +15,19 @@ const devCredentialsProvider = Credentials({
 
     if (!(pwd in testingPasswordMap)) return null;
     const roles = testingPasswordMap[pwd];
-    if (!roles) return null;
+    if (!roles || roles.length === 0) return null;
 
     const email = `${pwd}@wpi.edu`;
 
     const user = await db.$transaction(async (tx) => {
-      for (const role of roles) {
-        await tx.allowedEmail.upsert({
-          where: { email_role: { email, role } },
-          create: { email, role },
-          update: {},
-        });
+      const term = await tx.term.findFirst({ where: { active: true } });
+      if (!term) {
+        throw new Error(
+          "No active term found for dev credentials login. make one as a coordinator first",
+        );
       }
-      await tx.allowedEmail.deleteMany({
-        where: { email, role: { notIn: roles } },
-      });
 
+      // Upsert the user and their roles
       const u = await tx.user.upsert({
         where: { email },
         create: {
@@ -45,6 +42,21 @@ const devCredentialsProvider = Credentials({
           },
         },
         include: { roles: true },
+      });
+
+      // Make sure they are allowed to log in for the active term
+      await tx.allowedTermUser.upsert({
+        where: {
+          termId_userId: {
+            termId: term.id,
+            userId: u.id,
+          },
+        },
+        create: {
+          termId: term.id,
+          userId: u.id,
+        },
+        update: {},
       });
 
       return u;

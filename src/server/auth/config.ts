@@ -99,48 +99,83 @@ export const authConfig = {
   },
 } satisfies NextAuthConfig;
 
-export async function getAllowedRolesForEmail(email: string) {
-  // Pull the roles this email is allowed to have from db
-  const allowed = await db.allowedEmail
-    .findMany({
-      where: { email },
-      select: { role: true },
-    })
-    .then((entries) => entries.map((entry) => entry.role));
-
-  // Append coordinator role (from env, not in db)
-  if (env.COORDINATOR_EMAILS.includes(email)) {
-    allowed.push("COORDINATOR");
-  }
-
-  // dedupe
-  return [...new Set(allowed)];
-}
-
-/** Assign roles to a user (create missing, remove extras) */
+/** Ensure the DB roles align with getAllowedRolesForEmail (esp. coordinator) */
 export async function syncUserRoles(userId: string, email: string) {
   const allowed = await getAllowedRolesForEmail(email);
   if (allowed.length === 0) return allowed;
 
   await db.$transaction(async (tx) => {
-    // remove roles no longer allowed
-    await tx.userRole.deleteMany({
-      where: { userId, NOT: { role: { in: allowed } } },
-    });
-
-    // add missing roles
     const existing = await tx.userRole.findMany({
       where: { userId },
       select: { role: true },
     });
+
     const existingSet = new Set(existing.map((e) => e.role));
     const toAdd = allowed.filter((r) => !existingSet.has(r));
+
     if (toAdd.length) {
       await tx.userRole.createMany({
         data: toAdd.map((role) => ({ userId, role })),
       });
     }
+
+    // remove roles no longer allowed
+    await tx.userRole.deleteMany({
+      where: { userId, NOT: { role: { in: allowed } } },
+    });
   });
 
   return allowed;
+}
+
+function isCoordinatorEmail(email: string) {
+  return env.COORDINATOR_EMAILS.includes(email);
+}
+
+async function getActiveTerm() {
+  return db.term.findFirst({
+    where: { active: true },
+  });
+}
+
+export async function getAllowedRolesForEmail(email: string): Promise<Role[]> {
+  const coordinator = isCoordinatorEmail(email);
+
+  const [user, activeTerm] = await Promise.all([
+    db.user.findUnique({
+      where: { email },
+      include: {
+        roles: true,
+        AllowedTermUsers: true,
+      },
+    }),
+    getActiveTerm(),
+  ]);
+
+  // No user record yet
+  if (!user) {
+    // Let coordinators in even before they have roles in DB
+    return coordinator ? (["COORDINATOR"] as Role[]) : [];
+  }
+
+  // Non-coordinator must be allowed for the active term
+  if (!coordinator) {
+    if (!activeTerm) return [];
+
+    const allowedThisTerm = user.AllowedTermUsers.some(
+      (rel) => rel.termId === activeTerm.id,
+    );
+    if (!allowedThisTerm) return [];
+  }
+
+  // Base roles from UserRole table
+  const roles = user.roles.map((r) => r.role);
+
+  // Add COORDINATOR role if this is a coordinator email
+  if (coordinator && !roles.includes("COORDINATOR")) {
+    roles.push("COORDINATOR");
+  }
+
+  // Dedupe
+  return [...new Set(roles)];
 }
