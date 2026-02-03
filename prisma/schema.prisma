@@ -224,7 +224,8 @@ model User {
   avoidedInCourses   ProfessorPreferenceAvoidedStaff[]   @relation("ProfPrefAvoidedStaff")
 
   // professor specific
-  teaches          Section[]         @relation("TeachesSections")
+  teaches Section[] @relation("TeachesSections")
+
   AllowedTermUsers AllowedTermUser[]
 }
 
