@@ -21,6 +21,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { GlobalErrorBoundary } from "@/components/global-error-boundry";
 import { GlobalSuspense } from "@/components/global-suspense";
 import { TermProvider } from "@/components/term-combobox";
+import { AnyQueryFetchingSpinner } from "@/components/header-spinner";
 
 export const metadata: Metadata = {
   title: "STS",
@@ -64,6 +65,7 @@ export default async function RootLayout({
                           className="mr-2 data-[orientation=vertical]:h-4"
                         />
                         <HeaderBreadcrumbs />
+                        <AnyQueryFetchingSpinner />
                       </div>
                       <div className="px-2">
                         <ModeToggle />
