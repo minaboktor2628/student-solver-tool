@@ -80,7 +80,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
 
       {wantsSpecificAssistants && (
         <div>
-          {preferredStaff && (
+          {preferredStaff && preferredStaff.length > 0 && (
             <div className="border-t pt-2">
               <Label className="text-sm font-medium">
                 List of preferred assistants
