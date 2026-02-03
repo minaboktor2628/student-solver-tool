@@ -80,7 +80,7 @@ export const SelectAssistantAntipref: React.FC<
       {wantsAntiPreferences && (
         <div>
           {avoidedStaff && avoidedStaff.length > 0 && (
-            <div className="border-t pt-2">
+            <div className="pt-2">
               <Label className="text-sm font-medium">
                 List of avoided assistants
               </Label>

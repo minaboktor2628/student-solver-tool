@@ -81,7 +81,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
       {wantsSpecificAssistants && (
         <div>
           {preferredStaff && preferredStaff.length > 0 && (
-            <div className="border-t pt-2">
+            <div className="pt-2">
               <Label className="text-sm font-medium">
                 List of preferred assistants
               </Label>
@@ -106,7 +106,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
               })}
             </div>
           )}
-          <div className="space-y-3 border-t pt-2">
+          <div className="space-y-3 pt-2">
             <Label className="text-sm font-medium">
               Select your preferred assistants
             </Label>
