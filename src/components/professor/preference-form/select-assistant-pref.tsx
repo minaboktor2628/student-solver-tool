@@ -46,7 +46,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
       const email = normalize(s.email ?? "");
       return tokens.every((t) => name.includes(t) || email.includes(t));
     });
-  }, [availableAssistants, searchTerm]);
+  }, [availableAssistants, avoidedStaff, searchTerm]);
 
   return (
     <div className="p-4 shadow-sm">
