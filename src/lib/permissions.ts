@@ -35,21 +35,68 @@ type Permissions = {
     dataType: never;
     action: "view" | "call";
   };
+  staffPreferenceForm: {
+    dataType: { id: string };
+    action: "viewActiveTerm" | "viewHistory" | "update" | "create";
+  };
+  professorPreferenceForm: {
+    dataType: { id: string };
+    action: "viewActiveTerm" | "viewHistory" | "update" | "create";
+  };
 };
 
 const ROLES = {
   COORDINATOR: {
     pages: { view: canViewPage },
     studioEndpoint: { view: true, call: true },
+    staffPreferenceForm: {
+      create: true,
+      update: true,
+      viewActiveTerm: true,
+      viewHistory: true,
+    },
+    professorPreferenceForm: {
+      create: true,
+      update: true,
+      viewHistory: true,
+      viewActiveTerm: true,
+    },
   },
   PROFESSOR: {
     pages: { view: canViewPage },
+    professorPreferenceForm: {
+      create: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      update: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      viewActiveTerm: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      viewHistory: (user, data) => data.id === user.id,
+    },
   },
   TA: {
     pages: { view: canViewPage },
+    staffPreferenceForm: {
+      create: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      update: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      viewActiveTerm: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      viewHistory: (user, data) => data.id === user.id,
+    },
   },
   PLA: {
     pages: { view: canViewPage },
+    staffPreferenceForm: {
+      create: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      update: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      viewActiveTerm: (user, data) =>
+        data.id === user.id && user.allowedInActiveTerm === true,
+      viewHistory: (user, data) => data.id === user.id,
+    },
   },
   GLA: {
     pages: { view: canViewPage },
