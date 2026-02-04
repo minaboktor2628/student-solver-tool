@@ -34,47 +34,69 @@ async function main() {
   });
 
   // ----- USERS -----
-  const [professor, prof2, ta, pla, pla2, coordinator] = await Promise.all([
-    prisma.user.create({
-      data: {
-        name: "Prof. Discrete",
-        email: "prof.discrete@wpi.edu",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Matthew Ahrens",
-        email: "mahrens@wpi.edu",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Taylor TA",
-        email: "ta.taylor@wpi.edu",
-        hours: 20,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Pat PLA",
-        email: "pla.pat@wpi.edu",
-        hours: 10,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Mat PLA",
-        email: "pla.mat@wpi.edu",
-        hours: 10,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Casey Coordinator",
-        email: "coordinator.casey@wpi.edu",
-      },
-    }),
-  ]);
+  const [professor, prof2, ta, pla, pla2, dta2, dta3, coordinator] =
+    await Promise.all([
+      prisma.user.create({
+        data: {
+          name: "Prof. Discrete",
+          email: "prof.discrete@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Matthew Ahrens",
+          email: "mahrens@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Taylor TA",
+          email: "ta.taylor@wpi.edu",
+          hours: 20,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Pat PLA",
+          email: "pla.pat@wpi.edu",
+          hours: 10,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Mat PLA",
+          email: "pla.mat@wpi.edu",
+          hours: 10,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Discrete PLA",
+          email: "pla.discrete@wpi.edu",
+          hours: 10,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Discrete2 TA",
+          email: "ta.discrete2@wpi.edu",
+          hours: 20,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Discrete3 TA",
+          email: "ta.discrete3@wpi.edu",
+          hours: 20,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Casey Coordinator",
+          email: "coordinator.casey@wpi.edu",
+        },
+      }),
+    ]);
 
   // ----- ROLES -----
   await prisma.userRole.createMany({
@@ -83,6 +105,8 @@ async function main() {
       { userId: ta.id, role: Role.TA },
       { userId: pla.id, role: Role.PLA },
       { userId: pla2.id, role: Role.PLA },
+      { userId: dta2.id, role: Role.TA },
+      { userId: dta3.id, role: Role.TA },
       { userId: coordinator.id, role: Role.COORDINATOR },
     ],
   });
@@ -108,6 +132,16 @@ async function main() {
       {
         email: pla2.email!,
         role: Role.PLA,
+        termId: term.id,
+      },
+      {
+        email: dta2.email!,
+        role: Role.TA,
+        termId: term.id,
+      },
+      {
+        email: dta3.email!,
+        role: Role.TA,
         termId: term.id,
       },
       {
@@ -192,7 +226,55 @@ async function main() {
       preferredSections: true,
     },
   });
+  const dta2StaffPref = await prisma.staffPreference.create({
+    data: {
+      userId: dta2.id,
+      termId: term.id,
+      comments: "",
+      isAvailableForTerm: true,
+      timesAvailable: {
+        create: [{ day: "F", hour: 12 }],
+      },
+      qualifiedForSections: {
+        create: [{ sectionId: discrete2.id }, { sectionId: discrete.id }],
+      },
+      preferredSections: {
+        create: [
+          { sectionId: discrete.id, rank: "PREFER" },
+          { sectionId: algorithms.id, rank: "STRONGLY_PREFER" },
+        ],
+      },
+    },
+    include: {
+      qualifiedForSections: true,
+      preferredSections: true,
+    },
+  });
 
+  const dta3StaffPref = await prisma.staffPreference.create({
+    data: {
+      userId: dta3.id,
+      termId: term.id,
+      comments: "Prefer morning labs.",
+      isAvailableForTerm: true,
+      timesAvailable: {
+        create: [{ day: "F", hour: 12 }],
+      },
+      qualifiedForSections: {
+        create: [{ sectionId: discrete2.id }, { sectionId: discrete.id }],
+      },
+      preferredSections: {
+        create: [
+          { sectionId: discrete.id, rank: "PREFER" },
+          { sectionId: algorithms.id, rank: "STRONGLY_PREFER" },
+        ],
+      },
+    },
+    include: {
+      qualifiedForSections: true,
+      preferredSections: true,
+    },
+  });
   // ----- STAFF PREFERENCES (PLA) -----
   const plaStaffPref = await prisma.staffPreference.create({
     data: {

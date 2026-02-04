@@ -58,6 +58,13 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
     const sectionId = section.id;
 
     return staffPreferences
+      .sort((pref, pref2) =>
+        (pref.user.name ?? "") < (pref2.user.name ?? "")
+          ? -1
+          : (pref.user.name ?? "") > (pref2.user.name ?? "")
+            ? 1
+            : 0,
+      )
       .filter((pref) =>
         pref.qualifiedForSections
           .map((qualifiedSection) => qualifiedSection.sectionId)
@@ -108,23 +115,70 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
       var staffHoursInSolution = 0;
       sol.forEach((userId) => {
         staffHoursInSolution +=
-          staffPreferences.find((pref) => {
-            pref.user.id === userId;
-          })?.user.hours ?? 0;
+          staffPreferences.find((pref) => pref.user.id === userId)?.user
+            .hours ?? 0;
         // TODO catch this case - shouldn't be an issue due to how solution is found, but still should be handled
       });
 
+      // hours good check
       if (
-        staffHoursInSolution >
-          section.requiredHours - defaultMarginOfErrorShortAllocationHours() &&
-        staffHoursInSolution <
-          section.requiredHours + defaultMarginOfErrorOverAllocationHours()
+        !(
+          staffHoursInSolution >
+            section.requiredHours -
+              defaultMarginOfErrorShortAllocationHours() &&
+          staffHoursInSolution <
+            section.requiredHours + defaultMarginOfErrorOverAllocationHours()
+        )
       ) {
-        return [sol, j];
+        //staff good check
+        if (!sol.map((userId) => isStaffAlreadyAssigned(userId)).includes(true))
+          return [sol, j];
       }
 
       j++;
     }
+  }
+
+  function isStaffAlreadyAssigned(userId: string): boolean {
+    for (const [_, staffIds] of solution) {
+      if (staffIds.includes(userId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function backtrack(sectionIdx: number): boolean {
+    // base case: all sections assigned
+    if (sectionIdx >= sections.length) {
+      return true;
+    }
+
+    const section = sections[sectionIdx];
+    if (!section) return false;
+
+    const currentIndex = sectionIndices.get(section.id) ?? 0;
+    const result = nextValidSolutionForSection(section, currentIndex);
+
+    // no more valid solutions, backtrack
+    if (result === null) {
+      sectionIndices.set(section.id, 0);
+      solution.delete(section.id);
+      return false;
+    }
+
+    const [staffIds, newSectionIndex] = result;
+
+    solution.set(section.id, staffIds);
+    sectionIndices.set(section.id, newSectionIndex);
+
+    if (backtrack(sectionIdx + 1)) {
+      return true;
+    }
+
+    // Try next solution for this section before giving up
+    solution.delete(section.id);
+    return backtrack(sectionIdx);
   }
 
   //  i = 1
@@ -133,6 +187,25 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
   //      if good: next valid solution for section i+2
   //      if bad: next valid solution for section i
   //    if bad: return error
+  const solution: Map<string, string[]> = new Map();
+  const sectionIndices: Map<string, number> = new Map();
+
+  sections.forEach((section) => {
+    sectionIndices.set(section.id, 0);
+  });
+
+  const success = backtrack(0);
+
+  if (success) {
+    console.log("solution found!: ");
+    solution.forEach((staffIds, sectionId) => {
+      console.log(`Section ${sectionId}: ${staffIds.join(", ")}`);
+    });
+  } else {
+    console.log("No solution found!");
+  }
+
+  // TODO post assignments to db
 }
 
 // the data we feed the solver function
