@@ -12,7 +12,7 @@ async function main() {
     prisma.staffPreferencePreferredSection.deleteMany(),
     prisma.staffPreferenceQualifiedSection.deleteMany(),
     prisma.staffPreference.deleteMany(),
-    prisma.allowedEmail.deleteMany(),
+    prisma.allowedTermUser.deleteMany(),
     prisma.userRole.deleteMany(),
     prisma.section.deleteMany(),
     prisma.term.deleteMany(),
@@ -34,11 +34,17 @@ async function main() {
   });
 
   // ----- USERS -----
-  const [professor, ta, pla, pla2, coordinator] = await Promise.all([
+  const [professor, prof2, ta, pla, pla2, coordinator] = await Promise.all([
     prisma.user.create({
       data: {
         name: "Prof. Discrete",
         email: "prof.discrete@wpi.edu",
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Matthew Ahrens",
+        email: "mahrens@wpi.edu",
       },
     }),
     prisma.user.create({
@@ -82,38 +88,33 @@ async function main() {
   });
 
   // ----- ALLOWED EMAILS FOR THIS TERM -----
-  await prisma.allowedEmail.createMany({
+  await prisma.allowedTermUser.createMany({
     data: [
       {
-        email: professor.email!,
-        role: Role.PROFESSOR,
+        userId: professor.id,
         termId: term.id,
       },
       {
-        email: ta.email!,
-        role: Role.TA,
+        userId: ta.id,
         termId: term.id,
       },
       {
-        email: pla.email!,
-        role: Role.PLA,
+        userId: pla.id,
         termId: term.id,
       },
       {
-        email: pla2.email!,
-        role: Role.PLA,
+        userId: pla2.id,
         termId: term.id,
       },
       {
-        email: coordinator.email!,
-        role: Role.COORDINATOR,
+        userId: coordinator.id,
         termId: term.id,
       },
     ],
   });
 
   // ----- SECTIONS -----
-  const [discrete, algorithms] = await Promise.all([
+  const [discrete, discrete2, algorithms] = await Promise.all([
     prisma.section.create({
       data: {
         termId: term.id,
@@ -127,6 +128,21 @@ async function main() {
         requiredHours: 20,
         academicLevel: AcademicLevel.UNDERGRADUATE,
         meetingPattern: "m t r",
+      },
+    }),
+    prisma.section.create({
+      data: {
+        termId: term.id,
+        courseTitle: "Discrete Mathematics",
+        courseCode: "CS 2022",
+        description: "Intro to discrete math: sets, logic, relations, graphs.",
+        professorId: prof2.id,
+        courseSection: "LO3",
+        enrollment: 80,
+        capacity: 90,
+        requiredHours: 40,
+        academicLevel: AcademicLevel.UNDERGRADUATE,
+        meetingPattern: "m t r f",
       },
     }),
     prisma.section.create({

@@ -49,7 +49,7 @@ model Term {
 
   staffPreferences StaffPreference[]
   sections         Section[]
-  allowedEmails    AllowedEmail[] // This term's available PLAs/TAs/Professors
+  allowedUsers     AllowedTermUser[] // This term's available PLAs/TAs/Professors
 
   termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
   termProfessorDueDate DateTime // When professors should have their preferences submitted by
@@ -69,6 +69,8 @@ model StaffPreference {
   // Associated term
   term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
   termId String
+
+  isAvailableForTerm Boolean @default(false) // Whether the staff is available to work this term at all
 
   timesAvailable StaffAvailableHour[]
   canEdit        Boolean              @default(true) // Has ability to still modify their preferences or not
@@ -106,7 +108,6 @@ model StaffPreferencePreferredSection {
   sectionId String
 
   @@id([staffPreferenceId, sectionId])
-  @@unique([staffPreferenceId, rank])
 }
 
 // Which staff (users) are actually assigned to a section
@@ -211,7 +212,6 @@ model User {
   name          String?
   email         String?    @unique
   emailVerified DateTime?
-  image         String?
   accounts      Account[]
   sessions      Session[]
   roles         UserRole[]
@@ -225,6 +225,8 @@ model User {
 
   // professor specific
   teaches Section[] @relation("TeachesSections")
+
+  AllowedTermUsers AllowedTermUser[]
 }
 
 model UserRole {
@@ -235,17 +237,14 @@ model UserRole {
   @@id([userId, role])
 }
 
-model AllowedEmail {
-  id    String @id @default(cuid())
-  email String
-  role  Role
+model AllowedTermUser {
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
 
-  term   Term?   @relation(fields: [termId], references: [id], onDelete: Cascade)
-  termId String?
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String
 
-  @@unique([email, role, termId])
-  @@unique([email, role])
-  @@index([email])
+  @@id([termId, userId])
 }
 
 model Account {
