@@ -1,9 +1,26 @@
 /* Staff related endpoints */
-/* Staff related endpoints */
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { type Role } from "@prisma/client";
+
+type StaffMember = {
+  id: string;
+  name: string;
+  email: string;
+  hours: number;
+  roles: Role[];
+  comments: string | null;
+  timesAvailable: unknown[];
+  preferedSections: unknown[];
+  locked: boolean;
+  assignedSection: { id: string; code: string } | undefined;
+  flags: {
+    qualifiedForThisSection: boolean;
+    notAvoidedByProfessor: boolean;
+    availableThisTerm: boolean;
+  };
+};
 
 export const staffRoute = createTRPCRouter({
   getStaffForSection: coordinatorProcedure
@@ -114,7 +131,7 @@ export const staffRoute = createTRPCRouter({
           );
           const avoidedByProfessor = (u.avoidedInCourses?.length ?? 0) > 0;
 
-          return {
+          const mappedUser = {
             id: u.id ?? "",
             name: u.name ?? "",
             email: u.email ?? "",
@@ -130,7 +147,24 @@ export const staffRoute = createTRPCRouter({
               // fill availableThisTerm after we know assignments
               availableThisTerm: true,
             },
+          } as const satisfies {
+            id: string;
+            name: string;
+            email: string;
+            hours: number;
+            roles: Role[];
+            comments: string;
+            timesAvailable: unknown[];
+            preferedSections: unknown[];
+            locked: boolean;
+            flags: {
+              qualifiedForThisSection: boolean;
+              notAvoidedByProfessor: boolean;
+              availableThisTerm: boolean;
+            };
           };
+
+          return mappedUser;
         });
 
         if (users.length === 0) {
@@ -180,13 +214,29 @@ export const staffRoute = createTRPCRouter({
                 ...u.flags,
                 availableThisTerm: !assignedSection,
               },
+            } as const satisfies {
+              id: string;
+              name: string;
+              email: string;
+              hours: number;
+              roles: Role[];
+              comments: string;
+              timesAvailable: unknown[];
+              preferedSections: unknown[];
+              locked: boolean;
+              assignedSection: { id: string; code: string } | undefined;
+              flags: {
+                qualifiedForThisSection: boolean;
+                notAvoidedByProfessor: boolean;
+                availableThisTerm: boolean;
+              };
             };
           })
           .sort((a, b) => {
             // Sort so that true (available) comes before false (not available)
             if (a.assignedSection === b.assignedSection) return 0;
             return a.assignedSection ? 1 : -1;
-          });
+          }) as StaffMember[];
 
         return { staff };
       });

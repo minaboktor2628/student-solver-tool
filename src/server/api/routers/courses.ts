@@ -139,9 +139,9 @@ export const courseRoute = createTRPCRouter({
 
             return {
               id: s.staff.id,
-              name: s.staff.name,
-              email: s.staff.email,
-              hours: s.staff.hours,
+              name: s.staff.name ?? "",
+              email: s.staff.email ?? "",
+              hours: s.staff.hours ?? 0,
               roles: s.staff.roles.map((r) => r.role),
               assignedSection: {
                 id: c.id,
