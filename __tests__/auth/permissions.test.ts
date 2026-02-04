@@ -3,7 +3,12 @@ import type { User } from "next-auth";
 import { hasPermission } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 
-const U = (roles: Role[]): User => ({ id: "u", email: "t@wpi.edu", roles });
+const U = (roles: Role[]): User => ({
+  id: "u",
+  email: "t@wpi.edu",
+  roles,
+  allowedInActiveTerm: true,
+});
 
 describe("permissions", () => {
   it("coordinator can view /, /about, /dashboard and nested dashboard routes", () => {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { hasPermission } from "@/lib/permissions";
 
 /**
  * Router: studentFormRoute
@@ -80,9 +81,11 @@ export const studentFormRoute = createTRPCRouter({
     .input(baseInput)
     .query(async ({ input: { userId, termId }, ctx }) => {
       if (
-        !(
-          ctx.session.user.roles.includes("COORDINATOR") ||
-          ctx.session.user.id === userId
+        !hasPermission(
+          ctx.session.user,
+          "staffPreferenceForm",
+          "viewActiveTerm",
+          { id: userId },
         )
       ) {
         throw new TRPCError({
@@ -158,10 +161,9 @@ export const studentFormRoute = createTRPCRouter({
         ctx,
       }) => {
         if (
-          !(
-            ctx.session.user.roles.includes("COORDINATOR") ||
-            ctx.session.user.id === userId
-          )
+          !hasPermission(ctx.session.user, "staffPreferenceForm", "create", {
+            id: userId,
+          })
         ) {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -302,6 +304,17 @@ export const studentFormRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input: { userId, termId, isAvailable }, ctx }) => {
+      if (
+        !hasPermission(ctx.session.user, "staffPreferenceForm", "create", {
+          id: userId,
+        })
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
+
       const result = await ctx.db.staffPreference.updateMany({
         where: { userId, termId },
         data: { isAvailableForTerm: isAvailable },
