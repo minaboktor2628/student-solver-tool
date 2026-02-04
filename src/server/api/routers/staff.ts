@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { type Role } from "@prisma/client";
+import { type Role, type Day } from "@prisma/client";
 
 type StaffMember = {
   id: string;
@@ -11,8 +11,16 @@ type StaffMember = {
   hours: number;
   roles: Role[];
   comments: string | null;
-  timesAvailable: unknown[];
-  preferedSections: unknown[];
+  timesAvailable: Array<{ day: Day; hour: number }>;
+  preferedSections: Array<{
+    rank: number;
+    section: {
+      id: string;
+      courseTitle: string;
+      courseCode: string;
+      courseSection: string;
+    };
+  }>;
   locked: boolean;
   assignedSection: { id: string; code: string } | undefined;
   flags: {
@@ -154,8 +162,16 @@ export const staffRoute = createTRPCRouter({
             hours: number;
             roles: Role[];
             comments: string;
-            timesAvailable: unknown[];
-            preferedSections: unknown[];
+            timesAvailable: Array<{ day: Day; hour: number }>;
+            preferedSections: Array<{
+              rank: number;
+              section: {
+                id: string;
+                courseTitle: string;
+                courseCode: string;
+                courseSection: string;
+              };
+            }>;
             locked: boolean;
             flags: {
               qualifiedForThisSection: boolean;
@@ -221,8 +237,16 @@ export const staffRoute = createTRPCRouter({
               hours: number;
               roles: Role[];
               comments: string;
-              timesAvailable: unknown[];
-              preferedSections: unknown[];
+              timesAvailable: Array<{ day: Day; hour: number }>;
+              preferedSections: Array<{
+                rank: number;
+                section: {
+                  id: string;
+                  courseTitle: string;
+                  courseCode: string;
+                  courseSection: string;
+                };
+              }>;
               locked: boolean;
               assignedSection: { id: string; code: string } | undefined;
               flags: {
