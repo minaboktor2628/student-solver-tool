@@ -26,7 +26,7 @@ export const staffRoute = createTRPCRouter({
         const { termId } = section;
 
         // Qualified (by existence in this table) + dynamic user filters
-        const staffPreferences = await tx.staffPreference.findMany({
+        const staffPreferencesRaw = await tx.staffPreference.findMany({
           where: {
             termId,
             isAvailableForTerm: true,
@@ -79,23 +79,50 @@ export const staffRoute = createTRPCRouter({
           },
         });
 
+        // Type the result properly to avoid repeated type assertions
+        type StaffPreferenceWithRelations =
+          typeof staffPreferencesRaw extends Array<infer T> ? T : never;
+        const staffPreferences = staffPreferencesRaw as Array<
+          StaffPreferenceWithRelations & {
+            user: {
+              id: string;
+              name: string | null;
+              email: string | null;
+              hours: number | null;
+              roles: Array<{ role: Role }>;
+              avoidedInCourses: unknown[];
+            };
+            qualifiedForSections: Array<{ sectionId: string }>;
+            preferredSections: Array<{
+              rank: number;
+              section: {
+                id: string;
+                courseTitle: string;
+                courseCode: string;
+                courseSection: string;
+              };
+            }>;
+            timesAvailable: Array<{ day: string; hour: number }>;
+          }
+        >;
+
         // Flatten users + roles
         const users = staffPreferences.map((sp) => {
           const u = sp.user;
           const qualifiedForThisSection = sp.qualifiedForSections.some(
             (q) => q.sectionId === sectionId,
           );
-          const avoidedByProfessor = u.avoidedInCourses.length > 0;
+          const avoidedByProfessor = (u.avoidedInCourses?.length ?? 0) > 0;
 
           return {
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            hours: u.hours,
-            roles: u.roles.map((r) => r.role),
-            comments: sp.comments,
-            timesAvailable: sp.timesAvailable,
-            preferedSections: sp.preferredSections,
+            id: u.id ?? "",
+            name: u.name ?? "",
+            email: u.email ?? "",
+            hours: u.hours ?? 0,
+            roles: (u.roles ?? []).map((r) => r.role),
+            comments: sp.comments ?? "",
+            timesAvailable: sp.timesAvailable ?? [],
+            preferedSections: sp.preferredSections ?? [],
             locked: false,
             flags: {
               qualifiedForThisSection,

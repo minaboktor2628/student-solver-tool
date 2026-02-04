@@ -6,6 +6,7 @@ import {
   DatabaseIcon,
   HomeIcon,
   InfoIcon,
+  ScanFaceIcon,
   UsersIcon,
   UserStarIcon,
   type LucideProps,

@@ -40,7 +40,7 @@ export const termRoute = createTRPCRouter({
     const terms = await ctx.db.term.findMany({
       include: {
         sections: true,
-        allowedEmails: true,
+        allowedUsers: true,
       },
       orderBy: [{ year: "desc" }, { termLetter: "desc" }],
     });
@@ -53,8 +53,8 @@ export const termRoute = createTRPCRouter({
         year: term.year,
         staffDueDate: term.termStaffDueDate.toISOString(),
         professorDueDate: term.termProfessorDueDate.toISOString(),
-        courseCount: term.sections.length,
-        peopleCount: term.allowedEmails.length,
+        courseCount: term.sections?.length ?? 0,
+        peopleCount: term.allowedUsers?.length ?? 0,
         active: term.active,
       })),
     };
@@ -133,16 +133,22 @@ export const termRoute = createTRPCRouter({
         },
       });
 
-      // Create allowed emails
+      // Create allowed users
       if (csvData && Array.isArray(csvData)) {
         for (const row of csvData) {
-          await ctx.db.allowedEmail.create({
-            data: {
-              email: row.email,
-              role: row.role,
-              termId: term.id,
-            },
+          // Find user by email
+          const user = await ctx.db.user.findUnique({
+            where: { email: row.email },
           });
+
+          if (user) {
+            await ctx.db.allowedTermUser.create({
+              data: {
+                userId: user.id,
+                termId: term.id,
+              },
+            });
+          }
         }
       }
 
