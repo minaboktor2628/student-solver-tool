@@ -18,13 +18,14 @@ declare module "next-auth" {
     user: {
       id: string;
       roles: Role[];
+      allowedInActiveTerm?: boolean; // whether the user has been added by the coordinator as a participant in this term
     } & DefaultSession["user"];
   }
 
   interface User {
     id: string;
     roles?: Role[];
-    allowedInActiveTerm: boolean; // whether the user has been added by the coordinator as a participant in this term
+    allowedInActiveTerm?: boolean;
   }
 }
 
@@ -32,7 +33,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     roles?: Role[];
-    allowedInActiveTerm: boolean;
+    allowedInActiveTerm?: boolean;
   }
 }
 
