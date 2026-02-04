@@ -65,6 +65,7 @@ const devCredentialsProvider = Credentials({
     return {
       ...user,
       roles: user.roles.map((r) => r.role),
+      allowedInActiveTerm: true,
     };
   },
 });
@@ -78,6 +79,7 @@ const microsoftProvider = MicrosoftEntraID({
       id: profile.sub,
       name: profile.name,
       email: profile.email,
+      allowedInActiveTerm: false,
     };
   },
 });
