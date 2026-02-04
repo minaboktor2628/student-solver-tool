@@ -41,7 +41,7 @@ export const termRoute = createTRPCRouter({
     const terms = await ctx.db.term.findMany({
       include: {
         sections: true,
-        allowedEmails: true,
+        allowedUsers: true,
       },
       orderBy: [{ year: "desc" }, { termLetter: "desc" }],
     });
@@ -55,7 +55,7 @@ export const termRoute = createTRPCRouter({
         staffDueDate: term.termStaffDueDate.toISOString(),
         professorDueDate: term.termProfessorDueDate.toISOString(),
         courseCount: term.sections.length,
-        peopleCount: term.allowedEmails.length,
+        peopleCount: term.allowedUsers.length,
         active: term.active,
       })),
     };
@@ -70,7 +70,7 @@ export const termRoute = createTRPCRouter({
         year: true,
         termStaffDueDate: true,
         termProfessorDueDate: true,
-        _count: { select: { sections: true, allowedEmails: true } },
+        _count: { select: { sections: true, allowedUsers: true } },
       },
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],
     });

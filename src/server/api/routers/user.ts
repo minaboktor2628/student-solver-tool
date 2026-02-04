@@ -39,8 +39,8 @@ export const userRoute = createTRPCRouter({
         ),
       );
 
-      await ctx.db.allowedEmail.createMany({
-        data: users.map(({ email, role }) => ({ role, email, termId })),
+      await ctx.db.allowedTermUser.createMany({
+        data: result.map(({ id }) => ({ userId: id, termId })),
       });
 
       return result;

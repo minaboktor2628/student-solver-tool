@@ -93,7 +93,7 @@ export function TermTable() {
                   </Badge>
                 </TableCell>
                 <TableCell>{term._count.sections}</TableCell>
-                <TableCell>{term._count.allowedEmails}</TableCell>
+                <TableCell>{term._count.allowedUsers}</TableCell>
                 <TableCell>
                   {term.termStaffDueDate.toLocaleDateString()}
                 </TableCell>

@@ -36,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import Image from "next/image";
 
 type CSVRow = {
   email: string;
@@ -152,12 +153,20 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Upload Allowed Users</DialogTitle>
+          <DialogTitle>Allowed Users</DialogTitle>
           <DialogDescription>
             Upload a CSV with these three columns: name, email, role. The first
             line of the file must define the column names. Role can be either
-            TA, PLA, or PROFESSOR. Names must be in the format Last, First. If
-            you wish, you can create users in the Manage Users page.
+            TA, PLA, or PROFESSOR. Names must be in the format &quot;Last,
+            First&quot;. Since the name field has a comma separator, they must
+            be wrapped with quotes. If you wish, you can create users in the
+            Manage Users page. Here is an example file:
+            <Image
+              width={500}
+              height={500}
+              src="/example-allowed-user-csv.png"
+              alt="Example CSV"
+            />
           </DialogDescription>
         </DialogHeader>
         <Dropzone
