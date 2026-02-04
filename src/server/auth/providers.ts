@@ -20,13 +20,6 @@ const devCredentialsProvider = Credentials({
     const email = `${pwd}@wpi.edu`;
 
     const user = await db.$transaction(async (tx) => {
-      const term = await tx.term.findFirst({ where: { active: true } });
-      if (!term) {
-        throw new Error(
-          "No active term found for dev credentials login. make one as a coordinator first",
-        );
-      }
-
       // Upsert the user and their roles
       const u = await tx.user.upsert({
         where: { email },
@@ -45,19 +38,28 @@ const devCredentialsProvider = Credentials({
       });
 
       // Make sure they are allowed to log in for the active term
-      await tx.allowedTermUser.upsert({
-        where: {
-          termId_userId: {
+      const term = await tx.term.findFirst({ where: { active: true } });
+
+      if (term) {
+        // Make sure they are allowed to log in for the active term
+        await tx.allowedTermUser.upsert({
+          where: {
+            termId_userId: {
+              termId: term.id,
+              userId: u.id,
+            },
+          },
+          create: {
             termId: term.id,
             userId: u.id,
           },
-        },
-        create: {
-          termId: term.id,
-          userId: u.id,
-        },
-        update: {},
-      });
+          update: {},
+        });
+      } else {
+        console.warn(
+          "[devCredentials] No active term found; skipping AllowedTermUser upsert",
+        );
+      }
 
       return u;
     });
