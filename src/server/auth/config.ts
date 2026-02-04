@@ -18,12 +18,14 @@ declare module "next-auth" {
     user: {
       id: string;
       roles: Role[];
+      allowedInActiveTerm: boolean; // whether the user has been added by the coordinator as a participant in this term
     } & DefaultSession["user"];
   }
 
   interface User {
     id: string;
     roles?: Role[];
+    allowedInActiveTerm: boolean;
   }
 }
 
@@ -31,6 +33,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     roles?: Role[];
+    allowedInActiveTerm: boolean;
   }
 }
 
@@ -66,6 +69,11 @@ export const authConfig = {
       if (user?.email) {
         token.roles = await getAllowedRolesForEmail(user.email);
       }
+
+      if (token.id) {
+        token.allowedInActiveTerm = await computeAllowedInActiveTerm(token.id);
+      }
+
       return token;
     },
 
@@ -73,6 +81,7 @@ export const authConfig = {
       if (session.user) {
         if (token.id) session.user.id = token.id;
         session.user.roles = token.roles ?? [];
+        session.user.allowedInActiveTerm = token.allowedInActiveTerm ?? false;
       }
       return session;
     },
@@ -80,8 +89,8 @@ export const authConfig = {
     async signIn({ user, profile }) {
       const email = user?.email ?? profile?.email;
       if (!email) return false;
-      const allowed = await getAllowedRolesForEmail(email);
-      return allowed.length > 0;
+
+      return hasEverBeenAllowed(email);
     },
   },
 
@@ -132,40 +141,18 @@ function isCoordinatorEmail(email: string) {
   return env.COORDINATOR_EMAILS.includes(email);
 }
 
-async function getActiveTerm() {
-  return db.term.findFirst({
-    where: { active: true },
-  });
-}
-
 export async function getAllowedRolesForEmail(email: string): Promise<Role[]> {
   const coordinator = isCoordinatorEmail(email);
 
-  const [user, activeTerm] = await Promise.all([
-    db.user.findUnique({
-      where: { email },
-      include: {
-        roles: true,
-        AllowedTermUsers: true,
-      },
-    }),
-    getActiveTerm(),
-  ]);
+  const user = await db.user.findUnique({
+    where: { email },
+    include: { roles: true },
+  });
 
   // No user record yet
   if (!user) {
     // Let coordinators in even before they have roles in DB
     return coordinator ? (["COORDINATOR"] as Role[]) : [];
-  }
-
-  // Non-coordinator must be allowed for the active term
-  if (!coordinator) {
-    if (!activeTerm) return [];
-
-    const allowedThisTerm = user.AllowedTermUsers.some(
-      (rel) => rel.termId === activeTerm.id,
-    );
-    if (!allowedThisTerm) return [];
   }
 
   // Base roles from UserRole table
@@ -178,4 +165,32 @@ export async function getAllowedRolesForEmail(email: string): Promise<Role[]> {
 
   // Dedupe
   return [...new Set(roles)];
+}
+
+async function hasEverBeenAllowed(email: string): Promise<boolean> {
+  if (isCoordinatorEmail(email)) return true;
+
+  const user = await db.user.findUnique({
+    where: { email },
+    include: { AllowedTermUsers: true },
+  });
+
+  if (!user) return false;
+
+  // any AllowedTermUser record at all = allowed at some point in history
+  return user.AllowedTermUsers.length > 0;
+}
+
+async function computeAllowedInActiveTerm(userId: string): Promise<boolean> {
+  const activeTerm = await db.term.findFirst({ where: { active: true } });
+  if (!activeTerm) return false;
+
+  const count = await db.allowedTermUser.count({
+    where: {
+      userId,
+      termId: activeTerm.id,
+    },
+  });
+
+  return count > 0;
 }
