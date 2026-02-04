@@ -2,38 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Role, type Term, type TermLetter, type User } from "@prisma/client";
 import { api } from "@/trpc/react";
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "@/server/api/root";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-type RouterOutputs = inferRouterOutputs<AppRouter>;
 import {
   BookOpen,
-  Trash2,
-  Edit,
   ArrowLeft,
-  Search,
   RefreshCw,
   Save,
-  GraduationCap,
   Users as UsersIcon,
 } from "lucide-react";
 
 // shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +46,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,27 +57,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { calculateRequiredAssistantHours } from "@/lib/utils";
-import type { Section, Term, TermLetter } from "@prisma/client";
-
-type GetAllCoursesResponse = RouterOutputs["courses"]["getAllCourses"];
-
-type Course = Pick<
-  Section,
-  | "id"
-  | "courseCode"
-  | "courseTitle"
-  | "enrollment"
-  | "capacity"
-  | "requiredHours"
-> & {
-  courseSection?: string;
-  meetingPattern?: string;
-  description?: string;
-  academicLevel?: string;
-  termId?: string | null;
-  professorName: string;
-};
+import { createColumns, type Course } from "./columns";
 
 interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
   name: string;
@@ -106,10 +73,7 @@ const courseFormSchema = z.object({
     .string()
     .min(1, "Course title is required")
     .max(200, "Course title is too long"),
-  professorName: z
-    .string()
-    .min(1, "Professor name is required")
-    .max(100, "Professor name is too long"),
+  professorId: z.string().min(1, "Professor is required"),
   enrollment: z.coerce.number().min(0, "Enrollment must be 0 or greater"),
   capacity: z.coerce.number().min(0, "Capacity must be 0 or greater"),
   requiredHours: z.coerce
@@ -124,10 +88,9 @@ export default function ManageCoursesContent() {
 
   // State
   const [courses, setCourses] = useState<Course[]>([]);
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [terms, setTerms] = useState<TermDisplay[]>([]);
+  const [professors, setProfessors] = useState<Pick<User, "id" | "name">[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   // Dialog states
@@ -142,7 +105,7 @@ export default function ManageCoursesContent() {
     defaultValues: {
       courseCode: "",
       courseTitle: "",
-      professorName: "",
+      professorId: "",
       enrollment: 0,
       capacity: 0,
       requiredHours: 0,
@@ -154,7 +117,7 @@ export default function ManageCoursesContent() {
     defaultValues: {
       courseCode: "",
       courseTitle: "",
-      professorName: "",
+      professorId: "",
       enrollment: 0,
       capacity: 0,
       requiredHours: 0,
@@ -164,6 +127,7 @@ export default function ManageCoursesContent() {
   // tRPC queries and mutations
   const getAllCoursesQuery = api.courses.getAllCourses.useQuery();
   const getTermsQuery = api.term.getAllTerms.useQuery();
+  const getProfessorsQuery = api.staff.getAllUsers.useQuery();
   const createCourseMutation = api.courses.createCourses.useMutation();
   const updateCourseMutation = api.courses.updateCourse.useMutation();
   const deleteCourseMutation = api.courses.deleteCourse.useMutation();
@@ -174,40 +138,20 @@ export default function ManageCoursesContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter courses when search query or selected term changes
-  useEffect(() => {
-    let filtered = courses;
-
-    // Filter by term if selected
-    if (selectedTerm) {
-      filtered = filtered.filter((course) => course.termId === selectedTerm);
-    }
-
-    // Filter by search query
-    if (searchQuery.trim() !== "") {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (course) =>
-          course.courseCode.toLowerCase().includes(query) ||
-          course.courseTitle.toLowerCase().includes(query) ||
-          course.professorName.toLowerCase().includes(query),
-      );
-    }
-
-    setFilteredCourses(filtered);
-  }, [searchQuery, courses, selectedTerm]);
-
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [coursesResult, termsResult] = await Promise.all([
+      const [coursesResult, termsResult, professorsResult] = await Promise.all([
         getAllCoursesQuery.refetch(),
         getTermsQuery.refetch(),
+        getProfessorsQuery.refetch(),
       ]);
 
       if (coursesResult.data?.success) {
-        setCourses(coursesResult.data.courses);
-        setFilteredCourses(coursesResult.data.courses);
+        const filtered = coursesResult.data.courses.filter(
+          (course) => !selectedTerm || course.term === selectedTerm,
+        );
+        setCourses(filtered);
       }
 
       if (termsResult.data) {
@@ -228,6 +172,16 @@ export default function ManageCoursesContent() {
         );
         setTerms(formattedTerms);
       }
+
+      if (professorsResult.data) {
+        const profs = (professorsResult.data.users ?? [])
+          .filter((user) => user.roles.includes(Role.PROFESSOR))
+          .map((user) => ({
+            id: user.id,
+            name: user.name ?? "Unknown",
+          }));
+        setProfessors(profs);
+      }
     } catch (err: unknown) {
       console.error("Error fetching data:", err);
       toast.error(err instanceof Error ? err.message : "Failed to load data");
@@ -240,7 +194,7 @@ export default function ManageCoursesContent() {
     addForm.reset({
       courseCode: "",
       courseTitle: "",
-      professorName: "",
+      professorId: "",
       enrollment: 0,
       capacity: 0,
       requiredHours: 0,
@@ -250,10 +204,13 @@ export default function ManageCoursesContent() {
 
   const handleEditCourse = (course: Course) => {
     setSelectedCourse(course);
+    // Find the professor ID by matching the professor name
+    const professorId =
+      professors.find((p) => p.name === course.professorName)?.id ?? "";
     editForm.reset({
       courseCode: course.courseCode,
       courseTitle: course.courseTitle,
-      professorName: course.professorName,
+      professorId,
       enrollment: course.enrollment,
       capacity: course.capacity,
       requiredHours: course.requiredHours,
@@ -268,12 +225,21 @@ export default function ManageCoursesContent() {
 
   const onSubmitAddCourse = async (values: CourseFormValues) => {
     try {
+      // Find the professor name from the ID
+      const selectedProfessor = professors.find(
+        (p) => p.id === values.professorId,
+      );
+      if (!selectedProfessor) {
+        toast.error("Please select a valid professor");
+        return;
+      }
+
       await createCourseMutation.mutateAsync({
         courses: [
           {
             courseCode: values.courseCode,
             courseTitle: values.courseTitle,
-            professorName: values.professorName,
+            professorName: selectedProfessor.name,
             enrollment: values.enrollment,
             capacity: values.capacity,
             requiredHours: values.requiredHours,
@@ -301,6 +267,7 @@ export default function ManageCoursesContent() {
         data: {
           courseCode: values.courseCode,
           courseTitle: values.courseTitle,
+          professorId: values.professorId,
           enrollment: values.enrollment,
           capacity: values.capacity,
           requiredHours: values.requiredHours,
@@ -341,11 +308,14 @@ export default function ManageCoursesContent() {
     }
   };
 
+  // Create table columns with handlers
+  const columns = createColumns(handleEditCourse, handleDeleteCourse);
+
   // Course stats
   const courseStats = {
     total: courses.length,
-    withTerm: courses.filter((c) => c.termId).length,
-    withoutTerm: courses.filter((c) => !c.termId).length,
+    withTerm: courses.filter((c) => c.term).length,
+    withoutTerm: courses.filter((c) => !c.term).length,
     totalEnrollment: courses.reduce((sum, c) => sum + c.enrollment, 0),
   };
 
@@ -421,17 +391,8 @@ export default function ManageCoursesContent() {
           </Card>
         </div>
 
-        {/* Filters */}
+        {/* Filters and Table */}
         <div className="mb-6 flex gap-4">
-          <div className="relative flex-1">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-            <Input
-              placeholder="Search by code, title, or professor..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
           <Select
             value={selectedTerm ?? "all"}
             onValueChange={(value) =>
@@ -454,75 +415,13 @@ export default function ManageCoursesContent() {
 
         {/* Courses Table */}
         <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Course Code</TableHead>
-                  <TableHead>Course Title</TableHead>
-                  <TableHead>Professor</TableHead>
-                  <TableHead>Enrollment/Capacity</TableHead>
-                  <TableHead>Required Hours</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCourses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                      <div className="text-muted-foreground py-8">
-                        {searchQuery || selectedTerm
-                          ? "No courses match your filters"
-                          : "No courses found"}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredCourses.map((course) => (
-                    <TableRow key={course.id}>
-                      <TableCell className="font-medium">
-                        {course.courseCode}
-                      </TableCell>
-                      <TableCell
-                        className="max-w-[200px] truncate"
-                        title={course.courseTitle}
-                      >
-                        {course.courseTitle}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <GraduationCap className="text-muted-foreground h-4 w-4" />
-                          {course.professorName}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {course.enrollment}/{course.capacity}
-                      </TableCell>
-                      <TableCell>{course.requiredHours}h</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditCourse(course)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteCourse(course)}
-                            className="text-destructive hover:text-destructive/80"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+          <CardContent className="p-6">
+            <DataTable
+              columns={columns}
+              data={courses}
+              searchKey="courseCode"
+              searchPlaceholder="Search by code..."
+            />
           </CardContent>
         </Card>
 
@@ -571,12 +470,22 @@ export default function ManageCoursesContent() {
                 </div>
                 <FormField
                   control={addForm.control}
-                  name="professorName"
+                  name="professorId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Professor Name</FormLabel>
+                      <FormLabel>Professor</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Roman Anthony" {...field} />
+                        <Combobox
+                          options={professors.map((p) => ({
+                            value: p.id,
+                            label: p.name ?? "Unknown Professor",
+                          }))}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Select a professor..."
+                          searchPlaceholder="Search professors..."
+                          emptyMessage="No professors found."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -701,12 +610,22 @@ export default function ManageCoursesContent() {
                 </div>
                 <FormField
                   control={editForm.control}
-                  name="professorName"
+                  name="professorId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Professor Name</FormLabel>
+                      <FormLabel>Professor</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Marcelo Mayer" {...field} />
+                        <Combobox
+                          options={professors.map((p) => ({
+                            value: p.id,
+                            label: p.name ?? "Unknown Professor",
+                          }))}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Select a professor..."
+                          searchPlaceholder="Search professors..."
+                          emptyMessage="No professors found."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -1,4 +1,5 @@
 /* Staff related endpoints */
+/* Staff related endpoints */
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
@@ -211,26 +212,41 @@ export const staffRoute = createTRPCRouter({
       };
     }),
 
-  getAllUsers: coordinatorProcedure.query(async ({ ctx }) => {
-    const users = await ctx.db.user.findMany({
-      include: {
-        roles: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
+  getAllUsers: coordinatorProcedure
+    .input(z.object({ termId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const termId = input?.termId;
 
-    return {
-      users: users.map((user) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        hours: user.hours,
-        roles: user.roles.map((r) => r.role),
-      })),
-    };
-  }),
+      const users = await ctx.db.user.findMany({
+        include: {
+          roles: true,
+          staffPreferences: termId
+            ? {
+                where: { termId },
+                select: { canEdit: true, id: true },
+              }
+            : false,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      });
+
+      return {
+        users: users.map((user) => {
+          const staffPref = termId && user.staffPreferences?.[0];
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            hours: user.hours,
+            roles: user.roles.map((r) => r.role),
+            locked: staffPref ? !staffPref.canEdit : false,
+            hasPreference: !!staffPref,
+          };
+        }),
+      };
+    }),
 
   updateUser: coordinatorProcedure
     .input(
@@ -360,5 +376,96 @@ export const staffRoute = createTRPCRouter({
         success: true,
         message: "User deleted successfully",
       };
+    }),
+
+  lockAllStaffPreferences: coordinatorProcedure
+    .input(z.object({ termId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { termId } = input;
+
+      // Lock all existing staff preferences
+      const result = await ctx.db.staffPreference.updateMany({
+        where: { termId },
+        data: { canEdit: false },
+      });
+
+      return {
+        success: true,
+        message: `Locked ${result.count} staff preferences`,
+        count: result.count,
+      };
+    }),
+
+  unlockAllStaffPreferences: coordinatorProcedure
+    .input(z.object({ termId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { termId } = input;
+
+      // Unlock all existing staff preferences
+      const result = await ctx.db.staffPreference.updateMany({
+        where: { termId },
+        data: { canEdit: true },
+      });
+
+      return {
+        success: true,
+        message: `Unlocked ${result.count} staff preferences`,
+        count: result.count,
+      };
+    }),
+
+  toggleUserLock: coordinatorProcedure
+    .input(
+      z.object({
+        userId: z.string(),
+        termId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { userId, termId } = input;
+
+      // Check if user has a staff preference for this term
+      const staffPref = await ctx.db.staffPreference.findUnique({
+        where: {
+          userId_termId: {
+            userId,
+            termId,
+          },
+        },
+        select: { id: true, canEdit: true },
+      });
+
+      if (staffPref) {
+        // Toggle existing preference
+        const updated = await ctx.db.staffPreference.update({
+          where: { id: staffPref.id },
+          data: { canEdit: !staffPref.canEdit },
+          select: { id: true, canEdit: true },
+        });
+
+        return {
+          success: true,
+          canEdit: updated.canEdit,
+          message: updated.canEdit
+            ? "User unlocked - can now edit preferences"
+            : "User locked - cannot edit preferences",
+        };
+      } else {
+        // Create a locked preference for users without one
+        const created = await ctx.db.staffPreference.create({
+          data: {
+            userId,
+            termId,
+            canEdit: false,
+          },
+          select: { id: true, canEdit: true },
+        });
+
+        return {
+          success: true,
+          canEdit: created.canEdit,
+          message: "User locked - cannot submit preferences",
+        };
+      }
     }),
 });

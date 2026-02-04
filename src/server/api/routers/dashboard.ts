@@ -112,6 +112,7 @@ export const dashboardRoute = createTRPCRouter({
           assignedHours,
           assignmentCount: section._count.assignments,
           description: section.description ?? "",
+          academicLevel: section.academicLevel,
         };
       });
 

@@ -10,25 +10,29 @@ import {
   Mail,
   AlertCircle,
   RefreshCw,
-  Database,
   Plus,
-  Trash2,
   Calendar,
-  Eye,
 } from "lucide-react";
 import { api } from "@/trpc/react";
 import type { Section, User, Term, TermLetter } from "@prisma/client";
+import { Role } from "@prisma/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/api/root";
 import { toast } from "sonner";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -56,7 +60,7 @@ type Course = Pick<
 };
 
 type StaffMember = Pick<User, "id" | "name" | "email" | "hours"> & {
-  role: string;
+  role: Role; // Role enum from Prisma
   submitted: boolean;
 };
 
@@ -95,15 +99,17 @@ const parseStoredTerms = (raw: string | null): string[] | null => {
 };
 
 export default function DashboardContent() {
-  const [selectedView, setSelectedView] = useState("overview");
   const [courses, setCourses] = useState<Course[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [professors, setProfessors] = useState<Professor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [terms, setTerms] = useState<TermData[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const [loadingTerms, setLoadingTerms] = useState(false);
+  const [showAllStaff, setShowAllStaff] = useState(false);
+  const [showAllProfessors, setShowAllProfessors] = useState(false);
+
+  const INITIAL_DISPLAY_COUNT = 8;
 
   const getTermsQuery = api.term.getAllTerms.useQuery(undefined, {
     enabled: false,
@@ -112,9 +118,7 @@ export default function DashboardContent() {
     { termId: selectedTerm ?? "" },
     { enabled: !!selectedTerm },
   );
-  const deleteTermMutation = api.term.deleteTerm.useMutation();
   const publishTermMutation = api.term.publishTerm.useMutation();
-  const syncCoursesMutation = api.courses.syncCourses.useMutation();
 
   // Initialize terms from API
   useEffect(() => {
@@ -202,26 +206,18 @@ export default function DashboardContent() {
         return;
       }
 
-      // Transform courses with graduate semester course handling
+      // Transform courses with graduate course handling
       const transformedCourses = (data.courses ?? []).map(
         (course: GetDashboardResponse["courses"][number]) => {
-          // Check if it's a graduate semester course
-          const isGradSemester =
-            course.description.includes("GRAD_SEMESTER") ?? false;
-          const isDisplayOnly =
-            course.description.includes("GRAD_SEMESTER_SECONDARY") ?? false;
+          // Check if it's a graduate course using academicLevel
+          const isGradCourse = course.academicLevel === "GRADUATE";
 
-          // Debug logging for ALL courses to see what we're getting
-          console.log(
-            `Course: ${course.courseCode} - Description: "${course.description}" - isGradSemester: ${isGradSemester} - isDisplayOnly: ${isDisplayOnly}`,
-          );
-
-          // Determine term display - computed from current selected term
+          // For grad courses, determine term display
           let termDisplay =
             terms.find((t) => t.id === termId)?.name ?? "Unknown Term";
           let spansTerms = null;
 
-          if (isGradSemester) {
+          if (isGradCourse) {
             // Extract which terms it spans
             const currentTermLetter =
               terms.find((t) => t.id === termId)?.termLetter ?? "";
@@ -233,11 +229,6 @@ export default function DashboardContent() {
               spansTerms = "C+D";
               termDisplay = `C+D Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
             }
-
-            // For display-only sections, show special term info
-            if (isDisplayOnly) {
-              termDisplay = `${spansTerms} Terms (Display Only)`;
-            }
           }
 
           return {
@@ -246,13 +237,12 @@ export default function DashboardContent() {
             courseTitle: course.courseTitle ?? "",
             enrollment: course.enrollment ?? 0,
             capacity: course.capacity ?? 0,
-            requiredHours: isDisplayOnly ? 0 : (course.requiredHours ?? 0), // 0 for display-only
+            requiredHours: course.requiredHours ?? 0,
             assignedStaff: course.assignedHours ?? 0,
             professorName: course.professorName ?? "",
             term: termDisplay,
             description: course.description,
-            isGradSemesterCourse: isGradSemester,
-            isDisplayOnly: isDisplayOnly,
+            isGradSemesterCourse: isGradCourse,
             spansTerms: spansTerms,
           };
         },
@@ -265,7 +255,7 @@ export default function DashboardContent() {
           name: s.name ?? "",
           email: s.email ?? "",
           hours: 0,
-          role: s.roles?.[0] ?? "PLA",
+          role: s.roles?.[0] ?? Role.PLA,
           submitted: s.hasPreferences,
         })),
       );
@@ -303,63 +293,6 @@ export default function DashboardContent() {
     } catch (err) {
       console.error("Error publishing term:", err);
       toast.error("Failed to publish term");
-    }
-  };
-
-  // Delete term
-  const deleteTerm = async (termId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this term? This will delete all associated courses, preferences, and assignments. This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await deleteTermMutation.mutateAsync({ id: termId });
-
-      if (response.success) {
-        toast.success("Term deleted successfully!");
-        void fetchTerms();
-        // If we deleted the selected term, select the first available term
-        if (selectedTerm === termId) {
-          const updatedTerms = terms.filter((t) => t.id !== termId);
-          setSelectedTerm(
-            updatedTerms.length > 0 && updatedTerms[0]
-              ? updatedTerms[0].id
-              : null,
-          );
-        }
-      } else {
-        toast.error("Failed to delete term");
-      }
-    } catch (err) {
-      console.error("Error deleting term:", err);
-      toast.error("Failed to delete term");
-    }
-  };
-
-  // Sync courses function (existing)
-  const syncCoursesFromWPI = async () => {
-    setIsSyncing(true);
-    try {
-      const response = await syncCoursesMutation.mutateAsync();
-      if (response && (response.success ?? response.created !== undefined)) {
-        toast.success(
-          `Synced! Created: ${response.created ?? 0}, Updated: ${response.updated ?? 0}, Skipped: ${response.skipped ?? 0}`,
-        );
-        if (selectedTerm) {
-          await fetchDashboardData(selectedTerm);
-        }
-      } else {
-        toast.error("Sync failed");
-      }
-    } catch (err: unknown) {
-      console.error("Error syncing courses:", err);
-      toast.error("Sync failed");
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -440,7 +373,7 @@ export default function DashboardContent() {
               </h1>
               <p className="text-muted-foreground text-lg">
                 {selectedTerm
-                  ? `${terms.find((t) => t.id === selectedTerm)?.name ?? selectedTerm} • Course Assignment Overview`
+                  ? `${terms.find((t) => t.id === selectedTerm)?.name ?? selectedTerm} • Submission Tracking & Status`
                   : "Select a term"}
               </p>
             </div>
@@ -498,419 +431,466 @@ export default function DashboardContent() {
           )}
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <div className="mb-2 flex items-center justify-between">
-              <Users className="text-primary h-8 w-8" />
-              <span className="text-foreground text-2xl font-bold">
-                {staff.filter((s) => s.submitted).length}/{staff.length}
-              </span>
-            </div>
-            <p className="text-muted-foreground text-sm font-medium">
-              Staff Submissions
-            </p>
-            <div className="mt-3">
-              <Progress value={staffSubmissionRate} className="h-2" />
-            </div>
+          <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+            <CardContent className="pt-6">
+              <div className="mb-2 flex items-center justify-between">
+                <Users className="text-primary h-8 w-8" />
+                <span className="text-foreground text-2xl font-bold">
+                  {staff.filter((s) => s.submitted).length}/{staff.length}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">
+                Staff Submissions
+              </p>
+              <div className="mt-3">
+                <Progress value={staffSubmissionRate} className="h-2" />
+              </div>
+            </CardContent>
           </Card>
 
-          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <div className="mb-2 flex items-center justify-between">
-              <CheckCircle className="text-success h-8 w-8" />
-              <span className="text-foreground text-2xl font-bold">
-                {professors.filter((p) => p.submitted).length}/
-                {professors.length}
-              </span>
-            </div>
-            <p className="text-muted-foreground text-sm font-medium">
-              Professor Submissions
-            </p>
-            <div className="mt-3">
-              <Progress value={profSubmissionRate} className="h-2" />
-            </div>
+          <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+            <CardContent className="pt-6">
+              <div className="mb-2 flex items-center justify-between">
+                <CheckCircle className="text-success h-8 w-8" />
+                <span className="text-foreground text-2xl font-bold">
+                  {professors.filter((p) => p.submitted).length}/
+                  {professors.length}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">
+                Professor Submissions
+              </p>
+              <div className="mt-3">
+                <Progress value={profSubmissionRate} className="h-2" />
+              </div>
+            </CardContent>
           </Card>
 
-          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <div className="mb-2 flex items-center justify-between">
-              <Clock className="text-primary h-8 w-8" />
-              <span className="text-foreground text-2xl font-bold">
-                {totalAvailableHours}h
-              </span>
-            </div>
-            <p className="text-muted-foreground text-sm font-medium">
-              Total Available Hours
-            </p>
-            <p className="text-muted-foreground mt-2 text-xs">
-              From submitted preferences
-            </p>
+          <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+            <CardContent className="pt-6">
+              <div className="mb-2 flex items-center justify-between">
+                <Clock className="text-primary h-8 w-8" />
+                <span className="text-foreground text-2xl font-bold">
+                  {totalAvailableHours}h
+                </span>
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">
+                Total Available Hours
+              </p>
+              <p className="text-muted-foreground mt-2 text-xs">
+                From submitted preferences
+              </p>
+            </CardContent>
           </Card>
 
-          <Card className="px-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <div className="mb-2 flex items-center justify-between">
-              <AlertCircle className="text-warning h-8 w-8" />
-              <span className="text-foreground text-2xl font-bold">
-                {staffingGap}
-              </span>
-            </div>
-            <p className="text-muted-foreground text-sm font-medium">
-              Staffing Gap
-            </p>
-            <p className="text-muted-foreground mt-2 text-xs">Hours needed</p>
+          <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
+            <CardContent className="pt-6">
+              <div className="mb-2 flex items-center justify-between">
+                <AlertCircle className="text-warning h-8 w-8" />
+                <span className="text-foreground text-2xl font-bold">
+                  {staffingGap}
+                </span>
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">
+                Staffing Gap
+              </p>
+              <p className="text-muted-foreground mt-2 text-xs">Hours needed</p>
+            </CardContent>
           </Card>
         </div>
 
-        <div className="border-border mb-6 flex flex-wrap items-center justify-between gap-4">
-          <Tabs
-            value={selectedView}
-            onValueChange={(value) => setSelectedView(value)}
-            className="border-border gap-0 border-b"
-          >
-            <TabsList className="bg-transparent p-0">
-              {[
-                { value: "overview", label: "Overview" },
-                { value: "pending", label: "Pending" },
-                { value: "courses", label: "Courses" },
-              ].map((view) => (
-                <TabsTrigger
-                  key={view.value}
-                  value={view.value}
-                  className="data-[state=active]:border-primary rounded-none border-b-2 border-transparent px-3 capitalize data-[state=active]:bg-transparent"
-                >
-                  {view.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-
-          <div className="flex items-center gap-3">
-            {selectedView === "courses" && (
-              <Button
-                onClick={syncCoursesFromWPI}
-                disabled={isSyncing}
-                size="sm"
-              >
-                <Database
-                  className={`h-4 w-4 ${isSyncing ? "animate-pulse" : ""}`}
-                />
-                {isSyncing ? "Syncing..." : "Sync from WPI"}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {selectedView === "overview" && (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="px-6">
-              <h2 className="text-foreground mb-4 text-xl font-semibold">
-                Staff by Role
-              </h2>
-              <div className="space-y-3">
-                {["PLA", "TA"].map((role) => {
-                  const roleStaff = staff.filter((s) => s.role === role);
-                  const submitted = roleStaff.filter((s) => s.submitted).length;
-                  const total = roleStaff.length;
-                  return (
-                    <div
-                      key={role}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="text-foreground font-medium">
-                        {role}
-                      </span>
-                      <div className="flex items-center gap-4">
-                        <span className="text-muted-foreground text-sm">
-                          {submitted}/{total} submitted
-                        </span>
-                        <Progress
-                          value={total > 0 ? (submitted / total) * 100 : 0}
-                          className="h-2 w-32"
-                        />
-                      </div>
+        {/* Main Pending Submissions Section */}
+        <div className="space-y-6">
+          {/* Deadline Alerts */}
+          {selectedTerm && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 rounded-full p-3">
+                      <Clock className="text-primary h-6 w-6" />
                     </div>
-                  );
-                })}
-              </div>
-            </Card>
+                    <div className="flex-1">
+                      <h3 className="text-foreground font-semibold">
+                        Staff Deadline
+                      </h3>
+                      <p className="text-muted-foreground text-sm">
+                        {terms.find((t) => t.id === selectedTerm)
+                          ?.termStaffDueDate
+                          ? new Date(
+                              terms.find((t) => t.id === selectedTerm)
+                                ?.termStaffDueDate ?? "",
+                            ).toLocaleDateString("en-US", {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "Not set"}
+                      </p>
+                      {terms.find((t) => t.id === selectedTerm)
+                        ?.termStaffDueDate && (
+                        <p className="text-primary mt-1 text-xs font-medium">
+                          {Math.ceil(
+                            (new Date(
+                              terms.find((t) => t.id === selectedTerm)
+                                ?.termStaffDueDate ?? "",
+                            ).getTime() -
+                              Date.now()) /
+                              (1000 * 60 * 60 * 24),
+                          )}{" "}
+                          days remaining
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="px-6">
-              <h2 className="text-foreground mb-4 text-xl font-semibold">
-                Course Staffing Status
-              </h2>
-              <div className="space-y-2">
-                {courses
-                  .filter((course) => !course.isDisplayOnly)
-                  .map((course) => {
-                    const percentage =
-                      (course.assignedStaff / course.requiredHours) * 100;
-                    const isUnderstaffed =
-                      course.assignedStaff < course.requiredHours;
-                    return (
-                      <div
-                        key={course.id}
-                        className="border-border border-b pb-2"
-                      >
-                        <div className="mb-1 flex items-center justify-between">
-                          <span className="text-foreground flex items-center gap-1 text-sm font-medium">
-                            {course.courseCode}
-                            {course.isGradSemesterCourse && (
-                              <span className="text-primary text-xs">
-                                ({course.spansTerms})
-                              </span>
-                            )}
-                          </span>
-                          <span
-                            className={`text-sm ${isUnderstaffed ? "text-warning" : "text-success"}`}
-                          >
-                            {course.assignedStaff}/{course.requiredHours}h
-                          </span>
-                        </div>
-                        <Progress
-                          value={Math.min(percentage, 100)}
-                          className={`h-1.5 ${isUnderstaffed ? "bg-warning/20" : "bg-success/20"}`}
-                        />
-                      </div>
-                    );
-                  })}
-              </div>
-            </Card>
-          </div>
-        )}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 rounded-full p-3">
+                      <Clock className="text-primary h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-foreground font-semibold">
+                        Professor Deadline
+                      </h3>
+                      <p className="text-muted-foreground text-sm">
+                        {terms.find((t) => t.id === selectedTerm)
+                          ?.termProfessorDueDate
+                          ? new Date(
+                              terms.find((t) => t.id === selectedTerm)
+                                ?.termProfessorDueDate ?? "",
+                            ).toLocaleDateString("en-US", {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "Not set"}
+                      </p>
+                      {terms.find((t) => t.id === selectedTerm)
+                        ?.termProfessorDueDate && (
+                        <p className="text-primary mt-1 text-xs font-medium">
+                          {Math.ceil(
+                            (new Date(
+                              terms.find((t) => t.id === selectedTerm)
+                                ?.termProfessorDueDate ?? "",
+                            ).getTime() -
+                              Date.now()) /
+                              (1000 * 60 * 60 * 24),
+                          )}{" "}
+                          days remaining
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-        {selectedView === "pending" && (
-          <div className="space-y-6">
-            <Card className="px-6">
-              <div className="border-border border-b pb-6">
+          {/* Pending Submissions */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Pending Staff */}
+            <Card>
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-foreground text-xl font-semibold">
-                    Pending Staff Submissions ({pendingStaff.length})
-                  </h2>
+                  <div>
+                    <CardTitle>Pending Staff Submissions</CardTitle>
+                    <CardDescription className="mt-1">
+                      {pendingStaff.length} of {staff.length} awaiting
+                      submission
+                    </CardDescription>
+                  </div>
                   {pendingStaff.length > 0 && (
                     <Button
                       onClick={() => copyEmailsToClipboard(pendingStaff)}
                       size="sm"
+                      variant="outline"
                     >
                       <Mail className="h-4 w-4" /> Copy Emails
                     </Button>
                   )}
                 </div>
-              </div>
-              {pendingStaff.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center">
-                  All staff have submitted their preferences! 🎉
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {pendingStaff.map((person) => (
-                    <div
-                      key={person.id}
-                      className="bg-muted flex items-center justify-between rounded-lg p-3"
-                    >
-                      <div>
-                        <p className="text-foreground font-medium">
-                          {person.name}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          {person.email} • {person.role}
-                        </p>
-                      </div>
-                      <Badge variant="destructive">
-                        <XCircle className="h-4 w-4" />
-                        Pending
-                      </Badge>
+                {pendingStaff.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {([Role.PLA, Role.TA] as const).map((role) => {
+                      const roleCount = pendingStaff.filter(
+                        (s) => s.role === role,
+                      ).length;
+                      if (roleCount === 0) return null;
+                      return (
+                        <Badge key={role} variant="secondary">
+                          {role}: {roleCount} pending
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardHeader>
+              <Separator />
+              <CardContent>
+                {pendingStaff.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <CheckCircle className="text-success mx-auto mb-3 h-12 w-12" />
+                    <p className="text-foreground mb-1 font-medium">
+                      All staff have submitted!
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {staff.length} submissions received
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {pendingStaff
+                        .slice(
+                          0,
+                          showAllStaff ? undefined : INITIAL_DISPLAY_COUNT,
+                        )
+                        .map((person) => (
+                          <div
+                            key={person.id}
+                            className="hover:bg-muted/80 group border-border bg-muted/50 flex items-center justify-between rounded-lg border p-4 transition-all"
+                          >
+                            <div className="flex-1">
+                              <p className="text-foreground font-medium">
+                                {person.name}
+                              </p>
+                              <p className="text-muted-foreground mt-0.5 text-sm">
+                                {person.email}
+                              </p>
+                              <div className="mt-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {person.role}
+                                </Badge>
+                              </div>
+                            </div>
+                            <Badge
+                              variant="destructive"
+                              className="ml-4 shrink-0 transition-transform group-hover:scale-105"
+                            >
+                              Not Submitted
+                            </Badge>
+                          </div>
+                        ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                    {pendingStaff.length > INITIAL_DISPLAY_COUNT && (
+                      <div className="mt-4 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowAllStaff(!showAllStaff)}
+                          className="w-full"
+                        >
+                          {showAllStaff ? (
+                            <>
+                              Show Less
+                              <XCircle className="ml-2 h-4 w-4" />
+                            </>
+                          ) : (
+                            <>
+                              Show {pendingStaff.length - INITIAL_DISPLAY_COUNT}{" "}
+                              More
+                              <Plus className="ml-2 h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
             </Card>
 
-            <Card className="px-6">
-              <div className="border-border border-b pb-6">
+            {/* Pending Professors */}
+            <Card>
+              <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-foreground text-xl font-semibold">
-                    Pending Professor Submissions ({pendingProfessors.length})
-                  </h2>
+                  <div>
+                    <CardTitle>Pending Professor Submissions</CardTitle>
+                    <CardDescription className="mt-1">
+                      {pendingProfessors.length} of {professors.length} awaiting
+                      submission
+                    </CardDescription>
+                  </div>
                   {pendingProfessors.length > 0 && (
                     <Button
                       onClick={() => copyEmailsToClipboard(pendingProfessors)}
                       size="sm"
+                      variant="outline"
                     >
                       <Mail className="h-4 w-4" /> Copy Emails
                     </Button>
                   )}
                 </div>
-              </div>
-              {pendingProfessors.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center">
-                  All professors have submitted their preferences! 🎉
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {pendingProfessors.map((person) => (
-                    <div
-                      key={person.id}
-                      className="bg-muted flex items-center justify-between rounded-lg p-3"
-                    >
-                      <div>
-                        <p className="text-foreground font-medium">
-                          {person.name}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          {person.email} • {person.courseCount} courses
-                        </p>
-                      </div>
-                      <Badge variant="destructive">
-                        <XCircle className="h-4 w-4" />
-                        Pending
-                      </Badge>
+                {pendingProfessors.length > 0 && (
+                  <p className="text-muted-foreground mt-4 text-xs">
+                    {pendingProfessors.reduce(
+                      (sum, p) => sum + p.courseCount,
+                      0,
+                    )}{" "}
+                    courses affected by pending submissions
+                  </p>
+                )}
+              </CardHeader>
+              <Separator />
+              <CardContent>
+                {pendingProfessors.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <CheckCircle className="text-success mx-auto mb-3 h-12 w-12" />
+                    <p className="text-foreground mb-1 font-medium">
+                      All professors have submitted!
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {professors.length} submissions received
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {pendingProfessors
+                        .slice(
+                          0,
+                          showAllProfessors ? undefined : INITIAL_DISPLAY_COUNT,
+                        )
+                        .map((person) => (
+                          <div
+                            key={person.id}
+                            className="hover:bg-muted/80 group border-border bg-muted/50 flex items-center justify-between rounded-lg border p-4 transition-all"
+                          >
+                            <div className="flex-1">
+                              <p className="text-foreground font-medium">
+                                {person.name}
+                              </p>
+                              <p className="text-muted-foreground mt-0.5 text-sm">
+                                {person.email}
+                              </p>
+                              <div className="mt-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {person.courseCount}{" "}
+                                  {person.courseCount === 1
+                                    ? "course"
+                                    : "courses"}
+                                </Badge>
+                              </div>
+                            </div>
+                            <Badge
+                              variant="destructive"
+                              className="ml-4 shrink-0 transition-transform group-hover:scale-105"
+                            >
+                              Not Submitted
+                            </Badge>
+                          </div>
+                        ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                    {pendingProfessors.length > INITIAL_DISPLAY_COUNT && (
+                      <div className="mt-4 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setShowAllProfessors(!showAllProfessors)
+                          }
+                          className="w-full"
+                        >
+                          {showAllProfessors ? (
+                            <>
+                              Show Less
+                              <XCircle className="ml-2 h-4 w-4" />
+                            </>
+                          ) : (
+                            <>
+                              Show{" "}
+                              {pendingProfessors.length - INITIAL_DISPLAY_COUNT}{" "}
+                              More
+                              <Plus className="ml-2 h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
             </Card>
           </div>
-        )}
 
-        {selectedView === "courses" && (
-          <Card className="px-6">
-            <div className="border-border border-b pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-foreground text-xl font-semibold">
-                    Course Details
-                  </h2>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    {courses.filter((c) => !c.isDisplayOnly).length} CS courses
-                    in database
-                    {courses.filter((c) => c.isDisplayOnly).length > 0 && (
-                      <span className="text-muted-foreground ml-2">
-                        (+{courses.filter((c) => c.isDisplayOnly).length}{" "}
-                        display-only)
-                      </span>
-                    )}
-                  </p>
+          {/* Completed Submissions Overview */}
+          {(staff.filter((s) => s.submitted).length > 0 ||
+            professors.filter((p) => p.submitted).length > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Completed Submissions</CardTitle>
+              </CardHeader>
+              <Separator />
+              <CardContent>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {/* Completed Staff */}
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <CheckCircle className="text-success h-5 w-5" />
+                      <h3 className="text-foreground font-medium">
+                        Staff ({staff.filter((s) => s.submitted).length})
+                      </h3>
+                    </div>
+                    <div className="space-y-2">
+                      {([Role.PLA, Role.TA] as const).map((role) => {
+                        const roleStaff = staff.filter(
+                          (s) => s.role === role && s.submitted,
+                        );
+                        if (roleStaff.length === 0) return null;
+                        return (
+                          <div
+                            key={role}
+                            className="border-success bg-success/5 flex items-center justify-between border-l-2 px-3 py-2"
+                          >
+                            <span className="text-foreground text-sm font-medium">
+                              {role}
+                            </span>
+                            <span className="text-muted-foreground text-sm">
+                              {roleStaff.length} submitted
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Completed Professors */}
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <CheckCircle className="text-success h-5 w-5" />
+                      <h3 className="text-foreground font-medium">
+                        Professors (
+                        {professors.filter((p) => p.submitted).length})
+                      </h3>
+                    </div>
+                    <div className="border-success bg-success/5 border-l-2 px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-foreground text-sm font-medium">
+                          Total Submissions
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          {professors.filter((p) => p.submitted).length} /{" "}
+                          {professors.length}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Covering{" "}
+                        {professors
+                          .filter((p) => p.submitted)
+                          .reduce((sum, p) => sum + p.courseCount, 0)}{" "}
+                        courses
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      Course
-                    </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      Professor
-                    </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      Enrollment
-                    </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      Hours Needed
-                    </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      Assigned
-                    </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-border divide-y">
-                  {courses.map((course) => {
-                    console.log(
-                      `Table rendering: ${course.courseCode} - isDisplayOnly: ${course.isDisplayOnly}`,
-                    );
-                    return (
-                      <tr
-                        key={course.id}
-                        className={`hover:bg-muted/50 transition-colors ${
-                          course.isGradSemesterCourse
-                            ? course.isDisplayOnly
-                              ? "bg-muted/30"
-                              : "bg-primary/10"
-                            : ""
-                        }`}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <div className="text-foreground text-sm font-medium">
-                                {course.courseCode}
-                              </div>
-                              {course.isGradSemesterCourse &&
-                                !course.isDisplayOnly && (
-                                  <Badge variant="default">
-                                    <Calendar className="mr-1 h-3 w-3" />
-                                    Semester ({course.spansTerms})
-                                  </Badge>
-                                )}
-                              {course.isDisplayOnly && (
-                                <Badge variant="outline">
-                                  <Eye className="mr-1 h-3 w-3" />
-                                  Display Only
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-muted-foreground mt-1 text-sm">
-                              {course.courseTitle}
-                              {course.isDisplayOnly && (
-                                <span className="text-muted-foreground ml-2 text-xs">
-                                  (Assigned in{" "}
-                                  {course.spansTerms === "A+B" ? "A" : "C"}{" "}
-                                  Term)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-foreground text-sm">
-                            {course.professorName}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-foreground text-sm">
-                            {course.enrollment}/{course.capacity}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {course.isDisplayOnly ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : (
-                            <span className="text-foreground">
-                              {course.requiredHours}h
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {course.isDisplayOnly ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : (
-                            <span className="text-foreground">
-                              {course.assignedStaff}h
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {course.isDisplayOnly ? (
-                            <Badge variant="outline">Display Only</Badge>
-                          ) : course.assignedStaff >= course.requiredHours ? (
-                            <Badge variant="success">Fully Staffed</Badge>
-                          ) : (
-                            <Badge variant="warning">
-                              Need {course.requiredHours - course.assignedStaff}
-                              h More
-                            </Badge>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );

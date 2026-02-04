@@ -2,22 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Role } from "@prisma/client";
 import { api } from "@/trpc/react";
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "@/server/api/root";
 import { toast } from "sonner";
-
-type RouterOutputs = inferRouterOutputs<AppRouter>;
 import {
   UserPlus,
-  Trash2,
-  Edit,
   ArrowLeft,
-  Search,
   RefreshCw,
-  Mail,
   Users,
   Save,
+  Lock,
+  Unlock,
+  LockKeyhole,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,14 +22,7 @@ import * as z from "zod";
 // shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
 import {
   Dialog,
   DialogContent,
@@ -52,7 +41,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -69,50 +57,46 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { User as PrismaUser } from "@prisma/client";
-
-type GetAllUsersResponse = RouterOutputs["staff"]["getAllUsers"];
-
-type User = Pick<PrismaUser, "id" | "name" | "email"> & {
-  roles: string[];
-};
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { createColumns, type User } from "./columns";
 
 // Zod schemas for validation
+const ALLOWED_ROLES = [Role.PLA, Role.TA, Role.GLA, Role.PROFESSOR] as const;
+
 const userFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name is too long"),
   email: z.string().email("Invalid email address"),
-  role: z.enum(["PLA", "TA", "GLA", "PROFESSOR"] as const, {
+  role: z.enum(ALLOWED_ROLES, {
     required_error: "Please select a role",
   }),
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
-const ROLE_OPTIONS = [
-  { value: "PLA", label: "PLA" },
-  { value: "TA", label: "TA" },
-  { value: "GLA", label: "GLA" },
-  { value: "PROFESSOR", label: "Professor" },
+const ROLE_OPTIONS: Array<{
+  value: (typeof ALLOWED_ROLES)[number];
+  label: string;
+}> = [
+  { value: Role.PLA, label: "PLA" },
+  { value: Role.TA, label: "TA" },
+  { value: Role.GLA, label: "GLA" },
+  { value: Role.PROFESSOR, label: "Professor" },
 ];
-
-const ROLE_COLORS: Record<string, string> = {
-  PLA: "bg-primary/20 text-primary border-primary/30",
-  TA: "bg-success/20 text-success border-success/30",
-  GLA: "bg-accent/20 text-accent border-accent/30",
-  PROFESSOR: "bg-violet-200 text-violet-900 border-violet-300",
-  COORDINATOR: "bg-warning/20 text-warning border-warning/30",
-};
 
 export default function ManageUsersContent() {
   const router = useRouter();
 
   // State
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [activeTerm, setActiveTerm] = useState<string | null>(null);
+  const [activeTermId, setActiveTermId] = useState<string | null>(null);
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -126,7 +110,7 @@ export default function ManageUsersContent() {
     defaultValues: {
       name: "",
       email: "",
-      role: "PLA",
+      role: Role.PLA,
     },
   });
 
@@ -135,39 +119,28 @@ export default function ManageUsersContent() {
     defaultValues: {
       name: "",
       email: "",
-      role: "PLA",
+      role: Role.PLA,
     },
   });
 
   // tRPC queries and mutations
-  const getUsersQuery = api.staff.getAllUsers.useQuery();
+  const getUsersQuery = api.staff.getAllUsers.useQuery(
+    { termId: activeTermId ?? undefined },
+    { enabled: !!activeTermId },
+  );
   const getTermsQuery = api.term.getAllTerms.useQuery();
   const createUserMutation = api.staff.createUser.useMutation();
   const updateUserMutation = api.staff.updateUser.useMutation();
   const deleteUserMutation = api.staff.deleteUser.useMutation();
+  const lockAllMutation = api.staff.lockAllStaffPreferences.useMutation();
+  const unlockAllMutation = api.staff.unlockAllStaffPreferences.useMutation();
+  const toggleUserLockMutation = api.staff.toggleUserLock.useMutation();
 
   // Load users on mount
   useEffect(() => {
     void fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Filter users when search query changes
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredUsers(users);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredUsers(
-        users.filter(
-          (user) =>
-            (user.name ?? "").toLowerCase().includes(query) ||
-            (user.email ?? "").toLowerCase().includes(query) ||
-            user.roles.some((role) => role.toLowerCase().includes(query)),
-        ),
-      );
-    }
-  }, [searchQuery, users]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -178,28 +151,14 @@ export default function ManageUsersContent() {
       ]);
 
       if (usersResult.data) {
-        // Map and filter out nulls
-        const mappedUsers: User[] = usersResult.data.users.map(
-          (user: {
-            id?: string;
-            name?: string | null;
-            email?: string | null;
-            roles?: string[];
-          }) => ({
-            id: user.id ?? "",
-            name: user.name ?? null,
-            email: user.email ?? null,
-            roles: user.roles! ?? [],
-          }),
-        );
-        setUsers(mappedUsers);
-        setFilteredUsers(mappedUsers);
+        setUsers(usersResult.data.users);
       }
 
       if (termsResult.data) {
         const activeTermData = termsResult.data.terms.find((t) => t.active);
         if (activeTermData) {
           setActiveTerm(activeTermData.name ?? null);
+          setActiveTermId(activeTermData.id ?? null);
         }
       }
     } catch (err: unknown) {
@@ -214,17 +173,22 @@ export default function ManageUsersContent() {
     addForm.reset({
       name: "",
       email: "",
-      role: "PLA",
+      role: Role.PLA,
     });
     setIsAddDialogOpen(true);
   };
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
+    // Find the first allowed role, or default to PLA
+    const userRole =
+      user.roles.find((r) =>
+        ALLOWED_ROLES.includes(r as (typeof ALLOWED_ROLES)[number]),
+      ) ?? Role.PLA;
     editForm.reset({
       name: user.name ?? "",
       email: user.email ?? "",
-      role: (user.roles[0] ?? "PLA") as "TA" | "PLA" | "PROFESSOR" | "GLA",
+      role: userRole as (typeof ALLOWED_ROLES)[number],
     });
     setIsEditDialogOpen(true);
   };
@@ -293,19 +257,82 @@ export default function ManageUsersContent() {
     }
   };
 
-  const getRoleBadgeClass = (role: string): string => {
-    return (
-      ROLE_COLORS[role] ?? "bg-muted/20 text-muted-foreground border-muted/30"
-    );
+  const handleLockAll = async () => {
+    if (!activeTermId) {
+      toast.error("No active term found");
+      return;
+    }
+
+    try {
+      const result = await lockAllMutation.mutateAsync({
+        termId: activeTermId,
+      });
+      toast.success(result.message);
+      await fetchUsers();
+    } catch (err: unknown) {
+      console.error("Error locking all:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to lock all users",
+      );
+    }
   };
+
+  const handleUnlockAll = async () => {
+    if (!activeTermId) {
+      toast.error("No active term found");
+      return;
+    }
+
+    try {
+      const result = await unlockAllMutation.mutateAsync({
+        termId: activeTermId,
+      });
+      toast.success(result.message);
+      await fetchUsers();
+    } catch (err: unknown) {
+      console.error("Error unlocking all:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to unlock all users",
+      );
+    }
+  };
+
+  const handleToggleUserLock = async (user: User) => {
+    if (!activeTermId) {
+      toast.error("No active term found");
+      return;
+    }
+
+    try {
+      const result = await toggleUserLockMutation.mutateAsync({
+        userId: user.id,
+        termId: activeTermId,
+      });
+      toast.success(result.message);
+      await fetchUsers();
+    } catch (err: unknown) {
+      console.error("Error toggling user lock:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to toggle user lock",
+      );
+    }
+  };
+
+  // Create table columns with handlers
+  const columns = createColumns(
+    handleEditUser,
+    handleDeleteUser,
+    (user: User) => void handleToggleUserLock(user),
+    activeTerm,
+  );
 
   // Count users by role for stats
   const userStats = {
     total: users.length,
-    pla: users.filter((u) => u.roles.includes("PLA")).length,
-    ta: users.filter((u) => u.roles.includes("TA")).length,
-    gla: users.filter((u) => u.roles.includes("GLA")).length,
-    professor: users.filter((u) => u.roles.includes("PROFESSOR")).length,
+    pla: users.filter((u) => u.roles.includes(Role.PLA)).length,
+    ta: users.filter((u) => u.roles.includes(Role.TA)).length,
+    gla: users.filter((u) => u.roles.includes(Role.GLA)).length,
+    professor: users.filter((u) => u.roles.includes(Role.PROFESSOR)).length,
   };
 
   if (isLoading) {
@@ -366,7 +393,9 @@ export default function ManageUsersContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">PLAs</CardTitle>
-              <Badge className={getRoleBadgeClass("PLA")}>PLA</Badge>
+              <Badge className="bg-primary/20 text-primary border-primary/30">
+                PLA
+              </Badge>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{userStats.pla}</div>
@@ -375,7 +404,9 @@ export default function ManageUsersContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">TAs</CardTitle>
-              <Badge className={getRoleBadgeClass("TA")}>TA</Badge>
+              <Badge className="bg-success/20 text-success border-success/30">
+                TA
+              </Badge>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{userStats.ta}</div>
@@ -384,7 +415,9 @@ export default function ManageUsersContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">GLAs</CardTitle>
-              <Badge className={getRoleBadgeClass("GLA")}>GLA</Badge>
+              <Badge className="bg-accent/20 text-accent border-accent/30">
+                GLA
+              </Badge>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{userStats.gla}</div>
@@ -393,7 +426,9 @@ export default function ManageUsersContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Professors</CardTitle>
-              <Badge className={getRoleBadgeClass("PROFESSOR")}>PROF</Badge>
+              <Badge className="border-violet-300 bg-violet-200 text-violet-900">
+                PROF
+              </Badge>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{userStats.professor}</div>
@@ -401,106 +436,67 @@ export default function ManageUsersContent() {
           </Card>
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-            <Input
-              placeholder="Search by name, email, or role..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {/* Users Table */}
+        {/* Users Data Table */}
         <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center">
-                      <div className="text-muted-foreground py-8">
-                        {searchQuery
-                          ? "No users match your search"
-                          : "No users found"}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredUsers.map((user) => {
-                    const isCoordinator = user.roles.includes("COORDINATOR");
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          {user.name}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Mail className="text-muted-foreground h-4 w-4" />
-                            {user.email}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {user.roles.map((role) => (
-                              <Badge
-                                key={role}
-                                variant="outline"
-                                className={getRoleBadgeClass(role)}
-                              >
-                                {role}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditUser(user)}
-                              disabled={isCoordinator}
-                              title={
-                                isCoordinator
-                                  ? "Cannot edit coordinator"
-                                  : "Edit user"
-                              }
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteUser(user)}
-                              disabled={isCoordinator}
-                              title={
-                                isCoordinator
-                                  ? "Cannot delete coordinator"
-                                  : "Delete user"
-                              }
-                              className="text-destructive hover:text-destructive/80"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Users</CardTitle>
+                <CardDescription>
+                  Manage staff and professors in the system
+                </CardDescription>
+              </div>
+              {activeTerm && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleLockAll}
+                    variant="destructive"
+                    className="gap-2"
+                    disabled={lockAllMutation.isPending}
+                  >
+                    {lockAllMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    Lock All
+                  </Button>
+                  <Button
+                    onClick={handleUnlockAll}
+                    variant="outline"
+                    className="gap-2"
+                    disabled={unlockAllMutation.isPending}
+                  >
+                    {unlockAllMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Unlock className="h-4 w-4" />
+                    )}
+                    Unlock All
+                  </Button>
+                </div>
+              )}
+            </div>
+            {activeTerm && (
+              <div className="bg-muted/50 border-border mt-4 rounded-md border p-3">
+                <div className="flex items-center gap-2">
+                  <LockKeyhole className="text-primary h-4 w-4" />
+                  <p className="text-muted-foreground text-sm">
+                    Lock/unlock preferences for {activeTerm}. Locked users
+                    cannot edit their preferences. Individual locks override the
+                    global setting.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="p-6">
+            <DataTable
+              columns={columns}
+              data={users}
+              searchKey="name"
+              searchPlaceholder="Search by name..."
+            />
           </CardContent>
         </Card>
 
