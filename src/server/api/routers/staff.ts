@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { type Role, type Day } from "@prisma/client";
+import { type Role, type Day, type PreferenceLevel } from "@prisma/client";
 
 type StaffMember = {
   id: string;
@@ -13,7 +13,7 @@ type StaffMember = {
   comments: string | null;
   timesAvailable: Array<{ day: Day; hour: number }>;
   preferedSections: Array<{
-    rank: number;
+    rank: PreferenceLevel;
     section: {
       id: string;
       courseTitle: string;
@@ -164,7 +164,7 @@ export const staffRoute = createTRPCRouter({
             comments: string;
             timesAvailable: Array<{ day: Day; hour: number }>;
             preferedSections: Array<{
-              rank: number;
+              rank: PreferenceLevel;
               section: {
                 id: string;
                 courseTitle: string;
@@ -239,7 +239,7 @@ export const staffRoute = createTRPCRouter({
               comments: string;
               timesAvailable: Array<{ day: Day; hour: number }>;
               preferedSections: Array<{
-                rank: number;
+                rank: PreferenceLevel;
                 section: {
                   id: string;
                   courseTitle: string;
