@@ -55,7 +55,6 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Mock course data */}
           {Object.values(sections ?? {}).map((course) => (
             <div key={course.sectionId} className="rounded-lg border p-4">
               <h3 className="font-semibold">

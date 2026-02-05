@@ -126,15 +126,13 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     api.professorForm.updateProfessorSectionsForTerm.useMutation({
       onSuccess: () => {
         toast(
-          <div className="container mx-auto max-w-4xl p-6">
-            <Card className="border-green-200 bg-green-50">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <CheckCircle className="mb-4 h-16 w-16 text-green-600" />
-                  <h2 className="mb-2 text-2xl font-bold">
-                    Preferences Submitted!
-                  </h2>
-                  <p className="text-muted-foreground mb-6">
+          <div className="container mx-auto max-w-4xl">
+            <Card className="bg-secondary border-green-200">
+              <CardContent className="">
+                <div className="flex flex-col items-center justify-center py-2 text-center">
+                  <CheckCircle className="h-16 w-16 text-green-600" />
+                  <h2 className="text-2xl font-bold">Preferences Submitted!</h2>
+                  <p className="text-muted-foreground mb-2">
                     Your assistant preferences have been successfully submitted.
                   </p>
                   <Link href="/">
