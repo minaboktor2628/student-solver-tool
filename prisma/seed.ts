@@ -43,8 +43,8 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        name: "Matthew Ahrens",
-        email: "mahrens@wpi.edu",
+        name: "Prof, prof",
+        email: "prof2@wpi.edu",
         AllowedInTerms: { connect: { id: term.id } },
       },
     }),

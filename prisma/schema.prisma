@@ -136,7 +136,7 @@ model Section {
   courseCode     String // Ex: "CS 2022"
   courseSection  String // Ex: "LO1"
   meetingPattern String // Ex: "M-R | 2:00pm - 3:50pm"
-  description    String // Course description
+  description    String // Course description (stored as an html string)
 
   professor   User   @relation("TeachesSections", fields: [professorId], references: [id])
   professorId String
