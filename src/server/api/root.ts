@@ -8,7 +8,6 @@ import { studentFormRoute } from "./routers/student-form";
 import { staffRoute } from "./routers/staff";
 import { termRoute } from "./routers/term";
 import { dashboardRoute } from "./routers/dashboard";
-import { userRoute } from "./routers/user";
 
 /**
  * This is the primary router for your server.
@@ -23,7 +22,6 @@ export const appRouter = createTRPCRouter({
   courses: courseRoute,
   studentForm: studentFormRoute,
   staff: staffRoute,
-  users: userRoute,
   term: termRoute,
   dashboard: dashboardRoute,
 });

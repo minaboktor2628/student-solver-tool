@@ -114,12 +114,16 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
   const [files, setFiles] = useState<File[] | undefined>(undefined);
   const [rows, setRows] = useState<CSVRow[] | null>(null);
 
-  const uploadUsers = api.users.createUsers.useMutation({
+  const uploadUsers = api.term.syncUsersToTerm.useMutation({
     onError: (error) => {
       toast.error(error.message);
     },
-    onSuccess: () => {
-      toast.success("Success!");
+    onSuccess: (newusers) => {
+      const message =
+        "Success! Synced the following users to this term: \n" +
+        newusers.map((u) => u.name).join(", ");
+      toast.success(message);
+      console.log(message);
     },
   });
 

@@ -37,30 +37,24 @@ const devCredentialsProvider = Credentials({
         include: { roles: true },
       });
 
-      // Make sure they are allowed to log in for the active term
+      // Find the active term
       const term = await tx.term.findFirst({ where: { active: true } });
 
       if (term) {
-        // Make sure they are allowed to log in for the active term
-        await tx.allowedTermUser.upsert({
-          where: {
-            termId_userId: {
-              termId: term.id,
-              userId: u.id,
+        // Connect the user to the term's allowedUsers relation
+        await tx.term.update({
+          where: { id: term.id },
+          data: {
+            allowedUsers: {
+              connect: { id: u.id },
             },
           },
-          create: {
-            termId: term.id,
-            userId: u.id,
-          },
-          update: {},
         });
       } else {
         console.warn(
-          "[devCredentials] No active term found; skipping AllowedTermUser upsert",
+          "[devCredentials] No active term found; skipping allowedUsers connect",
         );
       }
-
       return u;
     });
 

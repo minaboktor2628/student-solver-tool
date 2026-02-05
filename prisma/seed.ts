@@ -12,7 +12,6 @@ async function main() {
     prisma.staffPreferencePreferredSection.deleteMany(),
     prisma.staffPreferenceQualifiedSection.deleteMany(),
     prisma.staffPreference.deleteMany(),
-    prisma.allowedTermUser.deleteMany(),
     prisma.userRole.deleteMany(),
     prisma.section.deleteMany(),
     prisma.term.deleteMany(),
@@ -39,12 +38,14 @@ async function main() {
       data: {
         name: "Prof. Discrete",
         email: "prof.discrete@wpi.edu",
+        AllowedInTerms: { connect: { id: term.id } },
       },
     }),
     prisma.user.create({
       data: {
         name: "Matthew Ahrens",
         email: "mahrens@wpi.edu",
+        AllowedInTerms: { connect: { id: term.id } },
       },
     }),
     prisma.user.create({
@@ -52,6 +53,7 @@ async function main() {
         name: "Taylor TA",
         email: "ta.taylor@wpi.edu",
         hours: 20,
+        AllowedInTerms: { connect: { id: term.id } },
       },
     }),
     prisma.user.create({
@@ -59,6 +61,7 @@ async function main() {
         name: "Pat PLA",
         email: "pla.pat@wpi.edu",
         hours: 10,
+        AllowedInTerms: { connect: { id: term.id } },
       },
     }),
     prisma.user.create({
@@ -66,12 +69,14 @@ async function main() {
         name: "Mat PLA",
         email: "pla.mat@wpi.edu",
         hours: 10,
+        AllowedInTerms: { connect: { id: term.id } },
       },
     }),
     prisma.user.create({
       data: {
         name: "Casey Coordinator",
         email: "coordinator.casey@wpi.edu",
+        AllowedInTerms: { connect: { id: term.id } },
       },
     }),
   ]);
@@ -84,32 +89,6 @@ async function main() {
       { userId: pla.id, role: Role.PLA },
       { userId: pla2.id, role: Role.PLA },
       { userId: coordinator.id, role: Role.COORDINATOR },
-    ],
-  });
-
-  // ----- ALLOWED EMAILS FOR THIS TERM -----
-  await prisma.allowedTermUser.createMany({
-    data: [
-      {
-        userId: professor.id,
-        termId: term.id,
-      },
-      {
-        userId: ta.id,
-        termId: term.id,
-      },
-      {
-        userId: pla.id,
-        termId: term.id,
-      },
-      {
-        userId: pla2.id,
-        termId: term.id,
-      },
-      {
-        userId: coordinator.id,
-        termId: term.id,
-      },
     ],
   });
 

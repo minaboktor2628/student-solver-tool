@@ -7,8 +7,9 @@ import {
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
-import { TermLetter } from "@prisma/client";
+import { Role, TermLetter } from "@prisma/client";
 import { createTermInputSchema } from "@/types/form-inputs";
+import { getDefaultHoursForRole } from "@/lib/constants";
 
 export const termRoute = createTRPCRouter({
   getTerms: publicProcedure.query(async ({ ctx }) => {
@@ -143,6 +144,48 @@ export const termRoute = createTRPCRouter({
         where: { id },
         data: { active: false },
       });
+    }),
+
+  syncUsersToTerm: coordinatorProcedure
+    .input(
+      z.object({
+        users: z.array(
+          z.object({
+            name: z.string(),
+            email: z.string().email(),
+            role: z.nativeEnum(Role),
+          }),
+        ),
+        termId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input: { users, termId } }) => {
+      const term = await ctx.db.term.update({
+        where: { id: termId },
+        data: {
+          allowedUsers: {
+            // if the user does not already exist, make a new user
+            connectOrCreate: users.map(({ name, email, role }) => ({
+              where: { email },
+              create: {
+                name,
+                email,
+                hours: getDefaultHoursForRole(role),
+                roles: { create: { role } },
+              },
+            })),
+          },
+        },
+        include: { allowedUsers: true },
+      });
+
+      // term.allowedUsers may contain more users than just the ones we touched
+      // we return *only* the set we just created/connected:
+      const affectedUsers = term.allowedUsers.filter((u) =>
+        users.some((inputUser) => inputUser.email === u.email),
+      );
+
+      return affectedUsers;
     }),
 
   // createTerm: coordinatorProcedure
