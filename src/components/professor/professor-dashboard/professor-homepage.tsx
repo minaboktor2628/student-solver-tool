@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
 import { useTerm } from "@/components/term-combobox";
