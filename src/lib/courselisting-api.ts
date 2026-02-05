@@ -2,21 +2,24 @@ import {
   CourseListingApiSchema,
   type ReportEntryRow,
 } from "../types/courselisting-api";
-import type { AcademicLevel, TermLetter } from "@prisma/client";
+import { AcademicLevel, TermLetter } from "@prisma/client";
 import { calculateRequiredAssistantHours } from "./utils";
+import z from "zod";
 
-export type SectionItem = {
-  academicLevel: AcademicLevel;
-  requiredHours: number;
-  capacity: number;
-  enrollment: number;
-  professorName: string;
-  courseCode: string;
-  courseTitle: string;
-  description: string;
-  courseSection: string;
-  meetingPattern: string;
-};
+export const SectionItemSchema = z.object({
+  academicLevel: z.nativeEnum(AcademicLevel),
+  requiredHours: z.number(),
+  capacity: z.number(),
+  enrollment: z.number(),
+  professorName: z.string(),
+  courseCode: z.string(),
+  courseTitle: z.string(),
+  description: z.string(),
+  courseSection: z.string(),
+  meetingPattern: z.string(),
+});
+
+export type SectionItem = z.infer<typeof SectionItemSchema>;
 
 // god i love a good pipeline
 export async function getTermSectionData(
@@ -84,7 +87,7 @@ function filterByTerm(year: number, term: TermLetter) {
 
 function mapCourses(data: ReportEntryRow[]): SectionItem[] {
   function extractCourseCode(courseSection: string): string {
-    const match = /^([A-Z]+\s+\d+)/.exec(courseSection);
+    const match = /^([A-Z]+\s+\d+[A-Z]*)/.exec(courseSection);
     return match?.[1] ?? courseSection;
   }
 
@@ -94,8 +97,21 @@ function mapCourses(data: ReportEntryRow[]): SectionItem[] {
     return match?.[1] ?? "";
   }
 
-  return data.map((entry): SectionItem => {
-    const courseTitle = entry.Course_Title.replace(/^[A-Z]+\s+\d+\s+-\s+/, "");
+  const sections: Array<SectionItem | null> = data.map((entry) => {
+    // Enrollment / capacity, as numbers
+    const [enrollmentStr, capacityStr] = (
+      entry.Enrolled_Capacity ?? "0/0"
+    ).split("/");
+    const enrollment = Number(enrollmentStr) || 0;
+    const capacity = Number(capacityStr) || 0;
+
+    // if capacity is 0, something probably went wrong and we should skip this course
+    if (capacity === 0) return null;
+
+    const courseTitle = entry.Course_Title.replace(
+      /^[A-Z]+\s+\d+[A-Z]*\s*-\s+/,
+      "",
+    );
     const courseCode = extractCourseCode(entry.Course_Section);
     const courseSection = extractSectionType(entry.Course_Section);
     const meetingPattern = entry.Meeting_Patterns;
@@ -108,16 +124,9 @@ function mapCourses(data: ReportEntryRow[]): SectionItem[] {
     const professorName =
       first && last ? `${last}, ${first}` : primaryInstructor;
 
-    // Enrollment / capacity, as numbers
-    const [enrollmentStr, capacityStr] = (
-      entry.Enrolled_Capacity ?? "0/0"
-    ).split("/");
-    const enrollment = Number(enrollmentStr) || 0;
-    const capacity = Number(capacityStr) || 0;
-
     const requiredHours = calculateRequiredAssistantHours(enrollment);
 
-    const academicLevel =
+    const academicLevel: AcademicLevel =
       entry.Academic_Level === "Graduate" ? "GRADUATE" : "UNDERGRADUATE";
 
     return {
@@ -126,13 +135,16 @@ function mapCourses(data: ReportEntryRow[]): SectionItem[] {
       courseSection,
       meetingPattern,
       description,
-      professorName,
+      professorName: professorName === "" ? ("TBD" as const) : professorName,
       enrollment,
       capacity,
       requiredHours,
       academicLevel,
     };
   });
+
+  // Type guard so TS knows nulls are gone
+  return sections.filter((item): item is SectionItem => item !== null);
 }
 
 // for cli testing
