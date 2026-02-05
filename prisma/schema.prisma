@@ -138,8 +138,8 @@ model Section {
   meetingPattern String // Ex: "M-R | 2:00pm - 3:50pm"
   description    String // Course description (stored as an html string)
 
-  professor   User   @relation("TeachesSections", fields: [professorId], references: [id])
-  professorId String
+  professor   User?   @relation("TeachesSections", fields: [professorId], references: [id])
+  professorId String?
 
   enrollment    Int // Number of students enrolled in this course
   capacity      Int // Max number of students allowed to enroll in this course
