@@ -119,8 +119,7 @@ async function main() {
         termId: term.id,
       },
       {
-        email: testprof.email!,
-        role: Role.PROFESSOR,
+        userId: testprof.id,
         termId: term.id,
       },
     ],

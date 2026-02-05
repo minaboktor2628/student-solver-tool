@@ -84,25 +84,27 @@ export const SelectAssistantAntipref: React.FC<
               <Label className="text-sm font-medium">
                 List of avoided assistants
               </Label>
-              {avoidedStaff?.map((staff) => {
-                return (
-                  <div key={staff.id} className="px-6 pt-2">
-                    <div className="border-primary bg-primary/5 flex items-center justify-between rounded-lg border p-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {staff.name}
-                          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                            {staff.roles}
-                          </span>
+              <div className="flex flex-row">
+                {avoidedStaff?.map((staff) => {
+                  return (
+                    <div key={staff.id} className="w-1/3 shrink-0 px-2 pt-2">
+                      <div className="border-primary bg-primary/5 flex items-center justify-between rounded-lg border p-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {staff.name}
+                            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                              {staff.roles}
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground text-sm">
+                            {staff.email}
+                          </p>
                         </div>
-                        <p className="text-muted-foreground text-sm">
-                          {staff.email}
-                        </p>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
           <Label className="pt-4 text-sm font-medium">
