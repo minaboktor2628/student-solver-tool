@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const professorDashboardRoute = createTRPCRouter({
   getDashBoardInfo: professorProcedure
@@ -10,6 +11,12 @@ export const professorDashboardRoute = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
+      if (
+        ctx.session.user.id !== input.professorId &&
+        !ctx.session.user.roles.includes("COORDINATOR")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       const professor = await ctx.db.user.findUnique({
         where: {
           id: input.professorId,

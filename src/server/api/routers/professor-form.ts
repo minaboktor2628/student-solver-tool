@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
 
 export const professorFormRoute = createTRPCRouter({
   /** Fetch all sections in a term for a professor */
@@ -11,6 +12,12 @@ export const professorFormRoute = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
+      if (
+        ctx.session.user.id !== input.professorId &&
+        !ctx.session.user.roles.includes("COORDINATOR")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       const sections = await ctx.db.section.findMany({
         where: {
           professorId: input.professorId,
@@ -125,6 +132,12 @@ export const professorFormRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      if (
+        ctx.session.user.id !== input.professorId &&
+        !ctx.session.user.roles.includes("COORDINATOR")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       const { professorId, sections } = input;
 
       return await ctx.db.$transaction(async (tx) => {
