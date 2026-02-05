@@ -10,6 +10,7 @@ import { calculateRequiredAssistantHours } from "@/lib/utils";
 import { Role, TermLetter } from "@prisma/client";
 import { createTermInputSchema } from "@/types/form-inputs";
 import { getDefaultHoursForRole } from "@/lib/constants";
+import { getTermSectionData } from "@/lib/courselisting-api";
 
 export const termRoute = createTRPCRouter({
   getTerms: publicProcedure.query(async ({ ctx }) => {
@@ -186,6 +187,21 @@ export const termRoute = createTRPCRouter({
       );
 
       return affectedUsers;
+    }),
+
+  getCourseListingData: coordinatorProcedure
+    .input(
+      z.object({
+        year: z.number().int().nonnegative(),
+        termLetter: z.nativeEnum(TermLetter),
+      }),
+    )
+    .mutation(async ({ ctx, input: { year, termLetter } }) => {
+      // const term = await ctx.db.term.findUnique({
+      //   where: { termLetter_year: { termLetter, year } },
+      // });
+
+      return getTermSectionData(year, termLetter);
     }),
 
   // createTerm: coordinatorProcedure
