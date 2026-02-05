@@ -105,16 +105,18 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
   const [files, setFiles] = useState<File[] | undefined>(undefined);
   const [rows, setRows] = useState<CSVRow[] | null>(null);
 
+  const utils = api.useUtils();
   const uploadUsers = api.term.syncUsersToTerm.useMutation({
     onError: (error) => {
       toast.error(error.message);
     },
     onSuccess: (newusers) => {
-      const message =
-        "Success! Synced the following users to this term: \n" +
-        newusers.map((u) => u.name).join(", ");
+      const message = `Success! Synced ${newusers} new users.`;
       toast.success(message);
       console.log(message);
+    },
+    onSettled: async () => {
+      await utils.term.getTermStats.invalidate();
     },
   });
 
@@ -146,7 +148,7 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
           Upload Users
         </DropdownMenuItem>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Allowed Users</DialogTitle>
           <DialogDescription>
@@ -156,12 +158,14 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
             First&quot;. Since the name field has a comma separator, they must
             be wrapped with quotes. If you wish, you can create users in the
             Manage Users page. Here is an example file:
-            <Image
-              width={500}
-              height={500}
-              src="/example-allowed-user-csv.png"
-              alt="Example CSV"
-            />
+            <div className="flex flex-col items-center justify-center p-2">
+              <Image
+                width={500}
+                height={500}
+                src="/example-allowed-user-csv.png"
+                alt="Example CSV"
+              />
+            </div>
           </DialogDescription>
         </DialogHeader>
         <Dropzone
