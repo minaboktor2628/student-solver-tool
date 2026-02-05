@@ -1,5 +1,7 @@
 import { LoadingSpinner } from "@/components/loading-spinner";
 import MultiStepFormModal from "@/components/MultiStepForm/multi-step-form-modal";
+import { redirectToForbidden } from "@/lib/navigation";
+import { hasPermission } from "@/lib/permissions";
 import { auth } from "@/server/auth";
 
 export const metadata = {
@@ -9,9 +11,16 @@ export const metadata = {
 
 export default async function PreferencesFormPage() {
   const session = await auth();
+  const userId = session?.user.id;
 
-  if (!session?.user?.id) {
-    return <LoadingSpinner />;
+  if (!userId) return <LoadingSpinner />;
+
+  if (
+    !hasPermission(session.user, "staffPreferenceForm", "viewActiveTerm", {
+      id: userId,
+    })
+  ) {
+    redirectToForbidden();
   }
 
   return (
@@ -20,7 +29,7 @@ export default async function PreferencesFormPage() {
       <p className="text-muted-foreground mb-4">
         Complete the steps to set your preferences.
       </p>
-      <MultiStepFormModal userId={session.user.id} inline />
+      <MultiStepFormModal userId={userId} inline />
     </div>
   );
 }

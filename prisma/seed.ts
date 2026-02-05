@@ -12,7 +12,7 @@ async function main() {
     prisma.staffPreferencePreferredSection.deleteMany(),
     prisma.staffPreferenceQualifiedSection.deleteMany(),
     prisma.staffPreference.deleteMany(),
-    prisma.allowedEmail.deleteMany(),
+    prisma.allowedTermUser.deleteMany(),
     prisma.userRole.deleteMany(),
     prisma.section.deleteMany(),
     prisma.term.deleteMany(),
@@ -96,31 +96,26 @@ async function main() {
   });
 
   // ----- ALLOWED EMAILS FOR THIS TERM -----
-  await prisma.allowedEmail.createMany({
+  await prisma.allowedTermUser.createMany({
     data: [
       {
-        email: professor.email!,
-        role: Role.PROFESSOR,
+        userId: professor.id,
         termId: term.id,
       },
       {
-        email: ta.email!,
-        role: Role.TA,
+        userId: ta.id,
         termId: term.id,
       },
       {
-        email: pla.email!,
-        role: Role.PLA,
+        userId: pla.id,
         termId: term.id,
       },
       {
-        email: pla2.email!,
-        role: Role.PLA,
+        userId: pla2.id,
         termId: term.id,
       },
       {
-        email: coordinator.email!,
-        role: Role.COORDINATOR,
+        userId: coordinator.id,
         termId: term.id,
       },
       {
