@@ -8,9 +8,10 @@ import z from "zod";
 
 export const SectionItemSchema = z.object({
   academicLevel: z.nativeEnum(AcademicLevel),
-  requiredHours: z.number(),
-  capacity: z.number(),
-  enrollment: z.number(),
+  requiredHours: z.coerce.number().int().multipleOf(10).nonnegative(),
+  capacity: z.coerce.number().int().nonnegative(),
+  enrollment: z.coerce.number().int().nonnegative(),
+  professorId: z.string().nullable().optional(),
   professorName: z.string(),
   courseCode: z.string(),
   courseTitle: z.string(),

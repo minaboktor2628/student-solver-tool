@@ -33,6 +33,7 @@ import { UploadAllowedUsersForm } from "./upload-allowed-users-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { SyncSectionsForm } from "./sync-sections-form";
 
 // TODO: make this paginated
 export function TermTable() {
@@ -46,6 +47,9 @@ export function TermTable() {
     onError: (error) => {
       toast.error(error.message);
     },
+    onSettled: async () => {
+      await utils.term.invalidate();
+    },
   });
 
   const activateTerm = api.term.activateTerm.useMutation({
@@ -55,6 +59,9 @@ export function TermTable() {
     onError: (error) => {
       toast.error(error.message);
     },
+    onSettled: async () => {
+      await utils.term.invalidate();
+    },
   });
 
   const deactivateTerm = api.term.deactivateTerm.useMutation({
@@ -63,6 +70,9 @@ export function TermTable() {
     },
     onError: (error) => {
       toast.error(error.message);
+    },
+    onSettled: async () => {
+      await utils.term.invalidate();
     },
   });
 
@@ -110,8 +120,11 @@ export function TermTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Sync sections</DropdownMenuItem>
                       <UploadAllowedUsersForm termId={term.id} />
+                      <SyncSectionsForm
+                        year={term.year}
+                        termLetter={term.termLetter}
+                      />
                       <ActivateDeactivateButton
                         active={term.active}
                         onActivate={() => activateTerm.mutate({ id: term.id })}
@@ -153,7 +166,6 @@ function ActivateDeactivateButton({
           {isDeactivate ? "Deactivate" : "Activate"}
         </DropdownMenuItem>
       </AlertDialogTrigger>
-
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -165,10 +177,8 @@ function ActivateDeactivateButton({
               : "This will activate the term and make it available for use. Student staff and professors will be affecting this term when filling out thier preferences. Activating this term will deactivate all other term."}
           </AlertDialogDescription>
         </AlertDialogHeader>
-
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-
           <AlertDialogAction onClick={isDeactivate ? onDeactivate : onActivate}>
             {isDeactivate ? "Deactivate" : "Activate"}
           </AlertDialogAction>
