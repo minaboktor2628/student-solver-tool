@@ -180,8 +180,12 @@ export const courseRoute = createTRPCRouter({
       success: true,
       courses: sections.map((course) => ({
         id: course.id,
+        termId: course.termId,
         courseCode: course.courseCode,
         courseTitle: course.courseTitle,
+        courseSection: course.courseSection,
+        meetingPattern: course.meetingPattern,
+        description: course.description,
         professorName: course.professor?.name ?? "Unknown Professor",
         professorEmail: course.professor?.email ?? "",
         enrollment: course.enrollment,
@@ -207,24 +211,13 @@ export const courseRoute = createTRPCRouter({
       }),
     )
     .query(async ({ input: { termLetter, year }, ctx }) => {
-      // Fetch all sections that either:
-      // 1. Already have this term assigned, OR
-      // 2. Have NO term assigned yet (unassigned courses from previous syncs)
+      // Fetch sections for this term (term is required in the schema)
       const sections = await ctx.db.section.findMany({
         where: {
-          OR: [
-            // Courses already assigned to this term
-            {
-              term: {
-                termLetter: termLetter as TermLetter,
-                year,
-              },
-            },
-            // Unassigned courses (no term) - use condition instead of null
-            {
-              term: null as never,
-            },
-          ],
+          term: {
+            termLetter: termLetter as TermLetter,
+            year,
+          },
         },
         include: {
           professor: true,
@@ -323,6 +316,7 @@ export const courseRoute = createTRPCRouter({
           professorName,
           enrollment = 0,
           capacity = 0,
+          requiredHours,
           academicLevel = "UNDERGRADUATE",
           courseSection = "01",
           meetingPattern = "TBD",
@@ -334,6 +328,7 @@ export const courseRoute = createTRPCRouter({
           professorName?: string;
           enrollment?: number;
           capacity?: number;
+          requiredHours?: number;
           academicLevel?: string;
           courseSection?: string;
           meetingPattern?: string;
@@ -391,6 +386,8 @@ export const courseRoute = createTRPCRouter({
         const calculatedHours = calculateRequiredAssistantHours(
           typeof enrollment === "number" ? enrollment : 0,
         );
+        const finalRequiredHours =
+          typeof requiredHours === "number" ? requiredHours : calculatedHours;
 
         const createdCourse = await ctx.db.section.create({
           data: {
@@ -401,7 +398,7 @@ export const courseRoute = createTRPCRouter({
             professorId: professor.id,
             enrollment: typeof enrollment === "number" ? enrollment : 0,
             capacity: typeof capacity === "number" ? capacity : 0,
-            requiredHours: calculatedHours,
+            requiredHours: finalRequiredHours,
             academicLevel: (academicLevel as AcademicLevel) ?? "UNDERGRADUATE",
             courseSection: courseSection ?? "01",
             meetingPattern: meetingPattern ?? "TBD",

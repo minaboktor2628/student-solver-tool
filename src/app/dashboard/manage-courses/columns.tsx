@@ -9,8 +9,12 @@ import type { Section, AcademicLevel } from "@prisma/client";
 export type Course = Pick<
   Section,
   | "id"
+  | "termId"
   | "courseCode"
   | "courseTitle"
+  | "courseSection"
+  | "meetingPattern"
+  | "description"
   | "enrollment"
   | "capacity"
   | "requiredHours"
@@ -43,6 +47,14 @@ export const createColumns = (
           {title}
         </div>
       );
+    },
+  },
+  {
+    accessorKey: "courseSection",
+    header: "Section",
+    cell: ({ row }) => {
+      const section = row.getValue<string>("courseSection");
+      return <div className="font-medium">{section}</div>;
     },
   },
   {

@@ -84,22 +84,12 @@ export const dashboardRoute = createTRPCRouter({
         },
       });
 
-      // Transform courses with correct hour calculations
+      // Transform courses with hour calculations based on stored staff hours
       const courses = sections.map((section) => {
-        // Calculate assigned hours based on staff roles
-        // PLA = 10 hours, TA = 20 hours
-        const assignedHours = section.assignments.reduce((sum, assignment) => {
-          const staffRole = assignment.staff.roles.find(
-            (r) => r.role === "PLA" || r.role === "TA",
-          )?.role;
-
-          if (staffRole === "TA") {
-            return sum + 20;
-          } else if (staffRole === "PLA") {
-            return sum + 10;
-          }
-          return sum;
-        }, 0);
+        const assignedHours = section.assignments.reduce(
+          (sum, assignment) => sum + (assignment.staff.hours ?? 0),
+          0,
+        );
 
         return {
           id: section.id,

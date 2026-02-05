@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Role, type Term, type TermLetter, type User } from "@prisma/client";
+import {
+  AcademicLevel,
+  Role,
+  type Term,
+  type TermLetter,
+  type User,
+} from "@prisma/client";
 import { api } from "@/trpc/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +26,7 @@ import {
 // shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { DataTable } from "@/components/ui/data-table";
 import { Combobox } from "@/components/ui/combobox";
 import {
@@ -61,6 +68,7 @@ import { createColumns, type Course } from "./columns";
 
 interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
   name: string;
+  active: boolean;
 }
 
 // Zod schemas for validation
@@ -73,6 +81,16 @@ const courseFormSchema = z.object({
     .string()
     .min(1, "Course title is required")
     .max(200, "Course title is too long"),
+  courseSection: z
+    .string()
+    .min(1, "Course section is required")
+    .max(10, "Course section is too long"),
+  meetingPattern: z
+    .string()
+    .min(1, "Meeting pattern is required")
+    .max(100, "Meeting pattern is too long"),
+  academicLevel: z.enum(["UNDERGRADUATE", "GRADUATE"]),
+  description: z.string().max(1000, "Description is too long").optional(),
   professorId: z.string().min(1, "Professor is required"),
   enrollment: z.coerce.number().min(0, "Enrollment must be 0 or greater"),
   capacity: z.coerce.number().min(0, "Capacity must be 0 or greater"),
@@ -105,6 +123,10 @@ export default function ManageCoursesContent() {
     defaultValues: {
       courseCode: "",
       courseTitle: "",
+      courseSection: "",
+      meetingPattern: "",
+      academicLevel: "UNDERGRADUATE",
+      description: "",
       professorId: "",
       enrollment: 0,
       capacity: 0,
@@ -117,6 +139,10 @@ export default function ManageCoursesContent() {
     defaultValues: {
       courseCode: "",
       courseTitle: "",
+      courseSection: "",
+      meetingPattern: "",
+      academicLevel: "UNDERGRADUATE",
+      description: "",
       professorId: "",
       enrollment: 0,
       capacity: 0,
@@ -149,7 +175,7 @@ export default function ManageCoursesContent() {
 
       if (coursesResult.data?.success) {
         const filtered = coursesResult.data.courses.filter(
-          (course) => !selectedTerm || course.term === selectedTerm,
+          (course) => !selectedTerm || course.termId === selectedTerm,
         );
         setCourses(filtered);
       }
@@ -163,14 +189,20 @@ export default function ManageCoursesContent() {
             name?: string;
             termLetter?: TermLetter;
             year?: number;
+            active?: boolean;
           }) => ({
             id: term.id ?? "",
             name: term.name ?? "",
             termLetter: term.termLetter ?? ("A" as TermLetter),
             year: term.year ?? new Date().getFullYear(),
+            active: term.active ?? false,
           }),
         );
         setTerms(formattedTerms);
+        if (!selectedTerm) {
+          const activeTermId = formattedTerms.find((t) => t.active)?.id;
+          setSelectedTerm(activeTermId ?? formattedTerms[0]?.id ?? null);
+        }
       }
 
       if (professorsResult.data) {
@@ -194,6 +226,10 @@ export default function ManageCoursesContent() {
     addForm.reset({
       courseCode: "",
       courseTitle: "",
+      courseSection: "",
+      meetingPattern: "",
+      academicLevel: "UNDERGRADUATE",
+      description: "",
       professorId: "",
       enrollment: 0,
       capacity: 0,
@@ -210,6 +246,10 @@ export default function ManageCoursesContent() {
     editForm.reset({
       courseCode: course.courseCode,
       courseTitle: course.courseTitle,
+      courseSection: course.courseSection,
+      meetingPattern: course.meetingPattern,
+      academicLevel: course.academicLevel,
+      description: course.description,
       professorId,
       enrollment: course.enrollment,
       capacity: course.capacity,
@@ -239,6 +279,10 @@ export default function ManageCoursesContent() {
           {
             courseCode: values.courseCode,
             courseTitle: values.courseTitle,
+            courseSection: values.courseSection,
+            meetingPattern: values.meetingPattern,
+            academicLevel: values.academicLevel,
+            description: values.description,
             professorName: selectedProfessor.name,
             enrollment: values.enrollment,
             capacity: values.capacity,
@@ -267,6 +311,10 @@ export default function ManageCoursesContent() {
         data: {
           courseCode: values.courseCode,
           courseTitle: values.courseTitle,
+          courseSection: values.courseSection,
+          meetingPattern: values.meetingPattern,
+          academicLevel: values.academicLevel,
+          description: values.description,
           professorId: values.professorId,
           enrollment: values.enrollment,
           capacity: values.capacity,
@@ -314,8 +362,8 @@ export default function ManageCoursesContent() {
   // Course stats
   const courseStats = {
     total: courses.length,
-    withTerm: courses.filter((c) => c.term).length,
-    withoutTerm: courses.filter((c) => !c.term).length,
+    withTerm: courses.filter((c) => c.termId).length,
+    withoutTerm: courses.filter((c) => !c.termId).length,
     totalEnrollment: courses.reduce((sum, c) => sum + c.enrollment, 0),
   };
 
@@ -394,16 +442,13 @@ export default function ManageCoursesContent() {
         {/* Filters and Table */}
         <div className="mb-6 flex gap-4">
           <Select
-            value={selectedTerm ?? "all"}
-            onValueChange={(value) =>
-              setSelectedTerm(value === "all" ? null : value)
-            }
+            value={selectedTerm ?? ""}
+            onValueChange={(value) => setSelectedTerm(value)}
           >
             <SelectTrigger className="w-[250px]">
               <SelectValue placeholder="Filter by term" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Terms</SelectItem>
               {terms.map((term) => (
                 <SelectItem key={term.id} value={term.id}>
                   {term.name}
@@ -468,6 +513,34 @@ export default function ManageCoursesContent() {
                     )}
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="courseSection"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Course Section</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., LO1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={addForm.control}
+                    name="meetingPattern"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Meeting Pattern</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., M W F 10-11" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={addForm.control}
                   name="professorId"
@@ -491,6 +564,52 @@ export default function ManageCoursesContent() {
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="academicLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Academic Level</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={AcademicLevel.UNDERGRADUATE}>
+                              Undergraduate
+                            </SelectItem>
+                            <SelectItem value={AcademicLevel.GRADUATE}>
+                              Graduate
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={addForm.control}
+                    name="requiredHours"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Required Hours</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Number of staff hours required for this course
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={addForm.control}
@@ -521,16 +640,13 @@ export default function ManageCoursesContent() {
                 </div>
                 <FormField
                   control={addForm.control}
-                  name="requiredHours"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Required Hours</FormLabel>
+                      <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" {...field} />
+                        <Textarea placeholder="Course description" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Number of staff hours required for this course
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -608,6 +724,34 @@ export default function ManageCoursesContent() {
                     )}
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="courseSection"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Course Section</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., LO1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="meetingPattern"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Meeting Pattern</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., M W F 10-11" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={editForm.control}
                   name="professorId"
@@ -631,6 +775,52 @@ export default function ManageCoursesContent() {
                     </FormItem>
                   )}
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="academicLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Academic Level</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={AcademicLevel.UNDERGRADUATE}>
+                              Undergraduate
+                            </SelectItem>
+                            <SelectItem value={AcademicLevel.GRADUATE}>
+                              Graduate
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="requiredHours"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Required Hours</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Number of staff hours required for this course
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={editForm.control}
@@ -661,16 +851,13 @@ export default function ManageCoursesContent() {
                 </div>
                 <FormField
                   control={editForm.control}
-                  name="requiredHours"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Required Hours</FormLabel>
+                      <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" {...field} />
+                        <Textarea placeholder="Course description" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Number of staff hours required for this course
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
