@@ -58,7 +58,7 @@ import { api, type RouterOutputs } from "@/trpc/react";
 import { Badge } from "./ui/badge";
 import { useSessionStorage } from "@/hooks/use-session-storage";
 
-type Term = RouterOutputs["term"]["getTerms"]["all"][number];
+export type Term = RouterOutputs["term"]["getTerms"]["all"][number];
 
 // What gets returned when using the useTerm() context
 type TermContextValue = {

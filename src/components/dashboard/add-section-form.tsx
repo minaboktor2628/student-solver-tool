@@ -28,6 +28,7 @@ export function CreateSectionForm({
       meetingPattern: "",
       description: "",
       professorId: "",
+      professorName: "",
       enrollment: 0,
       capacity: 0,
       requiredHours: 0,
