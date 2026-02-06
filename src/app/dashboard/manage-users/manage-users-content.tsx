@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Role } from "@prisma/client";
+import { Role, type Term, type TermLetter } from "@prisma/client";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import {
@@ -66,6 +66,11 @@ import {
 } from "@/components/ui/card";
 import { createColumns, type User } from "./columns";
 
+interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
+  name: string;
+  active: boolean;
+}
+
 // Zod schemas for validation
 const ALLOWED_ROLES = [Role.PLA, Role.TA, Role.GLA, Role.PROFESSOR] as const;
 
@@ -95,6 +100,7 @@ export default function ManageUsersContent() {
   // State
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [terms, setTerms] = useState<TermDisplay[]>([]);
   const [activeTerm, setActiveTerm] = useState<string | null>(null);
   const [activeTermId, setActiveTermId] = useState<string | null>(null);
 
@@ -155,10 +161,31 @@ export default function ManageUsersContent() {
       }
 
       if (termsResult.data) {
-        const activeTermData = termsResult.data.terms.find((t) => t.active);
-        if (activeTermData) {
-          setActiveTerm(activeTermData.name ?? null);
-          setActiveTermId(activeTermData.id ?? null);
+        const formattedTerms: TermDisplay[] = (
+          termsResult.data.terms ?? []
+        ).map(
+          (term: {
+            id?: string;
+            name?: string;
+            termLetter?: TermLetter;
+            year?: number;
+            active?: boolean;
+          }) => ({
+            id: term.id ?? "",
+            name: term.name ?? "",
+            termLetter: term.termLetter ?? ("A" as TermLetter),
+            year: term.year ?? new Date().getFullYear(),
+            active: term.active ?? false,
+          }),
+        );
+        setTerms(formattedTerms);
+
+        if (!activeTermId) {
+          const activeTermData = formattedTerms.find((t) => t.active);
+          if (activeTermData) {
+            setActiveTerm(activeTermData.name ?? null);
+            setActiveTermId(activeTermData.id ?? null);
+          }
         }
       }
     } catch (err: unknown) {
@@ -168,6 +195,14 @@ export default function ManageUsersContent() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTermId) {
+      void getUsersQuery.refetch();
+    }
+    const termName = terms.find((t) => t.id === activeTermId)?.name ?? null;
+    setActiveTerm(termName);
+  }, [activeTermId, terms, getUsersQuery]);
 
   const handleAddUser = () => {
     addForm.reset({
@@ -327,13 +362,16 @@ export default function ManageUsersContent() {
   );
 
   // Count users by role for stats
+  const countByRole = (role: Role) =>
+    users.filter((u) => u.roles.includes(role)).length;
   const userStats = {
-    total: users.length,
-    pla: users.filter((u) => u.roles.includes(Role.PLA)).length,
-    ta: users.filter((u) => u.roles.includes(Role.TA)).length,
-    gla: users.filter((u) => u.roles.includes(Role.GLA)).length,
-    professor: users.filter((u) => u.roles.includes(Role.PROFESSOR)).length,
+    pla: countByRole(Role.PLA),
+    ta: countByRole(Role.TA),
+    gla: countByRole(Role.GLA),
+    professor: countByRole(Role.PROFESSOR),
   };
+  const totalUsers =
+    userStats.pla + userStats.ta + userStats.gla + userStats.professor;
 
   if (isLoading) {
     return (
@@ -387,7 +425,7 @@ export default function ManageUsersContent() {
               <Users className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userStats.total}</div>
+              <div className="text-2xl font-bold">{totalUsers}</div>
             </CardContent>
           </Card>
           <Card>
@@ -404,7 +442,7 @@ export default function ManageUsersContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">TAs</CardTitle>
-              <Badge className="bg-success/20 text-success border-success/30">
+              <Badge className="bg-chart-5/20 text-chart-5 border-chart-5/30">
                 TA
               </Badge>
             </CardHeader>
@@ -415,7 +453,7 @@ export default function ManageUsersContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">GLAs</CardTitle>
-              <Badge className="bg-accent/20 text-accent border-accent/30">
+              <Badge className="bg-chart-2/20 text-chart-2 border-chart-2/30">
                 GLA
               </Badge>
             </CardHeader>
@@ -426,7 +464,7 @@ export default function ManageUsersContent() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Professors</CardTitle>
-              <Badge className="border-violet-300 bg-violet-200 text-violet-900">
+              <Badge className="bg-chart-3/20 text-chart-3 border-chart-3/30">
                 PROF
               </Badge>
             </CardHeader>
@@ -434,6 +472,25 @@ export default function ManageUsersContent() {
               <div className="text-2xl font-bold">{userStats.professor}</div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Term Filter */}
+        <div className="mb-6 flex gap-4">
+          <Select
+            value={activeTermId ?? ""}
+            onValueChange={(value) => setActiveTermId(value)}
+          >
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="Filter by term" />
+            </SelectTrigger>
+            <SelectContent>
+              {terms.map((term) => (
+                <SelectItem key={term.id} value={term.id}>
+                  {term.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Users Data Table */}

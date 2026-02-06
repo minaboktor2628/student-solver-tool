@@ -15,9 +15,9 @@ export type User = Pick<PrismaUser, "id" | "name" | "email" | "hours"> & {
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
-  TA: "bg-success/20 text-success border-success/30",
-  GLA: "bg-accent/20 text-accent border-accent/30",
-  PROFESSOR: "bg-violet-200 text-violet-900 border-violet-300",
+  TA: "bg-chart-5/20 text-chart-5 border-chart-5/30",
+  GLA: "bg-chart-2/20 text-chart-2 border-chart-2/30",
+  PROFESSOR: "bg-chart-3/20 text-chart-3 border-chart-3/30",
   COORDINATOR: "bg-warning/20 text-warning border-warning/30",
 };
 
