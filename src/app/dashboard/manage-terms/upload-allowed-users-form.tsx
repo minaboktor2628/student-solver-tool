@@ -9,8 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/trpc/react";
-import type { Role } from "@prisma/client";
-import z from "zod";
+import { Role } from "@prisma/client";
 import { toast } from "sonner";
 import {
   Dropzone,
@@ -28,78 +27,16 @@ import {
 } from "@/components/ui/table";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import { parseCSV } from "@/lib/csv";
+import z from "zod";
 
-type CSVRow = {
-  email: string;
-  name: string;
-  role: Role;
-};
+const CSVRowSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  role: z.nativeEnum(Role),
+});
 
-function splitCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"'; // escaped quote
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current.trim());
-  return result;
-}
-
-function parseCSV(csvText: string): CSVRow[] {
-  const lines = csvText.trim().split("\n");
-  if (lines.length < 2) return [];
-
-  const headers = (lines[0] ?? "")
-    .split(",")
-    .map((h) => h.trim().toLowerCase());
-  const emailIndex = headers.indexOf("email");
-  const nameIndex = headers.indexOf("name");
-  const roleIndex = headers.indexOf("role");
-
-  if (emailIndex === -1 || nameIndex === -1 || roleIndex === -1) {
-    throw new Error("CSV must contain email, name, and role columns");
-  }
-
-  const validRoles = ["PLA", "TA", "PROFESSOR"] as const;
-  const rolesEnum = z.enum(validRoles);
-
-  return lines
-    .slice(1)
-    .map((line, lineIndex) => {
-      const values = splitCSVLine(line);
-      const email = values[emailIndex] ?? "";
-      const name = values[nameIndex] ?? "";
-      const role = rolesEnum.parse((values[roleIndex] ?? "").toUpperCase());
-
-      return { email, name, role, lineIndex: lineIndex + 2 };
-    })
-    .filter((row) => {
-      // Skip empty rows
-      if (!row.email && !row.name && !row.role) {
-        return false;
-      }
-
-      return true;
-    })
-    .map(({ lineIndex: _lineIndex, ...row }) => row);
-}
+type CSVRow = z.infer<typeof CSVRowSchema>;
 
 export function UploadAllowedUsersForm({ termId }: { termId: string }) {
   const [files, setFiles] = useState<File[] | undefined>(undefined);
@@ -129,7 +66,7 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
 
     try {
       const text = await file.text();
-      const parsed = parseCSV(text);
+      const parsed = parseCSV(text, z.array(CSVRowSchema));
       setRows(parsed);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to read file");
