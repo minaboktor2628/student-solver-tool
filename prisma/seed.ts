@@ -12,7 +12,7 @@ async function main() {
     prisma.staffPreferencePreferredSection.deleteMany(),
     prisma.staffPreferenceQualifiedSection.deleteMany(),
     prisma.staffPreference.deleteMany(),
-    prisma.allowedEmail.deleteMany(),
+    prisma.allowedTermUser.deleteMany(),
     prisma.userRole.deleteMany(),
     prisma.section.deleteMany(),
     prisma.term.deleteMany(),
@@ -34,7 +34,7 @@ async function main() {
   });
 
   // ----- USERS -----
-  const [professor, prof2, ta, pla, pla2, dta2, dta3, coordinator] =
+  const [professor, ahrens, ta, pla, pla2, coordinator, testprof] =
     await Promise.all([
       prisma.user.create({
         data: {
@@ -71,29 +71,14 @@ async function main() {
       }),
       prisma.user.create({
         data: {
-          name: "Discrete PLA",
-          email: "pla.discrete@wpi.edu",
-          hours: 10,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Discrete2 TA",
-          email: "ta.discrete2@wpi.edu",
-          hours: 20,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Discrete3 TA",
-          email: "ta.discrete3@wpi.edu",
-          hours: 20,
-        },
-      }),
-      prisma.user.create({
-        data: {
           name: "Casey Coordinator",
           email: "coordinator.casey@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Test Professor",
+          email: "testprof@wpi.edu",
         },
       }),
     ]);
@@ -108,11 +93,12 @@ async function main() {
       { userId: dta2.id, role: Role.TA },
       { userId: dta3.id, role: Role.TA },
       { userId: coordinator.id, role: Role.COORDINATOR },
+      { userId: testprof.id, role: Role.PROFESSOR },
     ],
   });
 
   // ----- ALLOWED EMAILS FOR THIS TERM -----
-  await prisma.allowedEmail.createMany({
+  await prisma.allowedTermUser.createMany({
     data: [
       {
         email: professor.email!,
@@ -145,8 +131,7 @@ async function main() {
         termId: term.id,
       },
       {
-        email: coordinator.email!,
-        role: Role.COORDINATOR,
+        userId: testprof.id,
         termId: term.id,
       },
     ],
@@ -160,7 +145,7 @@ async function main() {
         courseTitle: "Discrete Mathematics",
         courseCode: "CS 2022",
         description: "Intro to discrete math: sets, logic, relations, graphs.",
-        professorId: professor.id,
+        professorId: testprof.id,
         courseSection: "LO2",
         enrollment: 40,
         capacity: 45,
@@ -175,7 +160,7 @@ async function main() {
         courseTitle: "Discrete Mathematics",
         courseCode: "CS 2022",
         description: "Intro to discrete math: sets, logic, relations, graphs.",
-        professorId: prof2.id,
+        professorId: testprof.id,
         courseSection: "LO3",
         enrollment: 80,
         capacity: 90,
@@ -191,7 +176,7 @@ async function main() {
         courseCode: "CS 3013",
         courseSection: "LO2",
         description: "Design and analysis of algorithms.",
-        professorId: professor.id,
+        professorId: testprof.id,
         enrollment: 30,
         capacity: 35,
         requiredHours: 10,
@@ -306,7 +291,7 @@ async function main() {
   });
 
   // ----- PROFESSOR PREFERENCES FOR DISCRETE -----
-  const profPref = await prisma.professorPreference.create({
+  /* const profPref = await prisma.professorPreference.create({
     data: {
       sectionId: discrete.id,
       comments: "Need strong discrete background.",
@@ -331,7 +316,7 @@ async function main() {
       preferredStaff: true,
       avoidedStaff: true,
     },
-  });
+  }); */
 
   // ----- ACTUAL ASSIGNMENTS -----
   await prisma.sectionAssignment.createMany({
@@ -347,7 +332,7 @@ async function main() {
   console.log("Seeded users:", { professor, ta, pla, coordinator });
   console.log("Seeded sections:", { discrete, algorithms });
   console.log("Seeded staff prefs:", { taStaffPref, plaStaffPref });
-  console.log("Seeded professor pref:", profPref);
+  // console.log("Seeded professor pref:", profPref);
 }
 
 main()

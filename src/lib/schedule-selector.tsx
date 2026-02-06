@@ -169,7 +169,7 @@ export function BaseScheduleSelector({
           "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
           _selected
             ? "bg-primary/85 hover:bg-primary"
-            : "bg-muted/40 hover:bg-muted/60",
+            : "bg-muted hover:bg-muted/60",
         )}
       />
     );
