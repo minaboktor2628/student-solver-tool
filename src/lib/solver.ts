@@ -14,7 +14,7 @@ export const solverStrategyMap: Record<
   {
     label: string;
     description: string;
-    fn: (data: SolverData) => void;
+    fn: (data: SolverData) => Map<string, string[]>;
   }
 > = {
   greedy: {
@@ -32,31 +32,29 @@ export const solverStrategyMap: Record<
 export function solveAssignments(
   strategy: SolverStrategy,
   solverData: SolverData,
-) {
-  solverStrategyMap[strategy].fn(solverData);
+): Map<string, string[]> {
+  return solverStrategyMap[strategy].fn(solverData);
 }
 
-function solveGreedy({ staffPreferences, sections }: SolverData) {
+function solveGreedy({
+  staffPreferences,
+  sections,
+}: SolverData): Map<string, string[]> {
   // TODO:
-  return;
+  return new Map();
 }
 
+// basic backtracking search
+// TODO: no partial solution
+// TODO: no student preference consideration
+// TODO: no professor preference consideration
+// TODO: no hours covered consideration
 function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
-  // TODO:
-  //  similar to n queens
-  //
-  //  availableStaff(section) = staffPreferences.filter( available staff ).sort( alphabetical )
-  //  solution(section, i) = take from available staff where binaryStr(i)[index of staff] === 1
-  //  find first valid solution on section 1
-  //  check section 2
-  //  if no valid solution, get next available solution on section 1
-  //  if no valid solution left on section 1, return error/empty
-
   // returns user ids for all available staff for given section
   function availableStaff(section: Section): string[] {
-    // get all qualifications for section id
     const sectionId = section.id;
 
+    // get all qualifications for section id
     return staffPreferences
       .sort((pref, pref2) =>
         (pref.user.name ?? "") < (pref2.user.name ?? "")
@@ -75,16 +73,19 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
 
   // returns section solution (array of user ids) corresponding to encoding i
   function solutionForSection(section: Section, i: number): string[] | null {
+    // generate binary string for i
     const binaryStr = i.toString(2);
     const staffsToTake = binaryStr.split("").reverse();
     const staffs = availableStaff(section);
 
+    // i too high
     if (staffsToTake.length > staffs.length) {
       return null;
     }
 
     const solution: string[] = [];
 
+    // i = 10, staffsToTake = "0101", take staffs[1], staffs[3]
     var j = 0;
     staffsToTake.forEach((binary) => {
       const staff = staffs[j];
@@ -98,47 +99,89 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
     return solution;
   }
 
+  // returns total hours of a solution
+  function calculateHours(staffIds: string[]): number {
+    let total = 0;
+    staffIds.forEach((userId) => {
+      total +=
+        staffPreferences.find((pref) => pref.user.id === userId)?.user.hours ??
+        0;
+    });
+    return total;
+  }
+
+  // check if solution is valid (staff not assigned elsewhere and hours within MOE and whether hours are exact)
+  function isSolutionValid(
+    staffIds: string[],
+    section: Section,
+  ): { valid: boolean; hours: number; isExact: boolean } {
+    const hours = calculateHours(staffIds);
+
+    const hoursAreGood =
+      hours >=
+        section.requiredHours - defaultMarginOfErrorShortAllocationHours() &&
+      hours <=
+        section.requiredHours + defaultMarginOfErrorOverAllocationHours();
+
+    const staffAreAllAvailable = !staffIds
+      .map((userId) => isStaffAlreadyAssigned(userId))
+      .includes(true);
+
+    const isExact = hours === section.requiredHours;
+
+    return {
+      valid: hoursAreGood && staffAreAllAvailable,
+      hours,
+      isExact,
+    };
+  }
+
   // returns next valid solution for section, after solution corresponding to encoding i
-  // a valid solution has all qualified staff and is within hours needed MOE
-  // if no remaining valid solutione exists, returns null
+  // prioritizes exact hour matches > hours over > hours under
   function nextValidSolutionForSection(
     section: Section,
     i: number,
   ): [string[], number] | null {
+    let bestSolution: [string[], number] | null = null;
+    let bestDistance = Infinity;
+
     var j = i + 1;
-    while (true) {
+    const maxIterations = 10000; // safety limit to prevent infinite loops
+    let iterations = 0;
+
+    while (iterations < maxIterations) {
       const sol = solutionForSection(section, j);
       if (sol === null) {
-        return null;
+        // No more solutions to try, return best found
+        return bestSolution;
       }
 
-      var staffHoursInSolution = 0;
-      sol.forEach((userId) => {
-        staffHoursInSolution +=
-          staffPreferences.find((pref) => pref.user.id === userId)?.user
-            .hours ?? 0;
-        // TODO catch this case - shouldn't be an issue due to how solution is found, but still should be handled
-      });
+      const validation = isSolutionValid(sol, section);
 
-      // hours good check
-      if (
-        !(
-          staffHoursInSolution >
-            section.requiredHours -
-              defaultMarginOfErrorShortAllocationHours() &&
-          staffHoursInSolution <
-            section.requiredHours + defaultMarginOfErrorOverAllocationHours()
-        )
-      ) {
-        //staff good check
-        if (!sol.map((userId) => isStaffAlreadyAssigned(userId)).includes(true))
+      if (validation.valid) {
+        if (validation.isExact) {
           return [sol, j];
+        }
+
+        const distance = validation.hours - section.requiredHours;
+        if (distance > 0) {
+          bestDistance = distance;
+          bestSolution = [sol, j];
+        }
+
+        if (iterations > 100 && bestSolution !== null) {
+          return bestSolution;
+        }
       }
 
       j++;
+      iterations++;
     }
+
+    return bestSolution;
   }
 
+  // returns true if staff already assigned elsewhere
   function isStaffAlreadyAssigned(userId: string): boolean {
     for (const [_, staffIds] of solution) {
       if (staffIds.includes(userId)) {
@@ -148,37 +191,41 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
     return false;
   }
 
-  function backtrack(sectionIdx: number): boolean {
-    // base case: all sections assigned
-    if (sectionIdx >= sections.length) {
+  function backtrack(sectionNumber: number): boolean {
+    // base case: successfully assigned all sections
+    if (sectionNumber >= sections.length) {
       return true;
     }
 
-    const section = sections[sectionIdx];
+    const section = sections[sectionNumber];
     if (!section) return false;
 
+    // get current section and index
     const currentIndex = sectionIndices.get(section.id) ?? 0;
+
+    // find next valid solution for current index
     const result = nextValidSolutionForSection(section, currentIndex);
 
-    // no more valid solutions, backtrack
+    // no more valid solutions for current section, backtrack
     if (result === null) {
       sectionIndices.set(section.id, 0);
       solution.delete(section.id);
       return false;
     }
 
+    // valid solution found
     const [staffIds, newSectionIndex] = result;
 
+    // set solution
     solution.set(section.id, staffIds);
     sectionIndices.set(section.id, newSectionIndex);
 
-    if (backtrack(sectionIdx + 1)) {
+    // keep going to next section
+    if (backtrack(sectionNumber + 1)) {
       return true;
     }
 
-    // Try next solution for this section before giving up
-    solution.delete(section.id);
-    return backtrack(sectionIdx);
+    return backtrack(sectionNumber);
   }
 
   //  i = 1
@@ -187,6 +234,7 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
   //      if good: next valid solution for section i+2
   //      if bad: next valid solution for section i
   //    if bad: return error
+
   const solution: Map<string, string[]> = new Map();
   const sectionIndices: Map<string, number> = new Map();
 
@@ -197,15 +245,15 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
   const success = backtrack(0);
 
   if (success) {
-    console.log("solution found!: ");
-    solution.forEach((staffIds, sectionId) => {
-      console.log(`Section ${sectionId}: ${staffIds.join(", ")}`);
-    });
+    // console.log("Solution found!: ");
+    // solution.forEach((staffIds, sectionId) => {
+    //   console.log(`Section ${sectionId}: ${staffIds.join(", ")}`);
+    // });
+    return solution;
   } else {
-    console.log("No solution found!");
+    // console.log("No solution found!");
+    return new Map();
   }
-
-  // TODO post assignments to db
 }
 
 // the data we feed the solver function

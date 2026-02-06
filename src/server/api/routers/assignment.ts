@@ -57,6 +57,38 @@ export const assignmentRoute = createTRPCRouter({
     )
     .mutation(async ({ input: { termId, solverStrategy }, ctx }) => {
       const solverData = await getSolverData(ctx, termId);
-      solveAssignments(solverStrategy, solverData);
+      const assignments = solveAssignments(solverStrategy, solverData);
+
+      console.log("Solver returned assignments:", assignments.size, "sections");
+
+      // Insert assignments
+      const assignmentRecords = [];
+      for (const [sectionId, staffIds] of assignments) {
+        for (const staffId of staffIds) {
+          assignmentRecords.push({ sectionId, staffId });
+        }
+      }
+
+      console.log("Creating", assignmentRecords.length, "assignment records");
+
+      if (assignmentRecords.length > 0) {
+        await Promise.all(
+          assignmentRecords.map((record) =>
+            ctx.db.sectionAssignment.upsert({
+              where: {
+                sectionId_staffId: {
+                  sectionId: record.sectionId,
+                  staffId: record.staffId,
+                },
+              },
+              create: {
+                sectionId: record.sectionId,
+                staffId: record.staffId,
+              },
+              update: {},
+            }),
+          ),
+        );
+      }
     }),
 });
