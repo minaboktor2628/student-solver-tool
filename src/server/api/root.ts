@@ -2,6 +2,8 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 import { excelRoute } from "./routers/excel";
 import { validateRoute } from "./routers/validate";
 import { exportRoute } from "./routers/export";
+import { professorFormRoute } from "./routers/professor-form";
+import { professorDashboardRoute } from "./routers/professor-dashboard";
 import { assignmentRoute } from "./routers/assignment";
 import { courseRoute } from "./routers/courses";
 import { studentFormRoute } from "./routers/student-form";
@@ -19,6 +21,8 @@ export const appRouter = createTRPCRouter({
   excel: excelRoute,
   validate: validateRoute,
   export: exportRoute,
+  professorForm: professorFormRoute,
+  professorDashboard: professorDashboardRoute,
   assignment: assignmentRoute,
   courses: courseRoute,
   studentForm: studentFormRoute,
