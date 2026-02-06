@@ -34,47 +34,54 @@ async function main() {
   });
 
   // ----- USERS -----
-  const [professor, prof2, ta, pla, pla2, coordinator] = await Promise.all([
-    prisma.user.create({
-      data: {
-        name: "Prof. Discrete",
-        email: "prof.discrete@wpi.edu",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Matthew Ahrens",
-        email: "mahrens@wpi.edu",
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Taylor TA",
-        email: "ta.taylor@wpi.edu",
-        hours: 20,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Pat PLA",
-        email: "pla.pat@wpi.edu",
-        hours: 10,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Mat PLA",
-        email: "pla.mat@wpi.edu",
-        hours: 10,
-      },
-    }),
-    prisma.user.create({
-      data: {
-        name: "Casey Coordinator",
-        email: "coordinator.casey@wpi.edu",
-      },
-    }),
-  ]);
+  const [professor, ahrens, ta, pla, pla2, coordinator, testprof] =
+    await Promise.all([
+      prisma.user.create({
+        data: {
+          name: "Prof. Discrete",
+          email: "prof.discrete@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Matthew Ahrens",
+          email: "mahrens@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Taylor TA",
+          email: "ta.taylor@wpi.edu",
+          hours: 20,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Pat PLA",
+          email: "pla.pat@wpi.edu",
+          hours: 10,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Mat PLA",
+          email: "pla.mat@wpi.edu",
+          hours: 10,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Casey Coordinator",
+          email: "coordinator.casey@wpi.edu",
+        },
+      }),
+      prisma.user.create({
+        data: {
+          name: "Test Professor",
+          email: "testprof@wpi.edu",
+        },
+      }),
+    ]);
 
   // ----- ROLES -----
   await prisma.userRole.createMany({
@@ -84,6 +91,7 @@ async function main() {
       { userId: pla.id, role: Role.PLA },
       { userId: pla2.id, role: Role.PLA },
       { userId: coordinator.id, role: Role.COORDINATOR },
+      { userId: testprof.id, role: Role.PROFESSOR },
     ],
   });
 
@@ -110,6 +118,10 @@ async function main() {
         userId: coordinator.id,
         termId: term.id,
       },
+      {
+        userId: testprof.id,
+        termId: term.id,
+      },
     ],
   });
 
@@ -121,7 +133,7 @@ async function main() {
         courseTitle: "Discrete Mathematics",
         courseCode: "CS 2022",
         description: "Intro to discrete math: sets, logic, relations, graphs.",
-        professorId: professor.id,
+        professorId: testprof.id,
         courseSection: "LO2",
         enrollment: 40,
         capacity: 45,
@@ -136,7 +148,7 @@ async function main() {
         courseTitle: "Discrete Mathematics",
         courseCode: "CS 2022",
         description: "Intro to discrete math: sets, logic, relations, graphs.",
-        professorId: prof2.id,
+        professorId: testprof.id,
         courseSection: "LO3",
         enrollment: 80,
         capacity: 90,
@@ -152,7 +164,7 @@ async function main() {
         courseCode: "CS 3013",
         courseSection: "LO2",
         description: "Design and analysis of algorithms.",
-        professorId: professor.id,
+        professorId: testprof.id,
         enrollment: 30,
         capacity: 35,
         requiredHours: 10,
@@ -216,7 +228,7 @@ async function main() {
   });
 
   // ----- PROFESSOR PREFERENCES FOR DISCRETE -----
-  const profPref = await prisma.professorPreference.create({
+  /* const profPref = await prisma.professorPreference.create({
     data: {
       sectionId: discrete.id,
       comments: "Need strong discrete background.",
@@ -241,7 +253,7 @@ async function main() {
       preferredStaff: true,
       avoidedStaff: true,
     },
-  });
+  }); */
 
   // ----- ACTUAL ASSIGNMENTS -----
   await prisma.sectionAssignment.createMany({
@@ -257,7 +269,7 @@ async function main() {
   console.log("Seeded users:", { professor, ta, pla, coordinator });
   console.log("Seeded sections:", { discrete, algorithms });
   console.log("Seeded staff prefs:", { taStaffPref, plaStaffPref });
-  console.log("Seeded professor pref:", profPref);
+  // console.log("Seeded professor pref:", profPref);
 }
 
 main()
