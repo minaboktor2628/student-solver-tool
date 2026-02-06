@@ -90,8 +90,6 @@ async function main() {
       { userId: ta.id, role: Role.TA },
       { userId: pla.id, role: Role.PLA },
       { userId: pla2.id, role: Role.PLA },
-      { userId: dta2.id, role: Role.TA },
-      { userId: dta3.id, role: Role.TA },
       { userId: coordinator.id, role: Role.COORDINATOR },
       { userId: testprof.id, role: Role.PROFESSOR },
     ],
@@ -101,33 +99,23 @@ async function main() {
   await prisma.allowedTermUser.createMany({
     data: [
       {
-        email: professor.email!,
-        role: Role.PROFESSOR,
+        userId: professor.id,
         termId: term.id,
       },
       {
-        email: ta.email!,
-        role: Role.TA,
+        userId: ta.id,
         termId: term.id,
       },
       {
-        email: pla.email!,
-        role: Role.PLA,
+        userId: pla.id,
         termId: term.id,
       },
       {
-        email: pla2.email!,
-        role: Role.PLA,
+        userId: pla2.id,
         termId: term.id,
       },
       {
-        email: dta2.email!,
-        role: Role.TA,
-        termId: term.id,
-      },
-      {
-        email: dta3.email!,
-        role: Role.TA,
+        userId: coordinator.id,
         termId: term.id,
       },
       {
@@ -192,7 +180,6 @@ async function main() {
       userId: ta.id,
       termId: term.id,
       comments: "Prefer morning labs.",
-      isAvailableForTerm: true,
       timesAvailable: {
         create: [{ day: "F", hour: 12 }],
       },
@@ -211,62 +198,13 @@ async function main() {
       preferredSections: true,
     },
   });
-  const dta2StaffPref = await prisma.staffPreference.create({
-    data: {
-      userId: dta2.id,
-      termId: term.id,
-      comments: "",
-      isAvailableForTerm: true,
-      timesAvailable: {
-        create: [{ day: "F", hour: 12 }],
-      },
-      qualifiedForSections: {
-        create: [{ sectionId: discrete2.id }, { sectionId: discrete.id }],
-      },
-      preferredSections: {
-        create: [
-          { sectionId: discrete.id, rank: "PREFER" },
-          { sectionId: algorithms.id, rank: "STRONGLY_PREFER" },
-        ],
-      },
-    },
-    include: {
-      qualifiedForSections: true,
-      preferredSections: true,
-    },
-  });
 
-  const dta3StaffPref = await prisma.staffPreference.create({
-    data: {
-      userId: dta3.id,
-      termId: term.id,
-      comments: "Prefer morning labs.",
-      isAvailableForTerm: true,
-      timesAvailable: {
-        create: [{ day: "F", hour: 12 }],
-      },
-      qualifiedForSections: {
-        create: [{ sectionId: discrete2.id }, { sectionId: discrete.id }],
-      },
-      preferredSections: {
-        create: [
-          { sectionId: discrete.id, rank: "PREFER" },
-          { sectionId: algorithms.id, rank: "STRONGLY_PREFER" },
-        ],
-      },
-    },
-    include: {
-      qualifiedForSections: true,
-      preferredSections: true,
-    },
-  });
   // ----- STAFF PREFERENCES (PLA) -----
   const plaStaffPref = await prisma.staffPreference.create({
     data: {
       userId: pla.id,
       termId: term.id,
       comments: "Cannot work Fridays.",
-      isAvailableForTerm: true,
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }],
       },
@@ -280,7 +218,6 @@ async function main() {
       userId: pla2.id,
       termId: term.id,
       comments: "Cannot work Fridays.",
-      isAvailableForTerm: true,
       qualifiedForSections: {
         create: [{ sectionId: discrete.id }],
       },
