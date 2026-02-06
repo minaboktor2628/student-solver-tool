@@ -1,5 +1,5 @@
 import { auth } from "@/server/auth";
-import ProfessorHomePageComponent from "@/components/professor/preference-form/professor-preference-form";
+import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { hasPermission } from "@/lib/permissions";
 import { redirectToForbidden } from "@/lib/navigation";
@@ -18,5 +18,5 @@ export default async function ProfessorPreferencesPage() {
     redirectToForbidden();
   }
 
-  return <ProfessorHomePageComponent userId={session.user.id} />;
+  return <ProfessorPreferenceForm userId={session.user.id} />;
 }

@@ -61,7 +61,7 @@ export const ROUTES: NavItem[] = [
   {
     label: "Professor Dashboard",
     href: "/professor",
-    allowed: ["PROFESSOR"],
+    allowed: ["COORDINATOR"],
     icon: UserStarIcon,
     children: [
       {

@@ -4,7 +4,10 @@ import ProfessorHomePageComponent from "@/components/professor/professor-dashboa
 export default async function Home() {
   const session = await auth();
 
-  if (session?.user?.roles?.includes("PROFESSOR")) {
+  if (
+    session?.user?.roles?.includes("PROFESSOR") &&
+    !session?.user?.roles?.includes("COORDINATOR")
+  ) {
     return <ProfessorHomePageComponent userId={session?.user?.id} />;
   } else {
     return (
