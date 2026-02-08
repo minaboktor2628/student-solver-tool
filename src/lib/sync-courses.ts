@@ -122,6 +122,27 @@ function parseAcademicLevel(level: string): AcademicLevel {
     : AcademicLevel.UNDERGRADUATE;
 }
 
+function normalizeCourseDescription(raw: string): string {
+  if (!raw) return "";
+
+  const withoutTags = raw.replace(/<[^>]*>/g, "");
+  const decoded = withoutTags
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) =>
+      String.fromCharCode(parseInt(code, 16)),
+    );
+
+  return decoded
+    .replace(/(\bCat\.\s*I)(?=[A-Z])/g, "$1 ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function fetchWPICourses(): Promise<WPICourseEntry[]> {
   try {
     const response = await fetch(
@@ -232,7 +253,9 @@ async function createOrUpdateSection(
   const courseSection = extractSectionType(course.Course_Section) ?? "01";
 
   // Enhanced description
-  let enhancedDescription = course.Course_Description ?? "";
+  let enhancedDescription = normalizeCourseDescription(
+    course.Course_Description ?? "",
+  );
   if (isGradSemester) {
     if (isPrimary) {
       enhancedDescription = `[GRAD_SEMESTER_PRIMARY - spans both terms] ${enhancedDescription}`;

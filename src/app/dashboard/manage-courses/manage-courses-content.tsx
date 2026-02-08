@@ -324,6 +324,7 @@ export default function ManageCoursesContent() {
 
   // State
   const [courses, setCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [terms, setTerms] = useState<TermDisplay[]>([]);
   const [professors, setProfessors] = useState<Pick<User, "id" | "name">[]>([]);
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
@@ -382,6 +383,13 @@ export default function ManageCoursesContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const filtered = allCourses.filter(
+      (course) => !selectedTerm || course.termId === selectedTerm,
+    );
+    setCourses(filtered);
+  }, [allCourses, selectedTerm]);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -392,10 +400,7 @@ export default function ManageCoursesContent() {
       ]);
 
       if (coursesResult.data?.success) {
-        const filtered = coursesResult.data.courses.filter(
-          (course) => !selectedTerm || course.termId === selectedTerm,
-        );
-        setCourses(filtered);
+        setAllCourses(coursesResult.data.courses);
       }
 
       if (termsResult.data) {
@@ -709,29 +714,172 @@ export default function ManageCoursesContent() {
                 onSubmit={editForm.handleSubmit(onSubmitEditCourse)}
                 className="space-y-4"
               >
-                <div className="grid grid-cols-2 gap-4">
+                <div className="no-scrollbar -mx-4 max-h-[60vh] space-y-4 overflow-y-auto px-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="courseCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Course Code</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., CS 2102" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="courseTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Course Title</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., Object-Oriented Design"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="courseSection"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Course Section</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., LO1" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="meetingPattern"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Meeting Pattern</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., M W F 10-11" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   <FormField
                     control={editForm.control}
-                    name="courseCode"
+                    name="professorId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Course Code</FormLabel>
+                        <FormLabel>Professor</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., CS 2102" {...field} />
+                          <Combobox
+                            options={professors.map((p) => ({
+                              value: p.id,
+                              label: p.name ?? "Unknown Professor",
+                            }))}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Select a professor..."
+                            searchPlaceholder="Search professors..."
+                            emptyMessage="No professors found."
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="academicLevel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Academic Level</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select level" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value={AcademicLevel.UNDERGRADUATE}>
+                                Undergraduate
+                              </SelectItem>
+                              <SelectItem value={AcademicLevel.GRADUATE}>
+                                Graduate
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="requiredHours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Required Hours</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="0" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Number of staff hours required for this course
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editForm.control}
+                      name="enrollment"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Enrollment</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={editForm.control}
+                      name="capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Capacity</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   <FormField
                     control={editForm.control}
-                    name="courseTitle"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Course Title</FormLabel>
+                        <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="e.g., Object-Oriented Design"
+                          <Textarea
+                            placeholder="Course description"
                             {...field}
                           />
                         </FormControl>
@@ -740,144 +888,6 @@ export default function ManageCoursesContent() {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="courseSection"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Course Section</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., LO1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="meetingPattern"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Meeting Pattern</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., M W F 10-11" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={editForm.control}
-                  name="professorId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Professor</FormLabel>
-                      <FormControl>
-                        <Combobox
-                          options={professors.map((p) => ({
-                            value: p.id,
-                            label: p.name ?? "Unknown Professor",
-                          }))}
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          placeholder="Select a professor..."
-                          searchPlaceholder="Search professors..."
-                          emptyMessage="No professors found."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="academicLevel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Academic Level</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select level" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value={AcademicLevel.UNDERGRADUATE}>
-                              Undergraduate
-                            </SelectItem>
-                            <SelectItem value={AcademicLevel.GRADUATE}>
-                              Graduate
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="requiredHours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Required Hours</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Number of staff hours required for this course
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="enrollment"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Enrollment</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="capacity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Capacity</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={editForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Course description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <DialogFooter>
                   <Button
                     type="button"
