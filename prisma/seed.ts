@@ -30,6 +30,7 @@ async function main() {
       termStaffDueDate: new Date("2025-08-15T23:59:59Z"),
       termProfessorDueDate: new Date("2025-08-10T23:59:59Z"),
       active: true,
+      published: true,
     },
   });
 
