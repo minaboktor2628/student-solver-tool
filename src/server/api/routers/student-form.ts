@@ -2,6 +2,10 @@ import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { hasPermission } from "@/lib/permissions";
+import {
+  allowedPreferTokens,
+  allowedStrongTokens,
+} from "@/components/MultiStepForm/form-entry-preferences";
 
 /**
  * Router: studentFormRoute
@@ -241,7 +245,7 @@ export const studentFormRoute = createTRPCRouter({
             const preferCount = Object.entries(sectionPreferences).filter(
               ([, rank]) => rank === "prefer",
             ).length;
-            if (preferCount > 3) {
+            if (preferCount > allowedPreferTokens) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: `Cannot prefer more than 3 sections.`,
@@ -251,7 +255,7 @@ export const studentFormRoute = createTRPCRouter({
             const strongPreferCount = Object.entries(sectionPreferences).filter(
               ([, rank]) => rank === "strong",
             ).length;
-            if (strongPreferCount > 1) {
+            if (strongPreferCount > allowedStrongTokens) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: `Cannot strongly prefer more than 1 section.`,

@@ -25,10 +25,6 @@ export default async function PreferencesFormPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-4 text-2xl font-bold">Preferences Form</h1>
-      <p className="text-muted-foreground mb-4">
-        Complete the steps to set your preferences.
-      </p>
       <MultiStepFormModal userId={userId} inline />
     </div>
   );
