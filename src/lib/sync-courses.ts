@@ -132,8 +132,10 @@ function normalizeCourseDescription(raw: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) =>
+    .replace(/&#(\d+);/g, (_: string, code: string) =>
+      String.fromCharCode(parseInt(code, 10)),
+    )
+    .replace(/&#x([0-9a-fA-F]+);/g, (_: string, code: string) =>
       String.fromCharCode(parseInt(code, 16)),
     );
 
@@ -464,9 +466,9 @@ export async function syncCourses() {
           where: { id: section.id },
         });
         deleted++;
-        console.log(`❌ Deleted invalid section: ${section.courseCode}`);
+        console.log(`Deleted invalid section: ${section.courseCode}`);
       } else {
-        console.log(`✅ Keeping valid section: ${section.courseCode}`);
+        console.log(`Keeping valid section: ${section.courseCode}`);
       }
     }
 
