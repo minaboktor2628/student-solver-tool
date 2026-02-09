@@ -12,7 +12,12 @@ export type Section = {
   courseSection: string;
   instructor: string | null;
 };
-export type Course = { code: string; title: string; sections: Section[] };
+export type Course = {
+  code: string;
+  title: string;
+  description: string;
+  sections: Section[];
+};
 
 interface FormEntryQualificationsProps {
   userId: string;
@@ -43,6 +48,9 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   });
 
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
+    () => new Set([]),
+  );
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
     () => new Set([]),
   );
 
@@ -109,6 +117,15 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
     });
   }
 
+  function toggleDescription(courseCode: string) {
+    setExpandedDescriptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(courseCode)) next.delete(courseCode);
+      else next.add(courseCode);
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
@@ -120,14 +137,23 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
           const courseSelected = isCourseSelected(course);
           return (
             <div key={course.code} className="rounded-lg border shadow-sm">
-              <div
-                onClick={() => toggleCourse(course)}
-                className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left"
-              >
-                <div>
+              <div className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left">
+                <div
+                  className="flex flex-1 items-center gap-2"
+                  onClick={() => toggleCourse(course)}
+                >
                   <div className="text-lg font-medium">
                     {course.code} - {course.title}
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDescription(course.code);
+                    }}
+                    className="hover:bg-secondary hover:bg-secondary inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs"
+                  >
+                    i
+                  </button>
                 </div>
                 <div>
                   <Label className="inline-flex items-center gap-2">
@@ -140,6 +166,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   </Label>
                 </div>
               </div>
+              {expandedDescriptions.has(course.code) && (
+                <div className="bg-secondary border-t px-4 py-3 text-sm">
+                  {course.description}
+                </div>
+              )}
 
               <div className="border-t p-3">
                 <ul className="space-y-2">

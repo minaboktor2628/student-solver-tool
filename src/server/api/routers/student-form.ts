@@ -31,6 +31,7 @@ export const studentFormRoute = createTRPCRouter({
         select: {
           term: { select: { termLetter: true, year: true } },
           id: true,
+          description: true,
           courseCode: true,
           courseSection: true,
           courseTitle: true,
@@ -54,6 +55,7 @@ export const studentFormRoute = createTRPCRouter({
         ([courseCode, items]) => ({
           code: courseCode,
           title: items[0] ? items[0].courseTitle : "",
+          description: items[0] ? items[0].description : "",
           sections: items.map((it) => ({
             term: it.term.termLetter,
             id: it.id,
