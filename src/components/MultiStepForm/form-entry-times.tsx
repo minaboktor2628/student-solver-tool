@@ -62,7 +62,8 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   return (
     <div className="mx-auto max-w-3xl p-4">
       <h2 className="mb-4 text-xl font-semibold">
-        Select the times you are available for this term
+        Select the times you are available for in-person, on campus work this
+        term
       </h2>
 
       <div className="border-secondary rounded-lg border p-4 shadow-sm">

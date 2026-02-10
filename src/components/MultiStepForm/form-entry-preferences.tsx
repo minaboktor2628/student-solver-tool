@@ -21,7 +21,12 @@ export type Section = {
   courseSection: string;
   instructor: string | null;
 };
-export type Course = { code: string; title: string; sections: Section[] };
+export type Course = {
+  code: string;
+  title: string;
+  description: string;
+  sections: Section[];
+};
 
 export const allowedStrongTokens = 2;
 export const allowedPreferTokens = 5;
@@ -73,6 +78,9 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
 
   // drag/drop handlers
   const [activeToken, setActiveToken] = useState<TokenType | null>(null);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
+    () => new Set([]),
+  );
 
   function handleDragStart(event: DragStartEvent) {
     const { active } = event;
@@ -137,6 +145,15 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
     });
   }
 
+  function toggleDescription(courseCode: string) {
+    setExpandedDescriptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(courseCode)) next.delete(courseCode);
+      else next.add(courseCode);
+      return next;
+    });
+  }
+
   return (
     <DndContext
       onDragStart={handleDragStart}
@@ -180,17 +197,33 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       </div>
 
       {/* Section List */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid max-h-[60vh] grid-cols-1 gap-4 overflow-y-auto">
         {filteredCourses.map((course) => (
           <div
             key={course.code}
             className="border-secondary bg-background rounded-lg border shadow-sm"
           >
             <div className="rounded-md p-4">
-              <div className="text-lg font-medium">
-                {course.code} - {course.title}
+              <div className="flex items-center gap-2 text-lg font-medium">
+                <span>
+                  {course.code} - {course.title}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleDescription(course.code);
+                  }}
+                  className="hover:bg-secondary inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs"
+                >
+                  i
+                </button>
               </div>
             </div>
+            {expandedDescriptions.has(course.code) && (
+              <div className="bg-secondary border-t px-4 py-3 text-sm">
+                {course.description}
+              </div>
+            )}
 
             <div className="border-t p-3">
               <ul className="space-y-2">

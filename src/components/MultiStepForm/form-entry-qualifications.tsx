@@ -132,7 +132,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         Select courses and sections you are qualified to work for
       </h2>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid max-h-[60vh] grid-cols-1 gap-4 overflow-y-auto">
         {courses.map((course) => {
           const courseSelected = isCourseSelected(course);
           return (
