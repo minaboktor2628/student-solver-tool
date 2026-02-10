@@ -6,7 +6,6 @@ import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import type { Assistant } from "@/types/professor";
 import { normalize } from "@/lib/utils";
-import { XIcon } from "lucide-react";
 
 type SelectAssistantPreferenceProps = {
   sectionId: string;
@@ -111,23 +110,23 @@ export const SelectAssistantAntipref: React.FC<
             Select your avoided assistants
           </Label>
           <div className="py-2">
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              type="search"
-              placeholder="Search staff..."
-              className="pr-8"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                aria-label="Clear search"
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
-            )}
+            <div className="relative">
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                type="search"
+                placeholder="Search staff..."
+                className="pr-8"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Clear search"
+                  className="text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                ></button>
+              )}
+            </div>
           </div>
           <div className="max-h-96 overflow-y-auto rounded-lg border p-3">
             {filteredStaff.length === 0 ? (

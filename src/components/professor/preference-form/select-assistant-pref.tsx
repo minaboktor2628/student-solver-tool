@@ -6,7 +6,6 @@ import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import type { Assistant } from "@/types/professor";
 import { normalize } from "@/lib/utils";
-import { XIcon } from "lucide-react";
 
 type SelectAssistantPreferenceProps = {
   sectionId: string;
@@ -108,11 +107,11 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
               </div>
             </div>
           )}
-          <div className="space-y-3 pt-2">
-            <Label className="text-sm font-medium">
-              Select your preferred assistants
-            </Label>
-            <div>
+          <Label className="text-sm font-medium">
+            Select your preferred assistants
+          </Label>
+          <div className="py-2">
+            <div className="relative">
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -125,64 +124,60 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
                   type="button"
                   onClick={() => setSearchTerm("")}
                   aria-label="Clear search"
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
-                >
-                  <XIcon className="h-4 w-4" />
-                </button>
+                  className="text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                ></button>
               )}
             </div>
-            <div className="max-h-96 overflow-y-auto rounded-lg border p-3">
-              {filteredStaff.length === 0 ? (
-                <div className="flex items-center justify-center py-4 text-center">
-                  <p className="text-muted-foreground text-lg">
-                    No more staff fit the criteria to be an assistant for your
-                    course
-                  </p>
-                </div>
-              ) : (
-                filteredStaff.map((staff) => {
-                  return (
-                    <div key={staff.id} className="p-1">
-                      <div
-                        className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 ${
-                          preferredStaff?.some((a) => a.id === staff.id)
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:bg-accent"
-                        }`}
-                        onClick={() =>
-                          toggleAssistant(
-                            staff,
-                            !preferredStaff?.some((a) => a.id === staff.id),
-                          )
-                        }
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            {staff.name}
-                            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                              {staff.roles}
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground text-sm">
-                            {staff.email}
-                          </p>
+          </div>
+          <div className="max-h-96 overflow-y-auto rounded-lg border p-3">
+            {filteredStaff.length === 0 ? (
+              <div className="flex items-center justify-center py-4 text-center">
+                <p className="text-muted-foreground text-lg">
+                  No more staff fit the criteria to be an assistant for your
+                  course
+                </p>
+              </div>
+            ) : (
+              filteredStaff.map((staff) => {
+                return (
+                  <div key={staff.id} className="p-1">
+                    <div
+                      className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 ${
+                        preferredStaff?.some((a) => a.id === staff.id)
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-accent"
+                      }`}
+                      onClick={() =>
+                        toggleAssistant(
+                          staff,
+                          !preferredStaff?.some((a) => a.id === staff.id),
+                        )
+                      }
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {staff.name}
+                          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                            {staff.roles}
+                          </span>
                         </div>
-                        <input
-                          type="checkbox"
-                          id={`${sectionId}-${staff.id}`}
-                          checked={preferredStaff?.some(
-                            (a) => a.id === staff.id,
-                          )}
-                          onChange={() => {}}
-                          className="text-primary focus:ring-primary pointer-events-none h-4 w-4 cursor-pointer rounded border-gray-300"
-                          readOnly
-                        />
+                        <p className="text-muted-foreground text-sm">
+                          {staff.email}
+                        </p>
                       </div>
+                      <input
+                        type="checkbox"
+                        id={`${sectionId}-${staff.id}`}
+                        checked={preferredStaff?.some((a) => a.id === staff.id)}
+                        onChange={() => {}}
+                        className="text-primary focus:ring-primary pointer-events-none h-4 w-4 cursor-pointer rounded border-gray-300"
+                        readOnly
+                      />
                     </div>
-                  );
-                })
-              )}
-            </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
