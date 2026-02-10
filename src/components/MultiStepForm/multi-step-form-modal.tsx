@@ -8,7 +8,6 @@ import FormEntryPreferences from "./form-entry-preferences";
 import FormEntryComments from "./form-entry-comments";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
-import { useTerm } from "@/components/term-combobox";
 
 interface MultiStepFormModalProps {
   onClose?: () => void;
@@ -16,21 +15,22 @@ interface MultiStepFormModalProps {
   inline?: boolean;
   /** Required: user ID of the authenticated user */
   userId: string;
+  termId: string;
 }
 
 const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   onClose,
   inline = false,
   userId,
+  termId,
 }) => {
   // Data collected from each step, initialized from database
   const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
   const router = useRouter();
-  const { selectedId: selectedTermId } = useTerm();
 
   // fetch sections for the selected term and pass to qualifications UI
   const [{ sections }] = api.studentForm.getSections.useSuspenseQuery({
-    termId: selectedTermId ?? "",
+    termId,
   });
 
   const [step, setStep] = useState(1);
@@ -50,7 +50,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         // doesnt need initial data, can always start form with available/not
         <FormEntryAvailability
           userId={userId}
-          termId={selectedTermId ?? ""}
+          termId={termId}
           onNext={handleNext}
           onExit={handleSubmit}
         />
@@ -59,7 +59,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         //TODO pass in initial times data
         <FormEntryTimes
           userId={userId}
-          termId={selectedTermId ?? ""}
+          termId={termId}
           onNext={handleNext}
           onBack={handleBack}
         />
@@ -67,7 +67,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       {step === 3 && (
         <FormEntryQualifications
           userId={userId}
-          termId={selectedTermId ?? ""}
+          termId={termId}
           courses={sections}
           onChange={(ids) => setQualifiedSectionIds(ids)}
           onNext={handleNext}
@@ -79,7 +79,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         //TODO pass in initial prefs
         <FormEntryPreferences
           userId={userId}
-          termId={selectedTermId ?? ""}
+          termId={termId}
           courses={sections}
           selectedSectionIds={qualifiedSections}
           onNext={handleNext}
@@ -90,7 +90,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
         //TODO pass in initial comments
         <FormEntryComments
           userId={userId}
-          termId={selectedTermId ?? ""}
+          termId={termId}
           onSubmit={handleSubmit}
           onBack={handleBack}
         />

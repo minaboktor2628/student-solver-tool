@@ -44,8 +44,8 @@ export const ROUTES: NavItem[] = [
     icon: UserStarIcon,
     children: [
       {
-        label: "Create Term",
-        href: "/dashboard/create-term",
+        label: "Manage Terms",
+        href: "/dashboard/manage-terms",
         icon: ComputerIcon,
       },
       {

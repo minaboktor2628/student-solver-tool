@@ -109,9 +109,9 @@ export const courseRoute = createTRPCRouter({
           meetingPattern: c.meetingPattern,
           academicLevel: c.academicLevel,
           professor: {
-            id: c.professor.id,
-            email: c.professor.email,
-            name: c.professor.name,
+            id: c.professor?.id,
+            email: c.professor?.email,
+            name: c.professor?.name,
             comments: c.professorPreference?.comments,
             timesRequired: c.professorPreference?.timesRequired ?? [],
             preferedStaff: c.professorPreference?.preferredStaff.map((s) => ({

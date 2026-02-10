@@ -142,6 +142,7 @@ export const studentFormRoute = createTRPCRouter({
           )
           .optional(),
         qualifiedSectionIds: z.array(z.string()).optional(),
+        isAvailableForTerm: z.boolean().optional(),
         sectionPreferences: z
           .record(z.string(), z.enum(["prefer", "strong"]).optional())
           .optional(),
@@ -157,6 +158,7 @@ export const studentFormRoute = createTRPCRouter({
           qualifiedSectionIds,
           sectionPreferences,
           comments,
+          isAvailableForTerm,
         },
         ctx,
       }) => {
@@ -201,12 +203,13 @@ export const studentFormRoute = createTRPCRouter({
             where: { userId_termId: { userId, termId: term.id } },
             update: {
               ...(comments !== undefined && { comments: comments || null }),
-              updatedAt: new Date(),
+              isAvailableForTerm,
             },
             create: {
               userId,
               termId: term.id,
               comments: comments ?? null,
+              isAvailableForTerm,
             },
           });
 
@@ -305,7 +308,7 @@ export const studentFormRoute = createTRPCRouter({
     )
     .mutation(async ({ input: { userId, termId, isAvailable }, ctx }) => {
       if (
-        !hasPermission(ctx.session.user, "staffPreferenceForm", "create", {
+        !hasPermission(ctx.session.user, "staffPreferenceForm", "update", {
           id: userId,
         })
       ) {

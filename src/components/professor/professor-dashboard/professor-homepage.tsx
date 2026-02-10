@@ -2,7 +2,7 @@
 import React from "react";
 import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
-import { useTerm } from "@/components/term-combobox";
+import { useTerm, type Term } from "@/components/term-combobox";
 import { Header } from "@/components/professor/professor-dashboard/header";
 import { api } from "@/trpc/react";
 import type { ProfessorSection } from "@/types/professor";
@@ -10,10 +10,19 @@ import type { ProfessorSection } from "@/types/professor";
 interface ProfessorHomePageProps {
   userId: string;
 }
-const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
-  const { active: activeTerm } = useTerm();
-  if (!activeTerm) throw new Error("Term is invalid.");
 
+function ProfessorHomePage({ userId }: ProfessorHomePageProps) {
+  const { active: activeTerm } = useTerm();
+
+  if (!activeTerm) throw new Error("No active term. Please contact admin.");
+
+  return <InternalPage userId={userId} activeTerm={activeTerm} />;
+}
+
+function InternalPage({
+  userId,
+  activeTerm,
+}: ProfessorHomePageProps & { activeTerm: Term }) {
   const [{ sections }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
       professorId: userId,
@@ -47,6 +56,6 @@ const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
       <CoursesCard sections={professorSections} isSubmitted={isSubmitted} />
     </div>
   );
-};
+}
 
 export default ProfessorHomePage;

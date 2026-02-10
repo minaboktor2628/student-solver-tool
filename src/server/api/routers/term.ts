@@ -6,8 +6,10 @@ import {
   coordinatorProcedure,
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { calculateRequiredAssistantHours } from "@/lib/utils";
-import { TermLetter } from "@prisma/client";
+import { Role, TermLetter } from "@prisma/client";
+import { createTermInputSchema } from "@/types/form-inputs";
+import { getDefaultHoursForRole } from "@/lib/constants";
+import { getTermSectionData, SectionItemSchema } from "@/lib/courselisting-api";
 
 export const termRoute = createTRPCRouter({
   getTerms: publicProcedure.query(async ({ ctx }) => {
@@ -59,201 +61,66 @@ export const termRoute = createTRPCRouter({
       })),
     };
   }),
-
-  createTerm: coordinatorProcedure
-    .input(
-      z.object({
-        termLetter: z.enum(["A", "B", "C", "D"]),
-        year: z.number(),
-        staffDueDate: z.string(),
-        professorDueDate: z.string(),
-        csvData: z
-          .array(
-            z.object({
-              email: z.string(),
-              role: z.enum(["PLA", "GLA", "TA", "COORDINATOR", "PROFESSOR"]),
-            }),
-          )
-          .optional(),
-        courses: z.array(z.any()).optional(),
-        overwrite: z.boolean().optional(),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const {
-        termLetter,
-        year,
-        staffDueDate,
-        professorDueDate,
-        csvData,
-        courses,
-        overwrite,
-      } = input;
-
-      // Validate required fields
-      if (!termLetter || !year || !staffDueDate || !professorDueDate) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Missing required fields",
-        });
-      }
-
-      // Check if term already exists
-      const existingTerm = await ctx.db.term.findFirst({
-        where: {
-          termLetter,
-          year,
-        },
-      });
-
-      if (existingTerm && !overwrite) {
-        // Return response indicating term exists instead of throwing error
-        return {
-          success: false,
-          exists: true,
-          message: `A term for ${termLetter} ${year} already exists. Choose to overwrite it or try a different term.`,
-          termId: null,
-        };
-      }
-
-      // If overwrite is true and term exists, delete the old one first
-      if (existingTerm && overwrite) {
-        await ctx.db.term.delete({
-          where: { id: existingTerm.id },
-        });
-      }
-
-      // Create term
-      const term = await ctx.db.term.create({
-        data: {
-          termLetter,
-          year,
-          termStaffDueDate: new Date(staffDueDate),
-          termProfessorDueDate: new Date(professorDueDate),
-        },
-      });
-
-      // Create allowed users
-      if (csvData && Array.isArray(csvData)) {
-        for (const row of csvData) {
-          // Find user by email
-          const user = await ctx.db.user.findUnique({
-            where: { email: row.email },
-          });
-
-          if (user) {
-            await ctx.db.allowedTermUser.create({
-              data: {
-                userId: user.id,
-                termId: term.id,
-              },
-            });
-          }
-        }
-      }
-
-      // Update selected courses with this term
-      if (courses && Array.isArray(courses) && courses.length > 0) {
-        for (const course of courses) {
-          const {
-            id,
-            professorName,
-            courseTitle,
-            courseCode,
-            description,
-            enrollment,
-            capacity,
-            courseSection,
-            meetingPattern,
-          } = course as {
-            id?: string;
-            professorName?: string;
-            courseTitle?: string;
-            courseCode?: string;
-            description?: string;
-            enrollment?: number;
-            capacity?: number;
-            courseSection?: string;
-            meetingPattern?: string;
-          };
-
-          // If course has an id and we're NOT overwriting, try to update its termId
-          // If we ARE overwriting, always create new sections (old ones were deleted)
-          if (id && !overwrite) {
-            // Check if the section still exists before trying to update
-            const sectionExists = await ctx.db.section.findUnique({
-              where: { id },
-            });
-
-            if (sectionExists) {
-              await ctx.db.section.update({
-                where: { id },
-                data: { termId: term.id },
-              });
-              continue;
-            }
-          }
-
-          // Create a new section (either no id, overwriting, or section was deleted)
-          // Find or create the professor user
-          const professorUser = await ctx.db.user.findFirst({
-            where: {
-              name: { contains: professorName },
-            },
-          });
-
-          if (!professorUser) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: `Professor "${professorName}" not found in the system. Please add them as a user first before creating courses for them.`,
-            });
-          }
-
-          // Calculate required hours based on enrollment
-          const calculatedHours = calculateRequiredAssistantHours(
-            enrollment ?? 0,
-          );
-
-          // Create the section
-          await ctx.db.section.create({
-            data: {
-              termId: term.id,
-              courseTitle: courseTitle ?? "",
-              courseCode: courseCode ?? "",
-              description: description ?? `${courseCode} - ${courseTitle}`,
-              professorId: professorUser.id,
-              enrollment: enrollment ?? 0,
-              capacity: capacity ?? 0,
-              requiredHours: calculatedHours,
-              academicLevel: "UNDERGRADUATE",
-              courseSection: courseSection ?? "01",
-              meetingPattern: meetingPattern ?? "TBD",
-            },
-          });
-        }
-      }
-
-      return {
-        success: true,
-        termId: term.id,
-        message: "Term created successfully",
-      };
-    }),
+  getTermStats: coordinatorProcedure.query(async ({ ctx }) => {
+    return ctx.db.term.findMany({
+      select: {
+        id: true,
+        active: true,
+        termLetter: true,
+        year: true,
+        termStaffDueDate: true,
+        termProfessorDueDate: true,
+        _count: { select: { sections: true, allowedUsers: true } },
+      },
+      orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+    });
+  }),
 
   deleteTerm: coordinatorProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input: { id }, ctx }) => {
-      await ctx.db.term.delete({
-        where: { id },
-      });
+      const term = await ctx.db.term.findUnique({ where: { id } });
 
-      return {
-        success: true,
-        message: "Term deleted successfully",
-      };
+      if (term?.active) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot delete an active term.",
+        });
+      }
+
+      return ctx.db.term.delete({ where: { id } });
     }),
 
-  publishTerm: coordinatorProcedure
+  createTerm: coordinatorProcedure
+    .input(createTermInputSchema)
+    .mutation(
+      async ({
+        ctx,
+        input: { termStaffDueDate, termProfessorDueDate, termLetter, year },
+      }) => {
+        const term = await ctx.db.term.findUnique({
+          where: { termLetter_year: { termLetter, year } },
+        });
+
+        if (term) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "A term with this letter and year already exists.",
+          });
+        }
+
+        return ctx.db.term.create({
+          data: {
+            year,
+            termLetter,
+            termProfessorDueDate,
+            termStaffDueDate,
+          },
+        });
+      },
+    ),
+
+  activateTerm: coordinatorProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input: { id }, ctx }) => {
       // Set all terms to inactive first
@@ -263,6 +130,29 @@ export const termRoute = createTRPCRouter({
       });
 
       // Set the selected term to active
+      return ctx.db.term.update({
+        where: { id },
+        data: { active: true },
+      });
+    }),
+
+  deactivateTerm: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input: { id }, ctx }) => {
+      return ctx.db.term.update({
+        where: { id },
+        data: { active: false },
+      });
+    }),
+
+  publishTerm: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input: { id }, ctx }) => {
+      await ctx.db.term.updateMany({
+        where: { active: true },
+        data: { active: false },
+      });
+
       const updatedTerm = await ctx.db.term.update({
         where: { id },
         data: { active: true },
@@ -275,28 +165,148 @@ export const termRoute = createTRPCRouter({
       };
     }),
 
-  updateTerm: coordinatorProcedure
+  syncUsersToTerm: coordinatorProcedure
     .input(
       z.object({
-        id: z.string(),
-        data: z.object({
-          termLetter: z.nativeEnum(TermLetter).optional(),
-          year: z.number().optional(),
-          termStaffDueDate: z.date().optional(),
-          termProfessorDueDate: z.date().optional(),
-          active: z.boolean().optional(),
-        }),
+        users: z.array(
+          z.object({
+            name: z.string(),
+            email: z.string().email(),
+            role: z.nativeEnum(Role),
+          }),
+        ),
+        termId: z.string(),
       }),
     )
-    .mutation(async ({ input: { id, data }, ctx }) => {
-      const updated = await ctx.db.term.update({
-        where: { id },
-        data,
+    .mutation(async ({ ctx, input: { users, termId } }) => {
+      const term = await ctx.db.term.update({
+        where: { id: termId },
+        data: {
+          allowedUsers: {
+            // if the user does not already exist, make a new user
+            connectOrCreate: users.map(({ name, email, role }) => ({
+              where: { email },
+              create: {
+                name,
+                email,
+                hours: getDefaultHoursForRole(role),
+                roles: { create: { role } },
+              },
+            })),
+          },
+        },
+        include: { allowedUsers: true },
       });
 
-      return {
-        success: true,
-        term: updated,
-      };
+      // term.allowedUsers may contain more users than just the ones we touched
+      // we return *only* the set we just created/connected:
+      const affectedUsers = term.allowedUsers.filter((u) =>
+        users.some((inputUser) => inputUser.email === u.email),
+      );
+
+      return affectedUsers.length;
     }),
+
+  getCourseListingData: coordinatorProcedure
+    .input(
+      z.object({
+        year: z.number().int().nonnegative(),
+        termLetter: z.nativeEnum(TermLetter),
+      }),
+    )
+    .query(async ({ ctx, input: { year, termLetter } }) => {
+      const term = await ctx.db.term.findUnique({
+        where: { termLetter_year: { termLetter, year } },
+        include: { allowedUsers: true },
+      });
+
+      if (!term) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Term ${termLetter} ${year} not found`,
+        });
+      }
+
+      const sections = await getTermSectionData(year, termLetter);
+
+      const allowedProfessorByName = new Map(
+        term.allowedUsers.map((au) => [au.name, au.id]),
+      );
+
+      const sectionsWithAllowedFlag = sections.map((section) => {
+        const professorId =
+          allowedProfessorByName.get(section.professorName) ?? null;
+
+        return {
+          ...section,
+          professorId,
+          professorIsAllowedOnTerm: professorId !== null,
+        };
+      });
+
+      const allProfessors = await ctx.db.user.findMany({
+        where: {
+          roles: { some: { role: { equals: "PROFESSOR" } } },
+        },
+        select: { id: true, name: true, email: true },
+      });
+
+      return { sections: sectionsWithAllowedFlag, allProfessors };
+    }),
+
+  addSectionsToTerm: coordinatorProcedure
+    .input(
+      z.object({
+        year: z.number().int().nonnegative(),
+        termLetter: z.nativeEnum(TermLetter),
+        sections: z.array(SectionItemSchema),
+        replaceExisting: z.boolean().default(false),
+      }),
+    )
+    .mutation(
+      async ({
+        ctx,
+        input: { year, termLetter, sections, replaceExisting },
+      }) => {
+        const term = await ctx.db.term.findUnique({
+          where: { termLetter_year: { termLetter, year } },
+          select: { id: true },
+        });
+
+        if (!term) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Term ${termLetter} ${year} not found`,
+          });
+        }
+
+        if (replaceExisting) {
+          await ctx.db.section.deleteMany({
+            where: { termId: term.id },
+          });
+        }
+
+        if (sections.length === 0) {
+          return { count: 0 };
+        }
+
+        const result = await ctx.db.section.createMany({
+          data: sections.map((section) => ({
+            termId: term.id,
+            courseTitle: section.courseTitle,
+            courseCode: section.courseCode,
+            courseSection: section.courseSection,
+            meetingPattern: section.meetingPattern,
+            description: section.description,
+            professorId: section.professorId,
+            enrollment: section.enrollment,
+            capacity: section.capacity,
+            requiredHours: section.requiredHours,
+            academicLevel: section.academicLevel,
+          })),
+        });
+
+        return { count: result.count };
+      },
+    ),
 });

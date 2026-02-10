@@ -1,17 +1,17 @@
 import { auth } from "@/server/auth";
 import ProfessorHomePageComponent from "@/components/professor/professor-dashboard/professor-homepage";
+import { isAssistant, isProfessor } from "@/lib/utils";
 
 export default async function Home() {
   const session = await auth();
 
-  if (session?.user?.roles?.includes("PROFESSOR")) {
+  if (!session) return;
+
+  if (isProfessor(session)) {
     return <ProfessorHomePageComponent userId={session?.user?.id} />;
+  } else if (isAssistant(session)) {
+    return "hi assistant" + session.user.name;
   } else {
-    return (
-      <h1 className="p-4 text-lg font-medium">
-        Home page, this should prob redirect you somewhere diff for each role
-        type?
-      </h1>
-    );
+    return "you dont belong here.";
   }
 }
