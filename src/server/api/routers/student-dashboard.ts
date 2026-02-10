@@ -2,12 +2,30 @@ import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { hasPermission } from "@/lib/permissions";
+import { TermProvider } from "@/components/term-combobox";
 
 const baseInput = z.object({
   userId: z.string().min(1),
   termId: z.string().min(1),
 });
 export const studentDashboardRoute = createTRPCRouter({
+  getTermInfo: assistantProcedure
+    .input(z.object({ termId: z.string() }))
+    .query(async ({ input: { termId }, ctx }) => {
+      const term = await ctx.db.term.findUnique({
+        where: {
+          id: termId,
+        },
+      });
+      return {
+        term: {
+          termLetter: term?.termLetter,
+          year: term?.year,
+          staffDueDate: term?.termStaffDueDate,
+        },
+      };
+    }),
+
   getStudentDashboardInfo: assistantProcedure
     .input(baseInput)
     .query(async ({ input: { userId, termId }, ctx }) => {

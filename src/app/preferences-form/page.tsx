@@ -1,8 +1,10 @@
 import { LoadingSpinner } from "@/components/loading-spinner";
 import MultiStepFormModal from "@/components/MultiStepForm/multi-step-form-modal";
+import { useTerm } from "@/components/term-combobox";
 import { redirectToForbidden } from "@/lib/navigation";
 import { hasPermission } from "@/lib/permissions";
 import { auth } from "@/server/auth";
+import { api } from "@/trpc/react";
 
 export const metadata = {
   title: "Preferences Form",

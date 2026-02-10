@@ -21,6 +21,18 @@ const baseInput = z.object({
 });
 
 export const studentFormRoute = createTRPCRouter({
+  getCanEdit: assistantProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input: { userId }, ctx }) => {
+      const canEdit = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: {
+          canEditForm: true,
+        },
+      });
+      return { canEdit };
+    }),
+
   /** Fetch all sections for a given term, grouped by courseCode */
   getSections: assistantProcedure
     .input(z.object({ termId: z.string() }))
@@ -187,6 +199,13 @@ export const studentFormRoute = createTRPCRouter({
             throw new TRPCError({
               code: "NOT_FOUND",
               message: `User with ID ${userId} not found.`,
+            });
+          }
+
+          if (!user.canEditForm) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "No permission to edit form.",
             });
           }
 
