@@ -141,6 +141,12 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
                           ? "border-primary bg-primary/5"
                           : "border-border hover:bg-accent"
                       }`}
+                      onClick={() =>
+                        toggleAssistant(
+                          staff,
+                          !preferredStaff?.some((a) => a.id === staff.id),
+                        )
+                      }
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -157,9 +163,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
                         type="checkbox"
                         id={`${sectionId}-${staff.id}`}
                         checked={preferredStaff?.some((a) => a.id === staff.id)}
-                        onChange={(e) =>
-                          toggleAssistant(staff, e.target.checked)
-                        }
+                        onChange={() => {}}
                         className="text-primary focus:ring-primary h-4 w-4 cursor-pointer rounded border-gray-300"
                       />
                     </div>
