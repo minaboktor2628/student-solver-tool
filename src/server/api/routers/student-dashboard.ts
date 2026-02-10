@@ -9,6 +9,18 @@ const baseInput = z.object({
   termId: z.string().min(1),
 });
 export const studentDashboardRoute = createTRPCRouter({
+  hasSubmittedPreferencesForm: assistantProcedure
+    .input(baseInput)
+    .query(async ({ input: { userId, termId }, ctx }) => {
+      const formInput = await ctx.db.staffPreference.findUnique({
+        where: {
+          userId_termId: { userId, termId },
+        },
+      });
+      if (formInput) return true;
+      return false;
+    }),
+
   getTermInfo: assistantProcedure
     .input(z.object({ termId: z.string() }))
     .query(async ({ input: { termId }, ctx }) => {

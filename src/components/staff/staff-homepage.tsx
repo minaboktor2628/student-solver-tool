@@ -1,9 +1,8 @@
 "use client";
 import React from "react";
-import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
-import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
+import { DeadlineCard } from "@/components/staff/staff-deadline-card";
 import { useTerm } from "@/components/term-combobox";
-import { Header } from "@/components/professor/professor-dashboard/header";
+import { Header } from "@/components/professor/professor-dashboard/professor-dashboard-header";
 import { api } from "@/trpc/react";
 import type { ProfessorSection } from "@/types/professor";
 import { AppSidebar } from "../app-sidebar";
@@ -27,6 +26,12 @@ const StaffHomePage: React.FC<StaffHomePageProps> = ({ userId }) => {
       termId: activeTerm.id,
     });
 
+  const hasSubmitted =
+    api.studentDashboard.hasSubmittedPreferencesForm.useSuspenseQuery({
+      userId: userId,
+      termId: activeTerm.id,
+    });
+
   const [{ info }] =
     api.studentDashboard.getStudentDashboardInfo.useSuspenseQuery({
       userId: userId,
@@ -36,12 +41,11 @@ const StaffHomePage: React.FC<StaffHomePageProps> = ({ userId }) => {
   const username = info.name;
   const deadlineDate = info.term.dueDate;
   if (!deadlineDate) throw new Error("Deadline Date Invalid");
-  const isSubmitted = false;
 
   return (
     <div className="container mx-auto max-w-6xl p-6">
       <Header username={username} />
-      {/* <DeadlineCard deadlineDate={deadlineDate} isSubmitted={isSubmitted} /> */}
+      <DeadlineCard deadlineDate={deadlineDate} isSubmitted={hasSubmitted} />
       {/* Courses Overview */}
       {/* <CoursesCard sections={professorSections} isSubmitted={isSubmitted} /> */}
     </div>

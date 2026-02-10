@@ -1,9 +1,9 @@
 "use client";
 import React from "react";
-import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
+import { DeadlineCard } from "@/components/professor/professor-dashboard/professor-deadline-card";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
 import { useTerm } from "@/components/term-combobox";
-import { Header } from "@/components/professor/professor-dashboard/header";
+import { Header } from "@/components/professor/professor-dashboard/professor-dashboard-header";
 import { api } from "@/trpc/react";
 import type { ProfessorSection } from "@/types/professor";
 
