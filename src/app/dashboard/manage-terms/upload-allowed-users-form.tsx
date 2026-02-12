@@ -70,10 +70,13 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to read file");
     }
-    const { error, data: parsed } = safeParseCSV(text, z.array(CSVRowSchema));
+    const { error, data: parsed } = safeParseCSV(text, CSVRowSchema, {
+      dedupeBy: (row) => row.email,
+    });
 
     if (error) {
       toast.error(error.message);
+      console.error(error);
       return;
     }
     setRows(parsed);
