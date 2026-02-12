@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { syncCourses as syncCoursesUtil } from "@/lib/sync-courses";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
 import { TermLetter, AcademicLevel } from "@prisma/client";
 
@@ -163,50 +162,53 @@ export const courseRoute = createTRPCRouter({
       };
     }),
 
-  getAllCourses: coordinatorProcedure.query(async ({ ctx }) => {
-    const sections = await ctx.db.section.findMany({
-      include: {
-        professor: true,
-        term: true,
-        assignments: {
-          include: {
-            staff: true,
+  getAllCourses: coordinatorProcedure
+    .input(z.object({ termId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const sections = await ctx.db.section.findMany({
+        where: input?.termId ? { termId: input.termId } : undefined,
+        include: {
+          professor: true,
+          term: true,
+          assignments: {
+            include: {
+              staff: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return {
-      success: true,
-      courses: sections.map((course) => ({
-        id: course.id,
-        termId: course.termId,
-        courseCode: course.courseCode,
-        courseTitle: course.courseTitle,
-        courseSection: course.courseSection,
-        meetingPattern: course.meetingPattern,
-        description: course.description,
-        professorName: course.professor?.name ?? "Unknown Professor",
-        professorEmail: course.professor?.email ?? "",
-        enrollment: course.enrollment,
-        capacity: course.capacity,
-        requiredHours: course.requiredHours,
-        assignedStaff: course.assignments.reduce(
-          (sum, assignment) => sum + (assignment.staff?.hours ?? 0),
-          0,
-        ),
-        term: course.term
-          ? `${course.term.termLetter} ${course.term.year}`
-          : "Unknown Term",
-        academicLevel: course.academicLevel,
-      })),
-    };
-  }),
+      return {
+        success: true,
+        courses: sections.map((course) => ({
+          id: course.id,
+          termId: course.termId,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          courseSection: course.courseSection,
+          meetingPattern: course.meetingPattern,
+          description: course.description,
+          professorName: course.professor?.name ?? "Unknown Professor",
+          professorEmail: course.professor?.email ?? "",
+          enrollment: course.enrollment,
+          capacity: course.capacity,
+          requiredHours: course.requiredHours,
+          assignedStaff: course.assignments.reduce(
+            (sum, assignment) => sum + (assignment.staff?.hours ?? 0),
+            0,
+          ),
+          term: course.term
+            ? `${course.term.termLetter} ${course.term.year}`
+            : "Unknown Term",
+          academicLevel: course.academicLevel,
+        })),
+      };
+    }),
 
   getCoursesForTermCreation: coordinatorProcedure
     .input(
       z.object({
-        termLetter: z.enum(["A", "B", "C", "D"]),
+        termLetter: z.nativeEnum(TermLetter),
         year: z.number(),
       }),
     )
@@ -215,7 +217,7 @@ export const courseRoute = createTRPCRouter({
       const sections = await ctx.db.section.findMany({
         where: {
           term: {
-            termLetter: termLetter as TermLetter,
+            termLetter,
             year,
           },
         },
@@ -293,14 +295,30 @@ export const courseRoute = createTRPCRouter({
   createCourses: coordinatorProcedure
     .input(
       z.object({
-        courses: z.array(z.any()),
+        courses: z.array(
+          z.object({
+            courseCode: z.string(),
+            courseTitle: z.string(),
+            professorName: z.string(),
+            enrollment: z.number().default(0),
+            capacity: z.number().default(0),
+            requiredHours: z.number().optional(),
+            academicLevel: z
+              .nativeEnum(AcademicLevel)
+              .default(AcademicLevel.UNDERGRADUATE),
+            courseSection: z.string().default("01"),
+            meetingPattern: z.string().default("TBD"),
+            description: z.string().default(""),
+            term: z.string().optional(),
+          }),
+        ),
         termId: z.string().optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
       const { courses, termId } = input;
 
-      if (!courses || !Array.isArray(courses) || courses.length === 0) {
+      if (courses.length === 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "No courses provided",
@@ -314,31 +332,15 @@ export const courseRoute = createTRPCRouter({
           courseCode,
           courseTitle,
           professorName,
-          enrollment = 0,
-          capacity = 0,
+          enrollment,
+          capacity,
           requiredHours,
-          academicLevel = "UNDERGRADUATE",
-          courseSection = "01",
-          meetingPattern = "TBD",
-          description = "",
+          academicLevel,
+          courseSection,
+          meetingPattern,
+          description,
           term: selectedTerm,
-        } = courseData as {
-          courseCode?: string;
-          courseTitle?: string;
-          professorName?: string;
-          enrollment?: number;
-          capacity?: number;
-          requiredHours?: number;
-          academicLevel?: string;
-          courseSection?: string;
-          meetingPattern?: string;
-          description?: string;
-          term?: string;
-        };
-
-        if (!courseCode || !courseTitle || !professorName) {
-          continue;
-        }
+        } = courseData;
 
         // Determine which term to use
         let finalTermId = termId;
@@ -383,25 +385,22 @@ export const courseRoute = createTRPCRouter({
           });
         }
 
-        const calculatedHours = calculateRequiredAssistantHours(
-          typeof enrollment === "number" ? enrollment : 0,
-        );
-        const finalRequiredHours =
-          typeof requiredHours === "number" ? requiredHours : calculatedHours;
+        const calculatedHours = calculateRequiredAssistantHours(enrollment);
+        const finalRequiredHours = requiredHours ?? calculatedHours;
 
         const createdCourse = await ctx.db.section.create({
           data: {
             termId: finalTermId,
-            courseCode: courseCode ?? "",
-            courseTitle: courseTitle ?? "",
-            description: description ?? "",
+            courseCode,
+            courseTitle,
+            description,
             professorId: professor.id,
-            enrollment: typeof enrollment === "number" ? enrollment : 0,
-            capacity: typeof capacity === "number" ? capacity : 0,
+            enrollment,
+            capacity,
             requiredHours: finalRequiredHours,
-            academicLevel: (academicLevel as AcademicLevel) ?? "UNDERGRADUATE",
-            courseSection: courseSection ?? "01",
-            meetingPattern: meetingPattern ?? "TBD",
+            academicLevel,
+            courseSection,
+            meetingPattern,
           },
         });
 
@@ -460,78 +459,6 @@ export const courseRoute = createTRPCRouter({
       return {
         success: true,
         message: "Course deleted successfully",
-      };
-    }),
-
-  syncCourses: coordinatorProcedure.mutation(async () => {
-    const result = await syncCoursesUtil();
-    return {
-      success: true,
-      message: "Course sync completed",
-      ...result,
-    };
-  }),
-
-  syncCoursesForTerm: coordinatorProcedure
-    .input(
-      z.object({
-        termLetter: z.enum(["A", "B", "C", "D"]),
-        year: z.number(),
-      }),
-    )
-    .mutation(async ({ input: { termLetter, year }, ctx }) => {
-      // Sync all courses from WPI
-      const result = await syncCoursesUtil();
-
-      // Find or create the term that matches what we're creating
-      const term = await ctx.db.term.findFirst({
-        where: {
-          termLetter: termLetter as TermLetter,
-          year,
-        },
-      });
-
-      // If term exists, fetch courses assigned to it
-      if (term) {
-        const courses = await ctx.db.section.findMany({
-          where: {
-            termId: term.id,
-          },
-          include: {
-            professor: true,
-            term: true,
-          },
-        });
-
-        const filteredCourses = courses.map((course) => ({
-          id: course.id,
-          courseCode: course.courseCode,
-          courseTitle: course.courseTitle,
-          professorName: course.professor?.name ?? "Unknown Professor",
-          enrollment: course.enrollment,
-          capacity: course.capacity,
-          requiredHours: course.requiredHours,
-          description: course.description,
-          academicLevel: course.academicLevel,
-          courseSection: course.courseSection,
-          meetingPattern: course.meetingPattern,
-          termId: course.termId,
-        }));
-
-        return {
-          success: true,
-          message: `Synced courses from WPI. Found ${filteredCourses.length} courses for ${termLetter} ${year}.`,
-          courses: filteredCourses,
-          syncResult: result,
-        };
-      }
-
-      // Fallback: return empty list if term not found (shouldn't happen after sync)
-      return {
-        success: true,
-        message: `Synced courses from WPI. No courses found for ${termLetter} ${year}.`,
-        courses: [],
-        syncResult: result,
       };
     }),
 });

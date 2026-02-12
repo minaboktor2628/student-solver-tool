@@ -320,6 +320,27 @@ export default function DashboardContent() {
       0,
     );
 
+  // Extract selected term data to avoid repeated lookups in markup
+  const currentTerm = terms.find((t) => t.id === selectedTerm);
+
+  // Helper to format deadline info
+  const formatDeadline = (dueDate: Date | undefined) => {
+    if (!dueDate) return { formatted: "Not set", daysRemaining: null };
+    const date = new Date(dueDate);
+    const formatted = date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+    const daysRemaining = Math.ceil(
+      (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    );
+    return { formatted, daysRemaining };
+  };
+
+  const staffDeadline = formatDeadline(currentTerm?.termStaffDueDate);
+  const professorDeadline = formatDeadline(currentTerm?.termProfessorDueDate);
+
   // Loading UI
   if (isLoading) {
     return (
@@ -373,7 +394,7 @@ export default function DashboardContent() {
               </h1>
               <p className="text-muted-foreground text-lg">
                 {selectedTerm
-                  ? `${terms.find((t) => t.id === selectedTerm)?.name ?? selectedTerm} • Submission Tracking & Status`
+                  ? `${currentTerm?.name ?? selectedTerm} • Submission Tracking & Status`
                   : "Select a term"}
               </p>
             </div>
@@ -418,17 +439,16 @@ export default function DashboardContent() {
           </div>
         </div>
 
-        {selectedTerm &&
-          terms.find((t) => t.id === selectedTerm)?.status === "draft" && (
-            <div className="mb-6">
-              <Button onClick={() => publishTerm(selectedTerm)} size="default">
-                <Calendar className="h-4 w-4" /> Publish Term
-              </Button>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Once published, staff and professors can submit preferences
-              </p>
-            </div>
-          )}
+        {selectedTerm && currentTerm?.status === "draft" && (
+          <div className="mb-6">
+            <Button onClick={() => publishTerm(selectedTerm)} size="default">
+              <Calendar className="h-4 w-4" /> Publish Term
+            </Button>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Once published, staff and professors can submit preferences
+            </p>
+          </div>
+        )}
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
@@ -515,30 +535,11 @@ export default function DashboardContent() {
                         Staff Deadline
                       </h3>
                       <p className="text-muted-foreground text-sm">
-                        {terms.find((t) => t.id === selectedTerm)
-                          ?.termStaffDueDate
-                          ? new Date(
-                              terms.find((t) => t.id === selectedTerm)
-                                ?.termStaffDueDate ?? "",
-                            ).toLocaleDateString("en-US", {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : "Not set"}
+                        {staffDeadline.formatted}
                       </p>
-                      {terms.find((t) => t.id === selectedTerm)
-                        ?.termStaffDueDate && (
+                      {staffDeadline.daysRemaining !== null && (
                         <p className="text-primary mt-1 text-xs font-medium">
-                          {Math.ceil(
-                            (new Date(
-                              terms.find((t) => t.id === selectedTerm)
-                                ?.termStaffDueDate ?? "",
-                            ).getTime() -
-                              Date.now()) /
-                              (1000 * 60 * 60 * 24),
-                          )}{" "}
-                          days remaining
+                          {staffDeadline.daysRemaining} days remaining
                         </p>
                       )}
                     </div>
@@ -557,30 +558,11 @@ export default function DashboardContent() {
                         Professor Deadline
                       </h3>
                       <p className="text-muted-foreground text-sm">
-                        {terms.find((t) => t.id === selectedTerm)
-                          ?.termProfessorDueDate
-                          ? new Date(
-                              terms.find((t) => t.id === selectedTerm)
-                                ?.termProfessorDueDate ?? "",
-                            ).toLocaleDateString("en-US", {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : "Not set"}
+                        {professorDeadline.formatted}
                       </p>
-                      {terms.find((t) => t.id === selectedTerm)
-                        ?.termProfessorDueDate && (
+                      {professorDeadline.daysRemaining !== null && (
                         <p className="text-primary mt-1 text-xs font-medium">
-                          {Math.ceil(
-                            (new Date(
-                              terms.find((t) => t.id === selectedTerm)
-                                ?.termProfessorDueDate ?? "",
-                            ).getTime() -
-                              Date.now()) /
-                              (1000 * 60 * 60 * 24),
-                          )}{" "}
-                          days remaining
+                          {professorDeadline.daysRemaining} days remaining
                         </p>
                       )}
                     </div>

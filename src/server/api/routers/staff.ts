@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { type Role, type Day, type PreferenceLevel } from "@prisma/client";
+import { Role, type Day, type PreferenceLevel } from "@prisma/client";
 
 type StaffMember = {
   id: string;
@@ -51,7 +51,7 @@ export const staffRoute = createTRPCRouter({
         const { termId } = section;
 
         // Qualified (by existence in this table) + dynamic user filters
-        const staffPreferencesRaw = await tx.staffPreference.findMany({
+        const staffPreferences = await tx.staffPreference.findMany({
           where: {
             termId,
             isAvailableForTerm: true,
@@ -103,33 +103,6 @@ export const staffRoute = createTRPCRouter({
             },
           },
         });
-
-        // Type the result properly to avoid repeated type assertions
-        type StaffPreferenceWithRelations =
-          typeof staffPreferencesRaw extends Array<infer T> ? T : never;
-        const staffPreferences = staffPreferencesRaw as Array<
-          StaffPreferenceWithRelations & {
-            user: {
-              id: string;
-              name: string | null;
-              email: string | null;
-              hours: number | null;
-              roles: Array<{ role: Role }>;
-              avoidedInCourses: unknown[];
-            };
-            qualifiedForSections: Array<{ sectionId: string }>;
-            preferredSections: Array<{
-              rank: number;
-              section: {
-                id: string;
-                courseTitle: string;
-                courseCode: string;
-                courseSection: string;
-              };
-            }>;
-            timesAvailable: Array<{ day: string; hour: number }>;
-          }
-        >;
 
         // Flatten users + roles
         const users = staffPreferences.map((sp) => {
@@ -271,7 +244,7 @@ export const staffRoute = createTRPCRouter({
       z.object({
         email: z.string().email(),
         name: z.string(),
-        role: z.string(),
+        role: z.nativeEnum(Role),
         hours: z.number().optional(),
       }),
     )
@@ -297,7 +270,7 @@ export const staffRoute = createTRPCRouter({
           hours,
           roles: {
             create: {
-              role: role as Role,
+              role,
             },
           },
         },
@@ -356,7 +329,7 @@ export const staffRoute = createTRPCRouter({
         userId: z.string(),
         name: z.string().optional(),
         email: z.string().email().optional(),
-        role: z.string().optional(),
+        role: z.nativeEnum(Role).optional(),
         hours: z.number().optional(),
       }),
     )
@@ -430,7 +403,7 @@ export const staffRoute = createTRPCRouter({
         await ctx.db.userRole.create({
           data: {
             userId,
-            role: role as Role,
+            role,
           },
         });
       }
