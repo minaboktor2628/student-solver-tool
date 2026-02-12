@@ -16,6 +16,7 @@ import type { ReactNode } from "react";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectTrigger, SelectValue } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
+import { Combobox, type ComboboxOption } from "./ui/combobox";
 
 type FormControlProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -158,6 +159,29 @@ export const FormCheckbox: FormControlFunc = (props) => {
     <FormBase {...props} horizontal controlFirst>
       {({ onChange, value, ...field }) => (
         <Checkbox {...field} checked={value} onCheckedChange={onChange} />
+      )}
+    </FormBase>
+  );
+};
+
+export const FormCombobox: FormControlFunc<{
+  options: ComboboxOption[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyMessage?: string;
+}> = ({ options, placeholder, searchPlaceholder, emptyMessage, ...props }) => {
+  return (
+    <FormBase {...props}>
+      {({ onChange, value, ...field }) => (
+        <Combobox
+          {...field}
+          value={value}
+          onValueChange={onChange}
+          options={options}
+          placeholder={placeholder}
+          searchPlaceholder={searchPlaceholder}
+          emptyMessage={emptyMessage}
+        />
       )}
     </FormBase>
   );

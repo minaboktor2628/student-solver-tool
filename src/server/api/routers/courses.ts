@@ -299,7 +299,7 @@ export const courseRoute = createTRPCRouter({
           z.object({
             courseCode: z.string(),
             courseTitle: z.string(),
-            professorName: z.string(),
+            professorName: z.string().optional(),
             enrollment: z.number().default(0),
             capacity: z.number().default(0),
             requiredHours: z.number().optional(),
@@ -369,20 +369,17 @@ export const courseRoute = createTRPCRouter({
           continue;
         }
 
-        // Find or create professor
-        const professor = await ctx.db.user.findFirst({
-          where: {
-            name: {
-              contains: professorName,
+        // Find professor if name provided
+        let professorId: string | undefined;
+        if (professorName) {
+          const professor = await ctx.db.user.findFirst({
+            where: {
+              name: {
+                contains: professorName,
+              },
             },
-          },
-        });
-
-        if (!professor) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: `Professor "${professorName}" not found in the system. Please add them as a user first before creating courses for them.`,
           });
+          professorId = professor?.id;
         }
 
         const calculatedHours = calculateRequiredAssistantHours(enrollment);
@@ -394,7 +391,7 @@ export const courseRoute = createTRPCRouter({
             courseCode,
             courseTitle,
             description,
-            professorId: professor.id,
+            professorId,
             enrollment,
             capacity,
             requiredHours: finalRequiredHours,
