@@ -1,10 +1,15 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldSeparator } from "@/components/ui/field";
+import { FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { AcademicLevel } from "@prisma/client";
-import { FormInput, FormSelect, FormTextarea } from "@/components/form";
+import {
+  FormCombobox,
+  FormInput,
+  FormSelect,
+  FormTextarea,
+} from "@/components/form";
 import { SelectItem } from "@/components/ui/select";
 import { SectionItemSchema, type SectionItem } from "@/lib/courselisting-api";
 import type { User } from "next-auth";
@@ -58,17 +63,15 @@ export function CreateSectionForm({
             label="Course Section"
             description='Ex: "LO1"'
           />
-          <FormSelect
+          <FormCombobox
             control={form.control}
             name="professorId"
             label="Professor"
-          >
-            {professors.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
-              </SelectItem>
-            ))}
-          </FormSelect>
+            options={professors.map((p) => ({
+              label: p.name ?? "",
+              value: p.id,
+            }))}
+          />
         </FieldGroup>
         <FieldSeparator />
         <FieldGroup className="grid grid-cols-4 gap-4">
