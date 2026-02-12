@@ -1,15 +1,15 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { api } from "@/trpc/react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DndContext,
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Draggable } from "../draggable";
-import { Droppable } from "../droppable";
+import { Draggable } from "@/components/draggable";
+import { Droppable } from "@/components/droppable";
 import { toast } from "sonner";
 import { CircleDivide, Divide } from "lucide-react";
 

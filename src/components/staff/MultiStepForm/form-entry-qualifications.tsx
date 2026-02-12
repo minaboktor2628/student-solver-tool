@@ -1,10 +1,10 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/trpc/react";
-import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Label } from "../ui/label";
+import { Label } from "@/components/ui/label";
 
 export type Section = {
   term: string;

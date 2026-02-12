@@ -7,7 +7,7 @@ import {
   dayLetterFromDate,
   dateToSlot,
 } from "@/lib/schedule-selector";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };

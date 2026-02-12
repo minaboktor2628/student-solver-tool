@@ -1,6 +1,6 @@
 import { api } from "@/trpc/react";
-import { useTerm } from "../term-combobox";
-import { Button } from "../ui/button";
+import { useTerm } from "@/components/term-combobox";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface AvailabilityProps {

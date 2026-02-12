@@ -2,7 +2,7 @@
 import React from "react";
 import { DeadlineCard } from "@/components/staff/staff-deadline-card";
 import { useTerm } from "@/components/term-combobox";
-import { Header } from "@/components/professor/professor-dashboard/professor-dashboard-header";
+import { Header } from "@/components/staff/staff-dashboard-header";
 import { api } from "@/trpc/react";
 import type { ProfessorSection } from "@/types/professor";
 import { AppSidebar } from "../app-sidebar";

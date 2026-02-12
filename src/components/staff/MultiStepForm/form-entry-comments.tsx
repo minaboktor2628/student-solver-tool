@@ -1,8 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import { api } from "@/trpc/react";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface FormEntryCommentsProps {
