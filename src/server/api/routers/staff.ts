@@ -233,7 +233,7 @@ export const staffRoute = createTRPCRouter({
             // Sort so that true (available) comes before false (not available)
             if (a.assignedSection === b.assignedSection) return 0;
             return a.assignedSection ? 1 : -1;
-          }) as StaffMember[];
+          });
 
         return { staff };
       });
