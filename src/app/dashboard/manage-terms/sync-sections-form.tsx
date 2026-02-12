@@ -188,7 +188,7 @@ function CourseListingApiFormContent({
 
       const { sections, allProfessors } = old;
       return {
-        sections: sections.filter((section) =>
+        sections: sections.map((section) =>
           key ===
           section.courseSection + section.courseCode + section.courseTitle
             ? { ...section, requiredHours: hours }
