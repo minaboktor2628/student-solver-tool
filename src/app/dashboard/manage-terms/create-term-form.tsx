@@ -18,7 +18,7 @@ import { useForm } from "react-hook-form";
 import { createTermInputSchema } from "@/types/form-inputs";
 import { TermLetter } from "@prisma/client";
 import type z from "zod";
-import { FormDatePicker, FormInput, FormSelect } from "@/components/form";
+import { FormDateTimeLocal, FormInput, FormSelect } from "@/components/form";
 import { SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 
@@ -81,12 +81,12 @@ export function CreateTermDialogForm() {
                 </SelectItem>
               ))}
             </FormSelect>
-            <FormDatePicker
+            <FormDateTimeLocal
               control={form.control}
               name="termStaffDueDate"
               label="Staff preferrence due date"
             />
-            <FormDatePicker
+            <FormDateTimeLocal
               control={form.control}
               name="termProfessorDueDate"
               label="Professor preferrence due date"
