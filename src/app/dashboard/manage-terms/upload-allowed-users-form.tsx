@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/table";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
-import { parseCSV } from "@/lib/csv";
+import { safeParseCSV } from "@/lib/csv";
 import z from "zod";
 
 const CSVRowSchema = z.object({
@@ -64,13 +64,19 @@ export function UploadAllowedUsersForm({ termId }: { termId: string }) {
     const file = acceptedFiles[0];
     if (!file) return;
 
+    let text = "";
     try {
-      const text = await file.text();
-      const parsed = parseCSV(text, z.array(CSVRowSchema));
-      setRows(parsed);
+      text = await file.text();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to read file");
     }
+    const { error, data: parsed } = safeParseCSV(text, z.array(CSVRowSchema));
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setRows(parsed);
   }
 
   function handleSubmit() {
