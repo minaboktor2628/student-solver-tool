@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 import {
   allowedPreferTokens,
   allowedStrongTokens,
-} from "@/components/MultiStepForm/form-entry-preferences";
+} from "@/components/staff/MultiStepForm/form-entry-preferences";
 
 /**
  * Router: studentFormRoute
