@@ -54,8 +54,9 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
     onError: (error) => {
       console.error("Failed to save preferences:", error);
     },
-    onSuccess: (success) => {
+    onSuccess: () => {
       toast.success("Form saved successfully");
+      onNext();
     },
   });
 
@@ -120,7 +121,6 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       termId,
       sectionPreferences: mapping,
     });
-    onNext();
   }
 
   const originalNumStrongTokens = allowedStrongTokens;

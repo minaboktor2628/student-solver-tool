@@ -83,7 +83,7 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
         <div>
           {isSubmitted && (
             <div>
-              <Link href="/professor">
+              <Link href="/preferences-form">
                 <Button className="w-full sm:w-auto" size="lg">
                   {isOverdue
                     ? "Edit Preferences (Will be overdue)"

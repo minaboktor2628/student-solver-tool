@@ -21,8 +21,10 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
       onError: (error) => {
         console.error("Failed to update availability:", error);
       },
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
         toast.success("Form saved successfully");
+        if (variables.isAvailable) onNext();
+        else onExit();
       },
     });
 
@@ -32,8 +34,6 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
       termId,
       isAvailable: answer,
     });
-    if (answer === true) onNext();
-    else onExit();
   }
 
   const { selectedTerm } = useTerm();

@@ -42,8 +42,15 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
     onError: (error) => {
       console.error("Failed to save qualifications:", error);
     },
-    onSuccess: (success) => {
+    onSuccess: (_data, variables) => {
       toast.success("Form saved successfully");
+      if (
+        !variables.qualifiedSectionIds ||
+        variables.qualifiedSectionIds.length === 0
+      ) {
+        onSubmit();
+      }
+      onNext();
     },
   });
 
@@ -76,11 +83,6 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
       qualifiedSectionIds:
         selectedSections.size === 0 ? [] : Array.from(selectedSections),
     });
-
-    if (selectedSections.size === 0) {
-      onSubmit();
-    }
-    onNext();
   }
 
   function isSectionSelected(id: string) {

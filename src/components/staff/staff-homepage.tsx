@@ -4,8 +4,6 @@ import { DeadlineCard } from "@/components/staff/staff-deadline-card";
 import { useTerm } from "@/components/term-combobox";
 import { Header } from "@/components/staff/staff-dashboard-header";
 import { api } from "@/trpc/react";
-import type { ProfessorSection } from "@/types/professor";
-import { AppSidebar } from "../app-sidebar";
 
 interface StaffHomePageProps {
   userId: string;
@@ -26,7 +24,7 @@ const StaffHomePage: React.FC<StaffHomePageProps> = ({ userId }) => {
       termId: activeTerm.id,
     });
 
-  const hasSubmitted =
+  const [hasSubmitted] =
     api.studentDashboard.hasSubmittedPreferencesForm.useSuspenseQuery({
       userId: userId,
       termId: activeTerm.id,

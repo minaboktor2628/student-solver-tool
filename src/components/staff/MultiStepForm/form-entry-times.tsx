@@ -32,8 +32,9 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
     onError: (error) => {
       console.error("Failed to save form:", error);
     },
-    onSuccess: (success) => {
+    onSuccess: () => {
       toast.success("Form saved successfully");
+      onNext();
     },
   });
 
@@ -45,7 +46,6 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
       termId,
       weeklyAvailability: weekly,
     });
-    onNext();
   }
 
   function selectionToWeekly(sel: Date[]): WeeklySlot[] {

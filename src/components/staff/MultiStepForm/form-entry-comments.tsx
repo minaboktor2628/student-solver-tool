@@ -25,6 +25,7 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
     },
     onSuccess: (success) => {
       toast.success("Form saved successfully");
+      onSubmit();
     },
   });
 
@@ -34,7 +35,6 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
       termId,
       comments,
     });
-    onSubmit();
   }
 
   return (
