@@ -296,21 +296,28 @@ export default function DashboardContent() {
     }
   };
 
-  // Calculated stats (existing)
+  // Calculated stats (pre-computed to avoid logic in markup)
+  const submittedStaff = staff.filter((s) => s.submitted);
+  const submittedProfessors = professors.filter((p) => p.submitted);
   const pendingStaff = staff.filter((s) => !s.submitted);
   const pendingProfessors = professors.filter((p) => !p.submitted);
+  const submittedStaffCount = submittedStaff.length;
+  const submittedProfessorsCount = submittedProfessors.length;
+  const pendingProfessorsCourseCount = pendingProfessors.reduce(
+    (sum, p) => sum + p.courseCount,
+    0,
+  );
+  const submittedProfessorsCourseCount = submittedProfessors.reduce(
+    (sum, p) => sum + p.courseCount,
+    0,
+  );
   const staffSubmissionRate =
     staff.length > 0
-      ? Math.round(
-          (staff.filter((s) => s.submitted).length / staff.length) * 100,
-        )
+      ? Math.round((submittedStaffCount / staff.length) * 100)
       : 0;
   const profSubmissionRate =
     professors.length > 0
-      ? Math.round(
-          (professors.filter((p) => p.submitted).length / professors.length) *
-            100,
-        )
+      ? Math.round((submittedProfessorsCount / professors.length) * 100)
       : 0;
   const totalAvailableHours = staff.reduce((sum, s) => sum + (s.hours ?? 0), 0);
   const staffingGap = courses
@@ -319,6 +326,8 @@ export default function DashboardContent() {
       (sum, c) => sum + Math.max(0, c.requiredHours - c.assignedStaff),
       0,
     );
+  const hasCompletedSubmissions =
+    submittedStaffCount > 0 || submittedProfessorsCount > 0;
 
   // Extract selected term data to avoid repeated lookups in markup
   const currentTerm = terms.find((t) => t.id === selectedTerm);
@@ -456,7 +465,7 @@ export default function DashboardContent() {
               <div className="mb-2 flex items-center justify-between">
                 <Users className="text-primary h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
-                  {staff.filter((s) => s.submitted).length}/{staff.length}
+                  {submittedStaffCount}/{staff.length}
                 </span>
               </div>
               <p className="text-muted-foreground text-sm font-medium">
@@ -473,8 +482,7 @@ export default function DashboardContent() {
               <div className="mb-2 flex items-center justify-between">
                 <CheckCircle className="text-success h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
-                  {professors.filter((p) => p.submitted).length}/
-                  {professors.length}
+                  {submittedProfessorsCount}/{professors.length}
                 </span>
               </div>
               <p className="text-muted-foreground text-sm font-medium">
@@ -709,11 +717,8 @@ export default function DashboardContent() {
                 </div>
                 {pendingProfessors.length > 0 && (
                   <p className="text-muted-foreground mt-4 text-xs">
-                    {pendingProfessors.reduce(
-                      (sum, p) => sum + p.courseCount,
-                      0,
-                    )}{" "}
-                    courses affected by pending submissions
+                    {pendingProfessorsCourseCount} courses affected by pending
+                    submissions
                   </p>
                 )}
               </CardHeader>
@@ -800,8 +805,7 @@ export default function DashboardContent() {
           </div>
 
           {/* Completed Submissions Overview */}
-          {(staff.filter((s) => s.submitted).length > 0 ||
-            professors.filter((p) => p.submitted).length > 0) && (
+          {hasCompletedSubmissions && (
             <Card>
               <CardHeader>
                 <CardTitle>Completed Submissions</CardTitle>
@@ -814,7 +818,7 @@ export default function DashboardContent() {
                     <div className="mb-3 flex items-center gap-2">
                       <CheckCircle className="text-success h-5 w-5" />
                       <h3 className="text-foreground font-medium">
-                        Staff ({staff.filter((s) => s.submitted).length})
+                        Staff ({submittedStaffCount})
                       </h3>
                     </div>
                     <div className="space-y-2">
@@ -845,8 +849,7 @@ export default function DashboardContent() {
                     <div className="mb-3 flex items-center gap-2">
                       <CheckCircle className="text-success h-5 w-5" />
                       <h3 className="text-foreground font-medium">
-                        Professors (
-                        {professors.filter((p) => p.submitted).length})
+                        Professors ({submittedProfessorsCount})
                       </h3>
                     </div>
                     <div className="border-success bg-success/5 border-l-2 px-3 py-2">
@@ -855,16 +858,11 @@ export default function DashboardContent() {
                           Total Submissions
                         </span>
                         <span className="text-muted-foreground text-sm">
-                          {professors.filter((p) => p.submitted).length} /{" "}
-                          {professors.length}
+                          {submittedProfessorsCount} / {professors.length}
                         </span>
                       </div>
                       <p className="text-muted-foreground mt-1 text-xs">
-                        Covering{" "}
-                        {professors
-                          .filter((p) => p.submitted)
-                          .reduce((sum, p) => sum + p.courseCount, 0)}{" "}
-                        courses
+                        Covering {submittedProfessorsCourseCount} courses
                       </p>
                     </div>
                   </div>

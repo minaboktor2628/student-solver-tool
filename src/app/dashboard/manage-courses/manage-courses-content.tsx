@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   AcademicLevel,
   Role,
   type Term,
   type TermLetter,
-  type User,
 } from "@prisma/client";
 import { api } from "@/trpc/react";
 import { type UseFormReturn, useForm } from "react-hook-form";
@@ -65,270 +64,62 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createColumns, type Course } from "./columns";
+import {
+  AddCourseCard,
+  courseFormSchema,
+  type CourseFormValues,
+} from "./add-course-card";
 
 interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
   name: string;
   active: boolean;
 }
 
-// Zod schemas for validation
-const courseFormSchema = z.object({
-  courseCode: z
-    .string()
-    .min(1, "Course code is required")
-    .max(20, "Course code is too long"),
-  courseTitle: z
-    .string()
-    .min(1, "Course title is required")
-    .max(200, "Course title is too long"),
-  courseSection: z
-    .string()
-    .min(1, "Course section is required")
-    .max(10, "Course section is too long"),
-  meetingPattern: z
-    .string()
-    .min(1, "Meeting pattern is required")
-    .max(100, "Meeting pattern is too long"),
-  academicLevel: z.enum(["UNDERGRADUATE", "GRADUATE"]),
-  description: z.string().max(1000, "Description is too long").optional(),
-  professorId: z.string().min(1, "Professor is required"),
-  enrollment: z.coerce.number().min(0, "Enrollment must be 0 or greater"),
-  capacity: z.coerce.number().min(0, "Capacity must be 0 or greater"),
-  requiredHours: z.coerce
-    .number()
-    .min(0, "Required hours must be 0 or greater"),
-});
-
-type CourseFormValues = z.infer<typeof courseFormSchema>;
-
-type AddCourseCardProps = {
-  isOpen: boolean;
-  form: UseFormReturn<CourseFormValues>;
-  professors: Array<Pick<User, "id" | "name">>;
-  onCancel: () => void;
-  onSubmit: (values: CourseFormValues) => void | Promise<void>;
-  isSubmitting: boolean;
-};
-
-function AddCourseCard({
-  isOpen,
-  form,
-  professors,
-  onCancel,
-  onSubmit,
-  isSubmitting,
-}: AddCourseCardProps) {
-  if (!isOpen) return null;
-
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Add New Course</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="courseCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., CS 2102" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="courseTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Title</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., Object-Oriented Design"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="courseSection"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Section</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., LO1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="meetingPattern"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Meeting Pattern</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., M W F 10-11" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="professorId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Professor</FormLabel>
-                  <FormControl>
-                    <Combobox
-                      options={professors.map((p) => ({
-                        value: p.id,
-                        label: p.name ?? "Unknown Professor",
-                      }))}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Select a professor..."
-                      searchPlaceholder="Search professors..."
-                      emptyMessage="No professors found."
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="academicLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Academic Level</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={AcademicLevel.UNDERGRADUATE}>
-                          Undergraduate
-                        </SelectItem>
-                        <SelectItem value={AcademicLevel.GRADUATE}>
-                          Graduate
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="requiredHours"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Required Hours</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Number of staff hours required for this course
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="enrollment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Enrollment</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="capacity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Capacity</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Course description" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Add Course
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function ManageCoursesContent() {
-  const router = useRouter();
+  // tRPC queries (suspense)
+  const [{ courses: allCourses }] =
+    api.courses.getAllCourses.useSuspenseQuery();
+  const [{ terms: rawTerms }] = api.term.getAllTerms.useSuspenseQuery();
+  const [{ users: rawUsers }] = api.staff.getAllUsers.useSuspenseQuery();
+
+  // Derived data
+  const terms: TermDisplay[] = useMemo(
+    () =>
+      (rawTerms ?? []).map((term) => ({
+        id: term.id ?? "",
+        name: term.name ?? "",
+        termLetter: term.termLetter ?? ("A" as TermLetter),
+        year: term.year ?? new Date().getFullYear(),
+        active: term.active ?? false,
+      })),
+    [rawTerms],
+  );
+
+  const professors = useMemo(
+    () =>
+      (rawUsers ?? [])
+        .filter((user) => user.roles.includes(Role.PROFESSOR))
+        .map((user) => ({
+          id: user.id,
+          name: user.name ?? "Unknown",
+        })),
+    [rawUsers],
+  );
 
   // State
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [allCourses, setAllCourses] = useState<Course[]>([]);
-  const [terms, setTerms] = useState<TermDisplay[]>([]);
-  const [professors, setProfessors] = useState<Pick<User, "id" | "name">[]>([]);
-  const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedTerm, setSelectedTerm] = useState<string | null>(() => {
+    const activeTerm = terms.find((t) => t.active);
+    return activeTerm?.id ?? terms[0]?.id ?? null;
+  });
+
+  // Filtered courses
+  const courses = useMemo(
+    () =>
+      allCourses.filter(
+        (course) => !selectedTerm || course.termId === selectedTerm,
+      ),
+    [allCourses, selectedTerm],
+  );
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -369,95 +160,49 @@ export default function ManageCoursesContent() {
     },
   });
 
-  // tRPC queries and mutations
-  const getAllCoursesQuery = api.courses.getAllCourses.useQuery();
-  const getTermsQuery = api.term.getAllTerms.useQuery();
-  const getProfessorsQuery = api.staff.getAllUsers.useQuery();
-  const createCourseMutation = api.courses.createCourses.useMutation();
-  const updateCourseMutation = api.courses.updateCourse.useMutation();
-  const deleteCourseMutation = api.courses.deleteCourse.useMutation();
+  // tRPC utils and mutations
+  const utils = api.useUtils();
 
-  // Load data on mount
-  useEffect(() => {
-    void fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const createCourseMutation = api.courses.createCourses.useMutation({
+    onSuccess: async () => {
+      toast.success("Course added successfully!");
+      setIsAddDialogOpen(false);
+      addForm.reset();
+      await utils.courses.getAllCourses.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  useEffect(() => {
-    const filtered = allCourses.filter(
-      (course) => !selectedTerm || course.termId === selectedTerm,
-    );
-    setCourses(filtered);
-  }, [allCourses, selectedTerm]);
+  const updateCourseMutation = api.courses.updateCourse.useMutation({
+    onSuccess: async () => {
+      toast.success("Course updated successfully!");
+      setIsEditDialogOpen(false);
+      setSelectedCourse(null);
+      editForm.reset();
+      await utils.courses.getAllCourses.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [coursesResult, termsResult, professorsResult] = await Promise.all([
-        getAllCoursesQuery.refetch(),
-        getTermsQuery.refetch(),
-        getProfessorsQuery.refetch(),
-      ]);
-
-      if (coursesResult.data?.success) {
-        setAllCourses(coursesResult.data.courses);
-      }
-
-      if (termsResult.data) {
-        const formattedTerms: TermDisplay[] = (
-          termsResult.data.terms ?? []
-        ).map(
-          (term: {
-            id?: string;
-            name?: string;
-            termLetter?: TermLetter;
-            year?: number;
-            active?: boolean;
-          }) => ({
-            id: term.id ?? "",
-            name: term.name ?? "",
-            termLetter: term.termLetter ?? ("A" as TermLetter),
-            year: term.year ?? new Date().getFullYear(),
-            active: term.active ?? false,
-          }),
-        );
-        setTerms(formattedTerms);
-        if (!selectedTerm) {
-          const activeTermId = formattedTerms.find((t) => t.active)?.id;
-          setSelectedTerm(activeTermId ?? formattedTerms[0]?.id ?? null);
-        }
-      }
-
-      if (professorsResult.data) {
-        const profs = (professorsResult.data.users ?? [])
-          .filter((user) => user.roles.includes(Role.PROFESSOR))
-          .map((user) => ({
-            id: user.id,
-            name: user.name ?? "Unknown",
-          }));
-        setProfessors(profs);
-      }
-    } catch (err: unknown) {
-      console.error("Error fetching data:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to load data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const deleteCourseMutation = api.courses.deleteCourse.useMutation({
+    onSuccess: async () => {
+      toast.success("Course deleted successfully!");
+      setIsDeleteDialogOpen(false);
+      setSelectedCourse(null);
+      await utils.courses.getAllCourses.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setIsDeleteDialogOpen(false);
+    },
+  });
 
   const handleAddCourse = () => {
-    addForm.reset({
-      courseCode: "",
-      courseTitle: "",
-      courseSection: "",
-      meetingPattern: "",
-      academicLevel: "UNDERGRADUATE",
-      description: "",
-      professorId: "",
-      enrollment: 0,
-      capacity: 0,
-      requiredHours: 0,
-    });
+    addForm.reset();
     setIsAddDialogOpen(true);
   };
 
@@ -486,97 +231,58 @@ export default function ManageCoursesContent() {
     setIsDeleteDialogOpen(true);
   };
 
-  const onSubmitAddCourse = async (values: CourseFormValues) => {
-    try {
-      // Find the professor name from the ID
-      const selectedProfessor = professors.find(
-        (p) => p.id === values.professorId,
-      );
-      if (!selectedProfessor) {
-        toast.error("Please select a valid professor");
-        return;
-      }
-
-      await createCourseMutation.mutateAsync({
-        courses: [
-          {
-            courseCode: values.courseCode,
-            courseTitle: values.courseTitle,
-            courseSection: values.courseSection,
-            meetingPattern: values.meetingPattern,
-            academicLevel: values.academicLevel,
-            description: values.description,
-            professorName: selectedProfessor.name,
-            enrollment: values.enrollment,
-            capacity: values.capacity,
-            requiredHours: values.requiredHours,
-          },
-        ],
-        termId: selectedTerm ?? undefined,
-      });
-
-      toast.success("Course added successfully!");
-      setIsAddDialogOpen(false);
-      addForm.reset();
-      await fetchData();
-    } catch (err: unknown) {
-      console.error("Error adding course:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to add course");
+  const onSubmitAddCourse = (values: CourseFormValues) => {
+    // Find the professor name from the ID
+    const selectedProfessor = professors.find(
+      (p) => p.id === values.professorId,
+    );
+    if (!selectedProfessor) {
+      toast.error("Please select a valid professor");
+      return;
     }
-  };
 
-  const onSubmitEditCourse = async (values: CourseFormValues) => {
-    if (!selectedCourse) return;
-
-    try {
-      await updateCourseMutation.mutateAsync({
-        id: selectedCourse.id,
-        data: {
+    createCourseMutation.mutate({
+      courses: [
+        {
           courseCode: values.courseCode,
           courseTitle: values.courseTitle,
           courseSection: values.courseSection,
           meetingPattern: values.meetingPattern,
           academicLevel: values.academicLevel,
           description: values.description,
-          professorId: values.professorId,
+          professorName: selectedProfessor.name ?? "",
           enrollment: values.enrollment,
           capacity: values.capacity,
           requiredHours: values.requiredHours,
         },
-      });
-
-      toast.success("Course updated successfully!");
-      setIsEditDialogOpen(false);
-      setSelectedCourse(null);
-      editForm.reset();
-      await fetchData();
-    } catch (err: unknown) {
-      console.error("Error updating course:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update course",
-      );
-    }
+      ],
+      termId: selectedTerm ?? undefined,
+    });
   };
 
-  const confirmDeleteCourse = async () => {
+  const onSubmitEditCourse = (values: CourseFormValues) => {
     if (!selectedCourse) return;
 
-    try {
-      await deleteCourseMutation.mutateAsync({
-        id: selectedCourse.id,
-      });
+    updateCourseMutation.mutate({
+      id: selectedCourse.id,
+      data: {
+        courseCode: values.courseCode,
+        courseTitle: values.courseTitle,
+        courseSection: values.courseSection,
+        meetingPattern: values.meetingPattern,
+        academicLevel: values.academicLevel,
+        description: values.description,
+        professorId: values.professorId,
+        enrollment: values.enrollment,
+        capacity: values.capacity,
+        requiredHours: values.requiredHours,
+      },
+    });
+  };
 
-      toast.success("Course deleted successfully!");
-      setIsDeleteDialogOpen(false);
-      setSelectedCourse(null);
-      await fetchData();
-    } catch (err: unknown) {
-      console.error("Error deleting course:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete course",
-      );
-      setIsDeleteDialogOpen(false);
-    }
+  const confirmDeleteCourse = () => {
+    if (!selectedCourse) return;
+    deleteCourseMutation.mutate({ id: selectedCourse.id });
   };
 
   // Create table columns with handlers
@@ -590,32 +296,17 @@ export default function ManageCoursesContent() {
     totalEnrollment: courses.reduce((sum, c) => sum + c.enrollment, 0),
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-background flex min-h-screen items-center justify-center">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="text-primary h-8 w-8 animate-spin" />
-          <span className="text-muted-foreground text-lg">
-            Loading courses...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-background min-h-screen p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/dashboard")}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+            <Button variant="outline" className="gap-2" asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Link>
             </Button>
             <div>
               <h1 className="text-foreground text-3xl font-bold">
@@ -889,13 +580,6 @@ export default function ManageCoursesContent() {
                   />
                 </div>
                 <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsEditDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
                   <Button
                     type="submit"
                     disabled={updateCourseMutation.isPending}

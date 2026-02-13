@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Role, type Term, type TermLetter } from "@prisma/client";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
@@ -95,14 +95,38 @@ const ROLE_OPTIONS: Array<{
 ];
 
 export default function ManageUsersContent() {
-  const router = useRouter();
+  // tRPC queries (suspense)
+  const [{ terms: rawTerms }] = api.term.getAllTerms.useSuspenseQuery();
+
+  // Derived data
+  const terms: TermDisplay[] = useMemo(
+    () =>
+      (rawTerms ?? []).map((term) => ({
+        id: term.id ?? "",
+        name: term.name ?? "",
+        termLetter: term.termLetter ?? ("A" as TermLetter),
+        year: term.year ?? new Date().getFullYear(),
+        active: term.active ?? false,
+      })),
+    [rawTerms],
+  );
 
   // State
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [terms, setTerms] = useState<TermDisplay[]>([]);
-  const [activeTerm, setActiveTerm] = useState<string | null>(null);
-  const [activeTermId, setActiveTermId] = useState<string | null>(null);
+  const [activeTermId, setActiveTermId] = useState<string | null>(() => {
+    const activeTerm = terms.find((t) => t.active);
+    return activeTerm?.id ?? terms[0]?.id ?? null;
+  });
+
+  // Query users based on selected term
+  const [{ users }] = api.staff.getAllUsers.useSuspenseQuery({
+    termId: activeTermId ?? undefined,
+  });
+
+  // Derived state
+  const activeTerm = useMemo(
+    () => terms.find((t) => t.id === activeTermId)?.name ?? null,
+    [terms, activeTermId],
+  );
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -129,87 +153,79 @@ export default function ManageUsersContent() {
     },
   });
 
-  // tRPC queries and mutations
-  const getUsersQuery = api.staff.getAllUsers.useQuery(
-    { termId: activeTermId ?? undefined },
-    { enabled: !!activeTermId },
-  );
-  const getTermsQuery = api.term.getAllTerms.useQuery();
-  const createUserMutation = api.staff.createUser.useMutation();
-  const updateUserMutation = api.staff.updateUser.useMutation();
-  const deleteUserMutation = api.staff.deleteUser.useMutation();
-  const lockAllMutation = api.staff.lockAllStaffPreferences.useMutation();
-  const unlockAllMutation = api.staff.unlockAllStaffPreferences.useMutation();
-  const toggleUserLockMutation = api.staff.toggleUserLock.useMutation();
+  // tRPC utils and mutations
+  const utils = api.useUtils();
 
-  // Load users on mount
-  useEffect(() => {
-    void fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const createUserMutation = api.staff.createUser.useMutation({
+    onSuccess: async () => {
+      toast.success("User added successfully!");
+      setIsAddDialogOpen(false);
+      addForm.reset();
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      const [usersResult, termsResult] = await Promise.all([
-        getUsersQuery.refetch(),
-        getTermsQuery.refetch(),
-      ]);
+  const updateUserMutation = api.staff.updateUser.useMutation({
+    onSuccess: async () => {
+      toast.success("User updated successfully!");
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      editForm.reset();
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-      if (usersResult.data) {
-        setUsers(usersResult.data.users);
-      }
+  const deleteUserMutation = api.staff.deleteUser.useMutation({
+    onSuccess: async () => {
+      toast.success("User deleted successfully!");
+      setIsDeleteDialogOpen(false);
+      setSelectedUser(null);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setIsDeleteDialogOpen(false);
+    },
+  });
 
-      if (termsResult.data) {
-        const formattedTerms: TermDisplay[] = (
-          termsResult.data.terms ?? []
-        ).map(
-          (term: {
-            id?: string;
-            name?: string;
-            termLetter?: TermLetter;
-            year?: number;
-            active?: boolean;
-          }) => ({
-            id: term.id ?? "",
-            name: term.name ?? "",
-            termLetter: term.termLetter ?? ("A" as TermLetter),
-            year: term.year ?? new Date().getFullYear(),
-            active: term.active ?? false,
-          }),
-        );
-        setTerms(formattedTerms);
+  const lockAllMutation = api.staff.lockAllStaffPreferences.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-        if (!activeTermId) {
-          const activeTermData = formattedTerms.find((t) => t.active);
-          if (activeTermData) {
-            setActiveTerm(activeTermData.name ?? null);
-            setActiveTermId(activeTermData.id ?? null);
-          }
-        }
-      }
-    } catch (err: unknown) {
-      console.error("Error fetching users:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to load users");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const unlockAllMutation = api.staff.unlockAllStaffPreferences.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  useEffect(() => {
-    if (activeTermId) {
-      void getUsersQuery.refetch();
-    }
-    const termName = terms.find((t) => t.id === activeTermId)?.name ?? null;
-    setActiveTerm(termName);
-  }, [activeTermId, terms, getUsersQuery]);
+  const toggleUserLockMutation = api.staff.toggleUserLock.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const handleAddUser = () => {
-    addForm.reset({
-      name: "",
-      email: "",
-      role: Role.PLA,
-    });
+    addForm.reset();
     setIsAddDialogOpen(true);
   };
 
@@ -233,131 +249,59 @@ export default function ManageUsersContent() {
     setIsDeleteDialogOpen(true);
   };
 
-  const onSubmitAddUser = async (values: UserFormValues) => {
-    try {
-      await createUserMutation.mutateAsync({
-        name: values.name,
-        email: values.email,
-        role: values.role,
-      });
-
-      toast.success("User added successfully!");
-      setIsAddDialogOpen(false);
-      addForm.reset();
-      await fetchUsers();
-    } catch (err: unknown) {
-      console.error("Error adding user:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to add user");
-    }
+  const onSubmitAddUser = (values: UserFormValues) => {
+    createUserMutation.mutate({
+      name: values.name,
+      email: values.email,
+      role: values.role,
+    });
   };
 
-  const onSubmitEditUser = async (values: UserFormValues) => {
+  const onSubmitEditUser = (values: UserFormValues) => {
     if (!selectedUser) return;
 
-    try {
-      await updateUserMutation.mutateAsync({
-        userId: selectedUser.id,
-        name: values.name,
-        email: values.email,
-        role: values.role,
-      });
-
-      toast.success("User updated successfully!");
-      setIsEditDialogOpen(false);
-      setSelectedUser(null);
-      editForm.reset();
-      await fetchUsers();
-    } catch (err: unknown) {
-      console.error("Error updating user:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to update user");
-    }
+    updateUserMutation.mutate({
+      userId: selectedUser.id,
+      name: values.name,
+      email: values.email,
+      role: values.role,
+    });
   };
 
-  const confirmDeleteUser = async () => {
+  const confirmDeleteUser = () => {
     if (!selectedUser) return;
-
-    try {
-      await deleteUserMutation.mutateAsync({
-        userId: selectedUser.id,
-      });
-
-      toast.success("User deleted successfully!");
-      setIsDeleteDialogOpen(false);
-      setSelectedUser(null);
-      await fetchUsers();
-    } catch (err: unknown) {
-      console.error("Error deleting user:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to delete user");
-      setIsDeleteDialogOpen(false);
-    }
+    deleteUserMutation.mutate({ userId: selectedUser.id });
   };
 
-  const handleLockAll = async () => {
+  const handleLockAll = () => {
     if (!activeTermId) {
       toast.error("No active term found");
       return;
     }
-
-    try {
-      const result = await lockAllMutation.mutateAsync({
-        termId: activeTermId,
-      });
-      toast.success(result.message);
-      await fetchUsers();
-    } catch (err: unknown) {
-      console.error("Error locking all:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to lock all users",
-      );
-    }
+    lockAllMutation.mutate({ termId: activeTermId });
   };
 
-  const handleUnlockAll = async () => {
+  const handleUnlockAll = () => {
     if (!activeTermId) {
       toast.error("No active term found");
       return;
     }
-
-    try {
-      const result = await unlockAllMutation.mutateAsync({
-        termId: activeTermId,
-      });
-      toast.success(result.message);
-      await fetchUsers();
-    } catch (err: unknown) {
-      console.error("Error unlocking all:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to unlock all users",
-      );
-    }
+    unlockAllMutation.mutate({ termId: activeTermId });
   };
 
-  const handleToggleUserLock = async (user: User) => {
+  const handleToggleUserLock = (user: User) => {
     if (!activeTermId) {
       toast.error("No active term found");
       return;
     }
-
-    try {
-      const result = await toggleUserLockMutation.mutateAsync({
-        userId: user.id,
-        termId: activeTermId,
-      });
-      toast.success(result.message);
-      await fetchUsers();
-    } catch (err: unknown) {
-      console.error("Error toggling user lock:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to toggle user lock",
-      );
-    }
+    toggleUserLockMutation.mutate({ userId: user.id, termId: activeTermId });
   };
 
   // Create table columns with handlers
   const columns = createColumns(
     handleEditUser,
     handleDeleteUser,
-    (user: User) => void handleToggleUserLock(user),
+    handleToggleUserLock,
     activeTerm,
   );
 
@@ -373,32 +317,17 @@ export default function ManageUsersContent() {
   const totalUsers =
     userStats.pla + userStats.ta + userStats.gla + userStats.professor;
 
-  if (isLoading) {
-    return (
-      <div className="bg-background flex min-h-screen items-center justify-center">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="text-primary h-8 w-8 animate-spin" />
-          <span className="text-muted-foreground text-lg">
-            Loading users...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-background min-h-screen p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/dashboard")}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+            <Button variant="outline" className="gap-2" asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Link>
             </Button>
             <div>
               <h1 className="text-foreground text-3xl font-bold">
@@ -629,13 +558,6 @@ export default function ManageUsersContent() {
                   )}
                 />
                 <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsAddDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
                   <Button type="submit" disabled={createUserMutation.isPending}>
                     {createUserMutation.isPending ? (
                       <>
@@ -727,13 +649,6 @@ export default function ManageUsersContent() {
                   )}
                 />
                 <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsEditDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
                   <Button type="submit" disabled={updateUserMutation.isPending}>
                     {updateUserMutation.isPending ? (
                       <>
