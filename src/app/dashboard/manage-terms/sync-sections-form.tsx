@@ -52,6 +52,32 @@ type SyncSectionsFormProps = {
   termLetter: TermLetter;
 };
 
+function getAddSectionsApi() {
+  const utils = api.useUtils();
+  const addSectionsApi = api.term.addSectionsToTerm.useMutation({
+    onSuccess({ count, unresolvedProfessorNames }) {
+      if (unresolvedProfessorNames.length > 0) {
+        toast.warning(
+          `Warning. There were ${unresolvedProfessorNames.length} unresolved professor names.`,
+          {
+            description: `Still added ${count} sections. Unresolfed professor names: ${unresolvedProfessorNames.join(", ")}`,
+          },
+        );
+        return;
+      }
+      toast.success("Added courses!");
+    },
+    onError(error) {
+      toast.error(error.message);
+    },
+    async onSettled() {
+      await utils.term.invalidate();
+    },
+  });
+
+  return addSectionsApi;
+}
+
 export function SyncSectionsForm({ year, termLetter }: SyncSectionsFormProps) {
   return (
     <Dialog>
@@ -95,19 +121,7 @@ export function SyncSectionsForm({ year, termLetter }: SyncSectionsFormProps) {
 }
 
 function CSVCourseForm({ year, termLetter }: SyncSectionsFormProps) {
-  const utils = api.useUtils();
-  const addSectionsApi = api.term.addSectionsToTerm.useMutation({
-    onSuccess() {
-      toast.success("Added courses!");
-    },
-    onError(error) {
-      toast.error(error.message);
-    },
-    async onSettled() {
-      await utils.term.invalidate();
-    },
-  });
-
+  const addSectionsApi = getAddSectionsApi();
   function handleSubmit(sections: SectionItem[]) {
     addSectionsApi.mutate({ year, termLetter, sections });
   }
@@ -117,6 +131,7 @@ function CSVCourseForm({ year, termLetter }: SyncSectionsFormProps) {
       onSubmit={handleSubmit}
       dedupeBy={(row) => row.courseCode + row.courseSection}
       schema={SectionItemSchema}
+      disabled={addSectionsApi.isPending}
       exampleRow={{
         courseTitle: "Object-Oriented Design Concepts",
         courseCode: "CS 2102",
@@ -128,27 +143,15 @@ function CSVCourseForm({ year, termLetter }: SyncSectionsFormProps) {
         requiredHours: 20,
         academicLevel: "UNDERGRADUATE",
         meetingPattern: "M-T-R-F | 12:00 PM - 12:50 PM",
-        professorName: "Ahrens, Mathew",
+        professorName: "Ahrens, Matthew",
       }}
-      disabled={addSectionsApi.isPending}
     />
   );
 }
 
 function OneCourseForm({ year, termLetter }: SyncSectionsFormProps) {
   const [professors] = api.user.getAllProfessors.useSuspenseQuery();
-  const utils = api.useUtils();
-  const addSectionsApi = api.term.addSectionsToTerm.useMutation({
-    onSuccess() {
-      toast.success("Added course!");
-    },
-    onError(error) {
-      toast.error(error.message);
-    },
-    async onSettled() {
-      await utils.term.invalidate();
-    },
-  });
+  const addSectionsApi = getAddSectionsApi();
 
   function handleSubmit(data: SectionItem) {
     addSectionsApi.mutate({
@@ -177,17 +180,7 @@ function CourseListingApiForm({ year, termLetter }: SyncSectionsFormProps) {
       termLetter,
     });
 
-  const addSectionsApi = api.term.addSectionsToTerm.useMutation({
-    onSuccess() {
-      toast.success("Added courses!");
-    },
-    onError(error) {
-      toast.error(error.message);
-    },
-    async onSettled() {
-      await utils.term.invalidate();
-    },
-  });
+  const addSectionsApi = getAddSectionsApi();
 
   const anyProfessorsNotCreatedYet = sections.some(
     (c) => !c.professorIsAllowedOnTerm,

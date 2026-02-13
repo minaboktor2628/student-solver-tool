@@ -268,6 +268,7 @@ export const termRoute = createTRPCRouter({
         ctx,
         input: { year, termLetter, sections, replaceExisting },
       }) => {
+        console.log({ sections });
         const term = await ctx.db.term.findUnique({
           where: { termLetter_year: { termLetter, year } },
           select: { id: true },
@@ -286,27 +287,82 @@ export const termRoute = createTRPCRouter({
           });
         }
 
-        if (sections.length === 0) {
-          return { count: 0 };
+        if (sections.length === 0)
+          return { count: 0, unresolvedProfessorNames: [] as string[] };
+
+        // collect professor names that need resolving (strings only)
+        const namesToResolve = Array.from(
+          new Set(
+            sections
+              .filter((s) => !s.professorId)
+              .map((s) => s.professorName?.trim())
+              .filter((n): n is string => !!n),
+          ),
+        );
+
+        console.log({ namesToResolve });
+
+        // fetch matching professor users (must have PROFESSOR role)
+        const profUsers = namesToResolve.length
+          ? await ctx.db.user.findMany({
+              where: {
+                name: { in: namesToResolve },
+                roles: { some: { role: Role.PROFESSOR } },
+              },
+              select: { id: true, name: true },
+            })
+          : [];
+
+        // build name->id map (handle null names safely)
+        const byName = new Map<string, string>();
+        for (const u of profUsers) {
+          if (u.name) byName.set(u.name, u.id);
         }
 
-        const result = await ctx.db.section.createMany({
-          data: sections.map((section) => ({
+        // resolve professorId for each section
+        const data = sections.map((section) => {
+          const resolvedProfessorId =
+            section.professorId ??
+            (section.professorName
+              ? byName.get(section.professorName.trim())
+              : undefined) ??
+            null;
+
+          return {
             termId: term.id,
             courseTitle: section.courseTitle,
             courseCode: section.courseCode,
             courseSection: section.courseSection,
             meetingPattern: section.meetingPattern,
             description: section.description,
-            professorId: section.professorId,
+            professorId: resolvedProfessorId,
             enrollment: section.enrollment,
             capacity: section.capacity,
             requiredHours: section.requiredHours,
             academicLevel: section.academicLevel,
-          })),
+          };
         });
 
-        return { count: result.count };
+        const result = await ctx.db.$transaction(async (tx) => {
+          // overwrite only conflicts
+          await tx.section.deleteMany({
+            where: {
+              termId: term.id,
+              OR: data.map((s) => ({
+                courseCode: s.courseCode,
+                courseSection: s.courseSection,
+              })),
+            },
+          });
+
+          return tx.section.createMany({ data });
+        });
+
+        const unresolvedProfessorNames = namesToResolve.filter(
+          (n) => !byName.has(n),
+        );
+
+        return { count: result.count, unresolvedProfessorNames };
       },
     ),
 });
