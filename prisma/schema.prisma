@@ -150,6 +150,9 @@ model Section {
   qualifiedPreferences StaffPreferenceQualifiedSection[]
   preferredPreferences StaffPreferencePreferredSection[]
   professorPreference  ProfessorPreference?
+
+  // only one section like "CS 2022 LO1" per term
+  @@unique([termId, courseCode, courseSection])
 }
 
 model ProfessorPreference {
