@@ -3,6 +3,61 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 export const dashboardRoute = createTRPCRouter({
+  solverAlertInfo: coordinatorProcedure
+    .input(z.object({ termId: z.string() }))
+    .query(async ({ ctx, input: { termId } }) => {
+      const now = new Date();
+
+      const [term, staffEditableCount, professorEditableCount] =
+        await ctx.db.$transaction([
+          ctx.db.term.findUnique({
+            where: { id: termId },
+            select: {
+              termProfessorDueDate: true,
+              termStaffDueDate: true,
+            },
+          }),
+
+          ctx.db.staffPreference.count({
+            where: {
+              termId,
+              canEdit: true,
+            },
+          }),
+
+          ctx.db.professorPreference.count({
+            where: {
+              canEdit: true,
+              section: {
+                termId,
+              },
+            },
+          }),
+        ]);
+
+      if (!term) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "This term does not exist.",
+        });
+      }
+
+      return {
+        staffEditableCount,
+        professorEditableCount,
+        termDueDates: {
+          staff: {
+            date: term.termStaffDueDate,
+            isPastDueDate: now >= term.termStaffDueDate,
+          },
+          professor: {
+            date: term.termProfessorDueDate,
+            isPastDueDate: now >= term.termProfessorDueDate,
+          },
+        },
+      };
+    }),
+
   getDashboardData: coordinatorProcedure
     .input(z.object({ termId: z.string() }))
     .query(async ({ input: { termId }, ctx }) => {
