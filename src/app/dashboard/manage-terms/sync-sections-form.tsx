@@ -43,8 +43,9 @@ import { GlobalSuspense } from "@/components/global-suspense";
 import { Input } from "@/components/ui/input";
 import { RefreshCwIcon, Trash2Icon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { SectionItem } from "@/lib/courselisting-api";
+import { SectionItemSchema, type SectionItem } from "@/lib/courselisting-api";
 import { CreateSectionForm } from "@/components/dashboard/add-section-form";
+import { CSVDropzone } from "@/components/csv-dropzone";
 
 type SyncSectionsFormProps = {
   year: number;
@@ -74,13 +75,14 @@ export function SyncSectionsForm({ year, termLetter }: SyncSectionsFormProps) {
           </TabsList>
           <TabsContent value="api">
             <GlobalSuspense>
-              <CourseListingApiFormContent
-                termLetter={termLetter}
-                year={year}
-              />
+              <CourseListingApiForm termLetter={termLetter} year={year} />
             </GlobalSuspense>
           </TabsContent>
-          <TabsContent value="csv">TODO</TabsContent>
+          <TabsContent value="csv">
+            <GlobalSuspense>
+              <CSVCourseForm termLetter={termLetter} year={year} />
+            </GlobalSuspense>
+          </TabsContent>
           <TabsContent value="form">
             <GlobalSuspense>
               <OneCourseForm termLetter={termLetter} year={year} />
@@ -89,6 +91,47 @@ export function SyncSectionsForm({ year, termLetter }: SyncSectionsFormProps) {
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CSVCourseForm({ year, termLetter }: SyncSectionsFormProps) {
+  const utils = api.useUtils();
+  const addSectionsApi = api.term.addSectionsToTerm.useMutation({
+    onSuccess() {
+      toast.success("Added courses!");
+    },
+    onError(error) {
+      toast.error(error.message);
+    },
+    async onSettled() {
+      await utils.term.invalidate();
+    },
+  });
+
+  function handleSubmit(sections: SectionItem[]) {
+    addSectionsApi.mutate({ year, termLetter, sections });
+  }
+
+  return (
+    <CSVDropzone
+      onSubmit={handleSubmit}
+      dedupeBy={(row) => row.courseCode + row.courseSection}
+      schema={SectionItemSchema}
+      exampleRow={{
+        courseTitle: "Object-Oriented Design Concepts",
+        courseCode: "CS 2102",
+        description:
+          "<p>Cat. IThis course introduces students to an object-oriented model of programming.Building from the design methodology covered in CS 1101/CS 1102, thiscourse shows how programs can be decomposed into classes and objects. Byemphasizing design, this course shows how to implement small defect-freeprograms and evaluate design decisions to select an optimal design under specificassumptions. Topics include inheritance, exceptions, interface, design bycontract, basic design patterns, and reuse. Students will be expected to design,implement, and debug object-oriented programs composed of multiple classesand over a variety of data structures.Recommended background: CS 1101 or CS 1102.</p>",
+        courseSection: "DL02",
+        enrollment: 40,
+        capacity: 45,
+        requiredHours: 20,
+        academicLevel: "UNDERGRADUATE",
+        meetingPattern: "M-T-R-F | 12:00 PM - 12:50 PM",
+        professorName: "Ahrens, Mathew",
+      }}
+      disabled={addSectionsApi.isPending}
+    />
   );
 }
 
@@ -126,10 +169,7 @@ function OneCourseForm({ year, termLetter }: SyncSectionsFormProps) {
   );
 }
 
-function CourseListingApiFormContent({
-  year,
-  termLetter,
-}: SyncSectionsFormProps) {
+function CourseListingApiForm({ year, termLetter }: SyncSectionsFormProps) {
   const utils = api.useUtils();
   const [{ sections }, courselistingApi] =
     api.term.getCourseListingData.useSuspenseQuery({

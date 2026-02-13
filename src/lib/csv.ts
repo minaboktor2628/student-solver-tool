@@ -35,6 +35,7 @@
 
 import Papa from "papaparse";
 import { z, type ZodSchema } from "zod";
+import { valToSafeString } from "./utils";
 
 type CSVOptions<Row> = {
   dedupeBy?: (row: Row) => string | number;
@@ -44,6 +45,7 @@ function prepareRows<T>(data: string, options?: CSVOptions<T>): unknown[] {
   const res = Papa.parse(data, {
     header: true,
     skipEmptyLines: true,
+    dynamicTyping: true, // need or?
   });
 
   let rows = res.data;
@@ -109,4 +111,45 @@ export function safeParseCSV<Row>(
 ) {
   const rows = prepareRows<Row>(data, options);
   return z.array(rowSchema).safeParse(rows);
+}
+
+// for downloading csv files
+export type DelimitedOptions = {
+  delimiter?: "," | "\t" | ";" | "|";
+  includeBOM?: boolean; // helps Excel with UTF-8
+};
+
+function escapeDelimitedCell(value: unknown, delimiter: string): string {
+  const s = valToSafeString(value);
+  const needsQuotes =
+    s.includes('"') ||
+    s.includes("\n") ||
+    s.includes("\r") ||
+    s.includes(delimiter);
+  if (!needsQuotes) return s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+export function toDelimitedText(
+  headers: string[],
+  rows: Array<Record<string, unknown>> = [],
+  opts: DelimitedOptions = {},
+) {
+  const delimiter = opts.delimiter ?? ",";
+  const lines: string[] = [];
+
+  lines.push(
+    headers.map((h) => escapeDelimitedCell(h, delimiter)).join(delimiter),
+  );
+
+  for (const row of rows) {
+    lines.push(
+      headers
+        .map((h) => escapeDelimitedCell(row[h], delimiter))
+        .join(delimiter),
+    );
+  }
+
+  const body = lines.join("\n");
+  return (opts.includeBOM ? "\uFEFF" : "") + body;
 }
