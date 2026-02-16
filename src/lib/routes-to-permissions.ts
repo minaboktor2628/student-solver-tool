@@ -7,6 +7,8 @@ import {
   InfoIcon,
   ScanFaceIcon,
   UserStarIcon,
+  History,
+  FileText,
   type LucideProps,
 } from "lucide-react";
 import type { Route } from "next";
@@ -75,7 +77,13 @@ export const ROUTES: NavItem[] = [
     label: "Preferences",
     href: "/preferences-form",
     allowed: ["PLA", "TA"],
-    icon: ScanFaceIcon,
+    icon: FileText,
+  },
+  {
+    label: "History",
+    href: "/assignment-history",
+    allowed: ["PLA", "TA"],
+    icon: History,
   },
 ];
 
