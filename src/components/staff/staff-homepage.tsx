@@ -36,14 +36,59 @@ const StaffHomePage: React.FC<StaffHomePageProps> = ({ userId }) => {
     userId: userId ?? "",
   });
 
+  const [{ term }] = api.studentDashboard.getTermInfo.useSuspenseQuery({
+    termId: activeTerm.id,
+  });
+
   const username = info.name;
   const deadlineDate = info.term.dueDate;
   if (!deadlineDate) throw new Error("Deadline Date Invalid");
 
+  // component display logic:
+
+  // is published?
+  //   has assignment?
+  //     assignment card
+  //   no assignment?
+  //     "no assigment"
+  // not published?
+  //   can edit?
+  //     edit form card
+  //     has submitted?
+  //       form summary
+  //   cant edit?
+  //     "wait for assignment"
   return (
     <div className="container mx-auto max-w-6xl p-6">
       <Header username={username} />
-      {canEdit?.canEditForm && (
+      {term.isPublished ? (
+        /* is published */
+
+        /* has assignment */
+        !!currentAssignment?.assignment ? (
+          <StaffAssignment
+            termLetter={activeTerm.termLetter}
+            year={activeTerm.year}
+            courseTitle={currentAssignment.assignment.section.courseTitle}
+            courseCode={currentAssignment.assignment.section.courseCode}
+            courseSection={currentAssignment.assignment.section.courseSection}
+            meetingPattern={currentAssignment.assignment.section.meetingPattern}
+            professorName={currentAssignment.assignment.section.professor.name}
+            professorEmail={
+              currentAssignment.assignment.section.professor.email
+            }
+          />
+        ) : (
+          /* no assignment */
+          <p>
+            You were not assigned a course this term ({term.termLetter}{" "}
+            {term.year}). Please contact the coordinator if you have any
+            questions.
+          </p>
+        )
+      ) : /* not published */
+      canEdit?.canEditForm ? (
+        /* can edit */
         <div>
           <DeadlineCard
             deadlineDate={deadlineDate}
@@ -51,23 +96,11 @@ const StaffHomePage: React.FC<StaffHomePageProps> = ({ userId }) => {
           />
           <StaffDashboardFormSumary userId={userId} termId={activeTerm.id} />
         </div>
-      )}
-      {currentAssignment?.assignment && (
-        <StaffAssignment
-          termLetter={activeTerm.termLetter}
-          year={activeTerm.year}
-          courseTitle={currentAssignment.assignment.section.courseTitle}
-          courseCode={currentAssignment.assignment.section.courseCode}
-          courseSection={currentAssignment.assignment.section.courseSection}
-          meetingPattern={currentAssignment.assignment.section.meetingPattern}
-          professorName={currentAssignment.assignment.section.professor.name}
-          professorEmail={currentAssignment.assignment.section.professor.email}
-        />
-      )}
-      {!canEdit?.canEditForm && !currentAssignment?.assignment && (
-        <h2>
-          Assignments currently in progress, check back soon for your assignment
-        </h2>
+      ) : (
+        /* can't edit */
+        <p>
+          Assigning currently in progress, check back soon for your assignment!
+        </p>
       )}
     </div>
   );

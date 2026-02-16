@@ -78,6 +78,7 @@ export const studentDashboardRoute = createTRPCRouter({
           termLetter: term?.termLetter,
           year: term?.year,
           staffDueDate: term?.termStaffDueDate,
+          isPublished: term?.published,
         },
       };
     }),
