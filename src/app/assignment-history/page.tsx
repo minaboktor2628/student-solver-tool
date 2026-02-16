@@ -4,7 +4,6 @@ import { redirectToForbidden } from "@/lib/navigation";
 import { hasPermission } from "@/lib/permissions";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
-import { Header } from "@/components/staff/staff-dashboard-header";
 
 export const metadata = {
   title: "Assignment History",

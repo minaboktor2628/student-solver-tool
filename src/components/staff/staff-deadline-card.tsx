@@ -87,7 +87,7 @@ export const DeadlineCard: React.FC<DeadlineCardProps> = ({
                 <Button className="w-full sm:w-auto" size="lg">
                   {isOverdue
                     ? "Edit Preferences (Will be overdue)"
-                    : "Edit Preferences (Will override previous preferences)"}
+                    : "Edit Preferences"}
                 </Button>
               </Link>
               <p className="text-muted-foreground mt-2 text-sm">

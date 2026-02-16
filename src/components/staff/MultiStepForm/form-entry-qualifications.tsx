@@ -148,7 +148,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         Clear
       </Button>
 
-      <div className="grid max-h-[60vh] grid-cols-1 gap-4 overflow-y-auto">
+      <div className="grid max-h-[calc(100vh-22rem)] grid-cols-1 gap-4 overflow-y-auto">
         {courses.map((course) => {
           const courseSelected = isCourseSelected(course);
           return (

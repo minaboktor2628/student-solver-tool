@@ -172,7 +172,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
         </h2>
 
         {/* Token area */}
-        <div className="bg-secondary z-10 mb-4 flex flex-wrap items-center gap-4 rounded-lg p-4">
+        <div className="bg-secondary mb-4 flex flex-wrap items-center gap-4 rounded-lg p-4">
           <div className="flex items-center gap-3">
             <Draggable id="prefer">
               {numPreferTokens > 0 && (
@@ -212,7 +212,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
         </Button>
 
         {/* Section List */}
-        <div className="grid max-h-[60vh] grid-cols-1 gap-4 overflow-y-auto">
+        <div className="grid max-h-[calc(100vh-27rem)] grid-cols-1 gap-4 overflow-y-auto">
           {filteredCourses.map((course) => (
             <div
               key={course.code}
