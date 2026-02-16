@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CourseForm } from "./CourseForm";
 import * as z from "zod";
+import type { UseFormReturn } from "react-hook-form";
 
 // Zod schema for validation - exported for use in parent component
 export const courseFormSchema = z.object({
@@ -36,7 +37,7 @@ export type CourseFormValues = z.infer<typeof courseFormSchema>;
 
 export type AddCourseCardProps = {
   isOpen: boolean;
-  form: any;
+  form: UseFormReturn<CourseFormValues>;
   professors: { id: string; name: string }[];
   onCancel: () => void;
   onSubmit: (values: CourseFormValues) => void | Promise<void>;

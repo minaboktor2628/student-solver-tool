@@ -1,4 +1,5 @@
 import type { UseFormReturn } from "react-hook-form";
+import type { CourseFormValues } from "./add-course-card";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -24,10 +25,10 @@ import { RefreshCw, Save, BookOpen } from "lucide-react";
 import React from "react";
 
 export interface CourseFormProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<CourseFormValues>;
   professors: Array<{ id: string; name?: string | null }>;
   onCancel: () => void;
-  onSubmit: (values: any) => void;
+  onSubmit: (values: CourseFormValues) => void;
   isSubmitting: boolean;
   mode: "add" | "edit";
 }
