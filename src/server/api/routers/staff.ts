@@ -112,47 +112,24 @@ export const staffRoute = createTRPCRouter({
           );
           const avoidedByProfessor = (u.avoidedInCourses?.length ?? 0) > 0;
 
-          const mappedUser = {
+          const mappedUser: StaffMember = {
             id: u.id ?? "",
             name: u.name ?? "",
             email: u.email ?? "",
-            hours: u.hours ?? 0,
+            hours: u.hours ?? 10, // Default to 10 if undefined
             roles: (u.roles ?? []).map((r) => r.role),
             comments: sp.comments ?? "",
             timesAvailable: sp.timesAvailable ?? [],
             preferedSections: sp.preferredSections ?? [],
             locked: false,
+            assignedSection: undefined, // will be set later if needed
             flags: {
               qualifiedForThisSection,
               notAvoidedByProfessor: !avoidedByProfessor,
               // fill availableThisTerm after we know assignments
               availableThisTerm: true,
             },
-          } as const satisfies {
-            id: string;
-            name: string;
-            email: string;
-            hours: number;
-            roles: Role[];
-            comments: string;
-            timesAvailable: Array<{ day: Day; hour: number }>;
-            preferedSections: Array<{
-              rank: PreferenceLevel;
-              section: {
-                id: string;
-                courseTitle: string;
-                courseCode: string;
-                courseSection: string;
-              };
-            }>;
-            locked: boolean;
-            flags: {
-              qualifiedForThisSection: boolean;
-              notAvoidedByProfessor: boolean;
-              availableThisTerm: boolean;
-            };
           };
-
           return mappedUser;
         });
 
@@ -196,38 +173,15 @@ export const staffRoute = createTRPCRouter({
           .map((u) => {
             const assignedSection = assignedByStaffId.get(u.id);
 
-            return {
+            const mappedUser: StaffMember = {
               ...u,
               assignedSection,
               flags: {
                 ...u.flags,
                 availableThisTerm: !assignedSection,
               },
-            } as const satisfies {
-              id: string;
-              name: string;
-              email: string;
-              hours: number;
-              roles: Role[];
-              comments: string;
-              timesAvailable: Array<{ day: Day; hour: number }>;
-              preferedSections: Array<{
-                rank: PreferenceLevel;
-                section: {
-                  id: string;
-                  courseTitle: string;
-                  courseCode: string;
-                  courseSection: string;
-                };
-              }>;
-              locked: boolean;
-              assignedSection: { id: string; code: string } | undefined;
-              flags: {
-                qualifiedForThisSection: boolean;
-                notAvoidedByProfessor: boolean;
-                availableThisTerm: boolean;
-              };
             };
+            return mappedUser;
           })
           .sort((a, b) => {
             // Sort so that true (available) comes before false (not available)

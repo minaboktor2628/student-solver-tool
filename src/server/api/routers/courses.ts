@@ -147,7 +147,7 @@ export const courseRoute = createTRPCRouter({
                 code: c.courseCode + "-" + c.courseSection,
               } as { id: string; code: string } | undefined,
               timesAvailable: sp?.timesAvailable ?? [],
-              comments: sp?.comments ?? "",
+              comments: sp?.comments ?? null,
               preferedSections: sp?.preferredSections ?? [],
               locked: s.locked,
               flags: {
@@ -424,7 +424,7 @@ export const courseRoute = createTRPCRouter({
           requiredHours: z.number().optional(),
           courseSection: z.string().optional(),
           meetingPattern: z.string().optional(),
-          academicLevel: z.string().optional(),
+          academicLevel: z.nativeEnum(AcademicLevel).optional(),
           professorId: z.string().optional(),
         }),
       }),
@@ -434,9 +434,6 @@ export const courseRoute = createTRPCRouter({
         where: { id },
         data: {
           ...data,
-          academicLevel:
-            (data.academicLevel as "UNDERGRADUATE" | "GRADUATE" | undefined) ??
-            undefined,
         },
       });
 

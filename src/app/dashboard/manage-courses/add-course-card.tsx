@@ -1,31 +1,8 @@
 "use client";
 
-import { AcademicLevel } from "@prisma/client";
-import { type UseFormReturn } from "react-hook-form";
-import * as z from "zod";
-import { RefreshCw, Save } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Combobox } from "@/components/ui/combobox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CourseForm } from "./CourseForm";
+import * as z from "zod";
 
 // Zod schema for validation - exported for use in parent component
 export const courseFormSchema = z.object({
@@ -59,7 +36,7 @@ export type CourseFormValues = z.infer<typeof courseFormSchema>;
 
 export type AddCourseCardProps = {
   isOpen: boolean;
-  form: UseFormReturn<CourseFormValues>;
+  form: any;
   professors: { id: string; name: string }[];
   onCancel: () => void;
   onSubmit: (values: CourseFormValues) => void | Promise<void>;
@@ -82,194 +59,14 @@ export function AddCourseCard({
         <CardTitle>Add New Course</CardTitle>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="courseCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., CS 2102" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="courseTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Title</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., Object-Oriented Design"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="courseSection"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Section</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., LO1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="meetingPattern"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Meeting Pattern</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., M W F 10-11" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="professorId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Professor</FormLabel>
-                  <FormControl>
-                    <Combobox
-                      options={professors.map((p) => ({
-                        value: p.id,
-                        label: p.name ?? "Unknown Professor",
-                      }))}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Select a professor..."
-                      searchPlaceholder="Search professors..."
-                      emptyMessage="No professors found."
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="academicLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Academic Level</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={AcademicLevel.UNDERGRADUATE}>
-                          Undergraduate
-                        </SelectItem>
-                        <SelectItem value={AcademicLevel.GRADUATE}>
-                          Graduate
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="requiredHours"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Required Hours</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Number of staff hours required for this course
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="enrollment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Enrollment</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="capacity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Capacity</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Course description" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Add Course
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <CourseForm
+          form={form}
+          professors={professors}
+          onCancel={onCancel}
+          onSubmit={onSubmit}
+          isSubmitting={isSubmitting}
+          mode="add"
+        />
       </CardContent>
     </Card>
   );
