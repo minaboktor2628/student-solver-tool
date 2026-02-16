@@ -147,7 +147,7 @@ export const courseRoute = createTRPCRouter({
                 code: c.courseCode + "-" + c.courseSection,
               } as { id: string; code: string } | undefined,
               timesAvailable: sp?.timesAvailable ?? [],
-              comments: sp?.comments ?? null,
+              comments: sp?.comments ?? "",
               preferedSections: sp?.preferredSections ?? [],
               locked: s.locked,
               flags: {
