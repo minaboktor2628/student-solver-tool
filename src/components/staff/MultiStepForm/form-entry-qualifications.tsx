@@ -146,9 +146,6 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   className="flex flex-1 items-center gap-2"
                   onClick={() => toggleCourse(course)}
                 >
-                  <div className="text-lg font-medium">
-                    {course.code} - {course.title}
-                  </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -158,6 +155,9 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   >
                     i
                   </button>
+                  <div className="text-lg font-medium">
+                    {course.code} - {course.title}
+                  </div>
                 </div>
                 <div>
                   <Label className="inline-flex items-center gap-2">

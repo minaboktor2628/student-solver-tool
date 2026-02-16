@@ -207,9 +207,6 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
           >
             <div className="rounded-md p-4">
               <div className="flex items-center gap-2 text-lg font-medium">
-                <span>
-                  {course.code} - {course.title}
-                </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -219,6 +216,9 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                 >
                   i
                 </button>
+                <div>
+                  {course.code} - {course.title}
+                </div>
               </div>
             </div>
             {expandedDescriptions.has(course.code) && (
@@ -238,7 +238,6 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                           {section.courseSection} -{" "}
                           {section.instructor ?? "TBD"}
                         </div>
-                        <div className="text-sm text-gray-600">Section</div>
                       </div>
                       <div className="flex gap-2">
                         {mapping[section.id] ? (
