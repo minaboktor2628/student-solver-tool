@@ -48,19 +48,19 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
         placeholder="Please leave any additional comments here..."
         rows={4}
       />
-      <div className="mt-4 flex gap-3">
-        <Button
-          onClick={handleSubmitClick}
-          disabled={saveFormMutation.isPending}
-        >
-          Submit
-        </Button>
+      <div className="mt-4 flex justify-between">
         <Button
           onClick={onBack}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >
           Back
+        </Button>
+        <Button
+          onClick={handleSubmitClick}
+          disabled={saveFormMutation.isPending}
+        >
+          Submit
         </Button>
       </div>
     </div>

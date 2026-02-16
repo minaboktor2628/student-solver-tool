@@ -211,16 +211,16 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         })}
       </div>
 
-      <div className="mt-4 flex gap-3">
-        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
-          Next
-        </Button>
+      <div className="mt-4 flex justify-between">
         <Button
           onClick={onBack}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >
           Back
+        </Button>
+        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
+          Next
         </Button>
       </div>
     </div>
