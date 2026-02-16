@@ -130,11 +130,23 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
     });
   }
 
+  function clearSelections() {
+    setSelectedSections(new Set([]));
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
         Select courses and sections you are qualified to work for
       </h2>
+
+      <Button
+        onClick={clearSelections}
+        disabled={selectedSections.size === 0}
+        variant="destructive"
+      >
+        Clear
+      </Button>
 
       <div className="grid max-h-[60vh] grid-cols-1 gap-4 overflow-y-auto">
         {courses.map((course) => {
