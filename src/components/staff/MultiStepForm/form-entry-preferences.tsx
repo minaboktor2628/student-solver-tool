@@ -11,7 +11,15 @@ import {
 import { Draggable } from "@/components/draggable";
 import { Droppable } from "@/components/droppable";
 import { toast } from "sonner";
-import { CircleDivide, Divide } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from "@/components/ui/drawer";
 
 type TokenType = "prefer" | "strong";
 
@@ -84,6 +92,8 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
     () => new Set([]),
   );
+  const [drawerCourse, setDrawerCourse] = useState<Course | null>(null);
+  const isMobile = useIsMobile();
 
   function handleDragStart(event: DragStartEvent) {
     const { active } = event;
@@ -223,7 +233,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleDescription(course.code);
+                      if (isMobile) {
+                        setDrawerCourse(course);
+                      } else {
+                        toggleDescription(course.code);
+                      }
                     }}
                     className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
                   >
@@ -234,7 +248,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                   </div>
                 </div>
               </div>
-              {expandedDescriptions.has(course.code) && (
+              {!isMobile && expandedDescriptions.has(course.code) && (
                 <div className="bg-secondary border-t px-4 py-3 text-sm">
                   {course.description}
                 </div>
@@ -317,6 +331,27 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      <Drawer
+        open={!!drawerCourse}
+        onOpenChange={(open) => {
+          if (!open) setDrawerCourse(null);
+        }}
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>
+              {drawerCourse?.code} - {drawerCourse?.title}
+            </DrawerTitle>
+            <DrawerDescription>{drawerCourse?.description}</DrawerDescription>
+          </DrawerHeader>
+          <div className="flex justify-center p-4">
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };

@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from "@/components/ui/drawer";
 
 export type Section = {
   term: string;
@@ -62,6 +71,8 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
     () => new Set([]),
   );
+  const [drawerCourse, setDrawerCourse] = useState<Course | null>(null);
+  const isMobile = useIsMobile();
 
   // derived map from course code -> section ids for quick lookup
   const courseToSectionIds = useMemo(() => {
@@ -161,9 +172,13 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleDescription(course.code);
+                      if (isMobile) {
+                        setDrawerCourse(course);
+                      } else {
+                        toggleDescription(course.code);
+                      }
                     }}
-                    className="hover:bg-secondary hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
+                    className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
                   >
                     i
                   </button>
@@ -182,7 +197,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   </Label>
                 </div>
               </div>
-              {expandedDescriptions.has(course.code) && (
+              {!isMobile && expandedDescriptions.has(course.code) && (
                 <div className="bg-secondary border-t px-4 py-3 text-sm">
                   {course.description}
                 </div>
@@ -235,6 +250,27 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
           Next
         </Button>
       </div>
+
+      <Drawer
+        open={!!drawerCourse}
+        onOpenChange={(open) => {
+          if (!open) setDrawerCourse(null);
+        }}
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>
+              {drawerCourse?.code} - {drawerCourse?.title}
+            </DrawerTitle>
+            <DrawerDescription>{drawerCourse?.description}</DrawerDescription>
+          </DrawerHeader>
+          <div className="flex justify-center p-4">
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };
