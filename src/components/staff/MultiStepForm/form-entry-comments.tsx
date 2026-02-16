@@ -19,12 +19,14 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
   onBack,
 }) => {
   const [comments, setComments] = useState("");
+  const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save comments:", error);
     },
-    onSuccess: (success) => {
+    onSuccess: () => {
       toast.success("Form saved successfully");
+      void utils.studentDashboard.invalidate();
       onSubmit();
     },
   });

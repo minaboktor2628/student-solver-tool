@@ -50,12 +50,14 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   onNext,
   onBack,
 }) => {
+  const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save preferences:", error);
     },
     onSuccess: () => {
       toast.success("Form saved successfully");
+      void utils.studentDashboard.invalidate();
       onNext();
     },
   });

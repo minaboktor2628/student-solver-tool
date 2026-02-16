@@ -16,6 +16,7 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
   onNext,
   onExit,
 }) => {
+  const utils = api.useUtils();
   const updateAvailabilityMutation =
     api.studentForm.setAvailabilityForTerm.useMutation({
       onError: (error) => {
@@ -23,6 +24,7 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
       },
       onSuccess: (_data, variables) => {
         toast.success("Form saved successfully");
+        void utils.studentDashboard.invalidate();
         if (variables.isAvailable) onNext();
         else onExit();
       },

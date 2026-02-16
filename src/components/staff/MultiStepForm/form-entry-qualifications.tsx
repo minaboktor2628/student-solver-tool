@@ -38,12 +38,14 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   onBack,
   onSubmit,
 }) => {
+  const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save qualifications:", error);
     },
     onSuccess: (_data, variables) => {
       toast.success("Form saved successfully");
+      void utils.studentDashboard.invalidate();
       if (
         !variables.qualifiedSectionIds ||
         variables.qualifiedSectionIds.length === 0

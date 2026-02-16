@@ -28,12 +28,14 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   initialSelection = [],
 }) => {
   const [selection, setSelection] = useState<Date[]>(initialSelection);
+  const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save form:", error);
     },
     onSuccess: () => {
       toast.success("Form saved successfully");
+      void utils.studentDashboard.invalidate();
       onNext();
     },
   });
