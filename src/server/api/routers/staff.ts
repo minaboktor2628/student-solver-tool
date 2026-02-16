@@ -242,19 +242,17 @@ export const staffRoute = createTRPCRouter({
     }),
 
   getAllUsers: coordinatorProcedure
-    .input(z.object({ termId: z.string().optional() }).optional())
+    .input(z.object({ termId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const termId = input?.termId;
+      const termId = input.termId;
 
       const users = await ctx.db.user.findMany({
         include: {
           roles: true,
-          staffPreferences: termId
-            ? {
-                where: { termId },
-                select: { canEdit: true, id: true },
-              }
-            : false,
+          staffPreferences: {
+            where: { termId },
+            select: { canEdit: true, id: true },
+          },
         },
         orderBy: {
           name: "asc",
@@ -263,7 +261,7 @@ export const staffRoute = createTRPCRouter({
 
       return {
         users: users.map((user) => {
-          const staffPref = termId && user.staffPreferences?.[0];
+          const staffPref = user.staffPreferences?.[0];
           return {
             id: user.id,
             name: user.name,

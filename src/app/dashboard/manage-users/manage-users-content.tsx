@@ -112,14 +112,14 @@ export default function ManageUsersContent() {
   );
 
   // State
-  const [activeTermId, setActiveTermId] = useState<string | null>(() => {
+  const [activeTermId, setActiveTermId] = useState<string>(() => {
     const activeTerm = terms.find((t) => t.active);
-    return activeTerm?.id ?? terms[0]?.id ?? null;
+    return activeTerm?.id ?? terms[0]?.id ?? "";
   });
 
   // Query users based on selected term
   const [{ users }] = api.staff.getAllUsers.useSuspenseQuery({
-    termId: activeTermId ?? undefined,
+    termId: activeTermId,
   });
 
   // Derived state

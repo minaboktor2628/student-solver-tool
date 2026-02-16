@@ -78,10 +78,7 @@ interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
 
 export default function ManageCoursesContent() {
   // tRPC queries (suspense)
-  const [{ courses: allCourses }] =
-    api.courses.getAllCourses.useSuspenseQuery();
   const [{ terms: rawTerms }] = api.term.getAllTerms.useSuspenseQuery();
-  const [{ users: rawUsers }] = api.staff.getAllUsers.useSuspenseQuery();
 
   // Derived data
   const terms: TermDisplay[] = useMemo(
@@ -96,6 +93,27 @@ export default function ManageCoursesContent() {
     [rawTerms],
   );
 
+  // Declare selectedTerm after terms (match manage-users pattern)
+  const [selectedTerm, setSelectedTerm] = useState<string>(() => {
+    const activeTerm = terms.find((t) => t.active);
+    return activeTerm?.id ?? terms[0]?.id ?? "";
+  });
+
+  const [{ users: rawUsers }] = api.staff.getAllUsers.useSuspenseQuery({
+    termId: selectedTerm,
+  });
+
+  const [{ courses: allCourses }] = api.courses.getAllCourses.useSuspenseQuery({
+    termId: selectedTerm,
+  });
+
+  // ...existing code...
+  // Filtered courses (move after allCourses and selectedTerm)
+  let courses: Course[] = [];
+  if (Array.isArray(allCourses)) {
+    courses = allCourses.filter((course) => course.termId === selectedTerm);
+  }
+
   const professors = useMemo(
     () =>
       (rawUsers ?? [])
@@ -105,21 +123,6 @@ export default function ManageCoursesContent() {
           name: user.name ?? "Unknown",
         })),
     [rawUsers],
-  );
-
-  // State
-  const [selectedTerm, setSelectedTerm] = useState<string | null>(() => {
-    const activeTerm = terms.find((t) => t.active);
-    return activeTerm?.id ?? terms[0]?.id ?? null;
-  });
-
-  // Filtered courses
-  const courses = useMemo(
-    () =>
-      allCourses.filter(
-        (course) => !selectedTerm || course.termId === selectedTerm,
-      ),
-    [allCourses, selectedTerm],
   );
 
   // Dialog states
@@ -366,7 +369,7 @@ export default function ManageCoursesContent() {
         {/* Filters and Table */}
         <div className="mb-6 flex gap-4">
           <Select
-            value={selectedTerm ?? ""}
+            value={selectedTerm}
             onValueChange={(value) => setSelectedTerm(value)}
           >
             <SelectTrigger className="w-[250px]">

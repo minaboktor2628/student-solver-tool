@@ -163,10 +163,10 @@ export const courseRoute = createTRPCRouter({
     }),
 
   getAllCourses: coordinatorProcedure
-    .input(z.object({ termId: z.string().optional() }).optional())
+    .input(z.object({ termId: z.string() }))
     .query(async ({ ctx, input }) => {
       const sections = await ctx.db.section.findMany({
-        where: input?.termId ? { termId: input.termId } : undefined,
+        where: { termId: input.termId },
         include: {
           professor: true,
           term: true,
@@ -312,7 +312,7 @@ export const courseRoute = createTRPCRouter({
             term: z.string().optional(),
           }),
         ),
-        termId: z.string().optional(),
+        termId: z.string(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -343,7 +343,7 @@ export const courseRoute = createTRPCRouter({
         } = courseData;
 
         // Determine which term to use
-        let finalTermId = termId;
+        let finalTermId: string | undefined = termId;
         if (!finalTermId && selectedTerm) {
           const termParts = selectedTerm.split(" ");
           const termLetter = termParts[0];

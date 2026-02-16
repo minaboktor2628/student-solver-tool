@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -99,194 +99,104 @@ const parseStoredTerms = (raw: string | null): string[] | null => {
 };
 
 export default function DashboardContent() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [professors, setProfessors] = useState<Professor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [terms, setTerms] = useState<TermData[]>([]);
-  const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
-  const [loadingTerms, setLoadingTerms] = useState(false);
+  // Suspense-enabled queries
+  const [{ terms: rawTerms }] = api.term.getAllTerms.useSuspenseQuery();
+
+  // Format terms
+  const terms: TermData[] = (rawTerms ?? []).map((term: GetTermsResponse) => {
+    const status: TermData["status"] = term.active ? "published" : "draft";
+    return {
+      id: term.id ?? "",
+      name: term.name ?? "",
+      termLetter: term.termLetter ?? "A",
+      year: term.year ?? new Date().getFullYear(),
+      termStaffDueDate: new Date(term.staffDueDate ?? ""),
+      termProfessorDueDate: new Date(term.professorDueDate ?? ""),
+      staffDueDate: term.staffDueDate ?? "",
+      professorDueDate: term.professorDueDate ?? "",
+      status,
+    };
+  });
+
+  // State
+  const [selectedTerm, setSelectedTerm] = useState<string>(() => {
+    const activeTerm = terms.find((t) => t.status === "published");
+    return activeTerm?.id ?? terms[0]?.id ?? "";
+  });
   const [showAllStaff, setShowAllStaff] = useState(false);
   const [showAllProfessors, setShowAllProfessors] = useState(false);
-
   const INITIAL_DISPLAY_COUNT = 8;
 
-  const getTermsQuery = api.term.getAllTerms.useQuery(undefined, {
-    enabled: false,
-  });
-  const getDashboardQuery = api.dashboard.getDashboardData.useQuery(
-    { termId: selectedTerm ?? "" },
-    { enabled: !!selectedTerm },
-  );
-  const publishTermMutation = api.term.publishTerm.useMutation();
+  // Dashboard data query
+  const [
+    {
+      courses: dashboardCourses,
+      staff: dashboardStaff,
+      professors: dashboardProfessors,
+    },
+  ] = api.dashboard.getDashboardData.useSuspenseQuery({ termId: selectedTerm });
 
-  // Initialize terms from API
-  useEffect(() => {
-    void fetchTerms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchTerms = async () => {
-    setLoadingTerms(true);
-    try {
-      const { data } = await getTermsQuery.refetch();
-      if (data) {
-        const formattedTerms = data.terms.map((term: GetTermsResponse) => {
-          const status: TermData["status"] = term.active
-            ? "published"
-            : "draft";
-          return {
-            id: term.id ?? "",
-            name: term.name ?? "",
-            termLetter: term.termLetter ?? "A",
-            year: term.year ?? new Date().getFullYear(),
-            termStaffDueDate: new Date(term.staffDueDate ?? ""),
-            termProfessorDueDate: new Date(term.professorDueDate ?? ""),
-            staffDueDate: term.staffDueDate ?? "",
-            professorDueDate: term.professorDueDate ?? "",
-            status,
-          };
-        });
-        setTerms(formattedTerms);
-
-        // Select active term if it exists, otherwise select first term
-        const activeTerm = formattedTerms.find((t) => t.status === "published");
-        if (activeTerm) {
-          setSelectedTerm(activeTerm.id);
-        } else if (formattedTerms.length > 0 && formattedTerms[0]) {
-          setSelectedTerm(formattedTerms[0].id);
+  // Transform courses with graduate course handling
+  const transformedCourses = (dashboardCourses ?? []).map(
+    (course: GetDashboardResponse["courses"][number]) => {
+      const isGradCourse = course.academicLevel === "GRADUATE";
+      let termDisplay =
+        terms.find((t) => t.id === selectedTerm)?.name ?? "Unknown Term";
+      let spansTerms = null;
+      if (isGradCourse) {
+        const currentTermLetter =
+          terms.find((t) => t.id === selectedTerm)?.termLetter ?? "";
+        if (currentTermLetter === "A" || currentTermLetter === "B") {
+          spansTerms = "A+B";
+          termDisplay = `A+B Terms ${terms.find((t) => t.id === selectedTerm)?.year ?? ""}`;
+        } else if (currentTermLetter === "C" || currentTermLetter === "D") {
+          spansTerms = "C+D";
+          termDisplay = `C+D Terms ${terms.find((t) => t.id === selectedTerm)?.year ?? ""}`;
         }
       }
-    } catch (err) {
-      console.error("Error fetching terms:", err);
-      // Fallback to local storage if API fails
-      const raw = localStorage.getItem(LOCAL_TERMS_KEY);
-      const parsed = parseStoredTerms(raw);
-      if (parsed && parsed.length > 0 && parsed[0]) {
-        setTerms(
-          parsed.map((name) => ({
-            id: name,
-            name,
-            termLetter: "A" as TermLetter,
-            year: new Date().getFullYear(),
-            termStaffDueDate: new Date(),
-            termProfessorDueDate: new Date(),
-            staffDueDate: "",
-            professorDueDate: "",
-            status: "published" as const,
-          })),
-        );
-        setSelectedTerm(parsed[0]);
-      }
-      // If no fallback available, terms stay empty
-    } finally {
-      setLoadingTerms(false);
-    }
-  };
+      return {
+        id: course.id ?? "",
+        courseCode: course.courseCode ?? "",
+        courseTitle: course.courseTitle ?? "",
+        enrollment: course.enrollment ?? 0,
+        capacity: course.capacity ?? 0,
+        requiredHours: course.requiredHours ?? 0,
+        assignedStaff: course.assignedHours ?? 0,
+        professorName: course.professorName ?? "",
+        term: termDisplay,
+        description: course.description,
+        isGradSemesterCourse: isGradCourse,
+        spansTerms: spansTerms,
+      };
+    },
+  );
 
-  // Fetch dashboard data when term changes
-  useEffect(() => {
-    if (selectedTerm) {
-      void fetchDashboardData(selectedTerm);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTerm]);
+  // Staff and professors
+  const staff = (dashboardStaff ?? []).map((s) => ({
+    id: s.id,
+    name: s.name ?? "",
+    email: s.email ?? "",
+    hours: 0,
+    role: s.roles?.[0] ?? Role.PLA,
+    submitted: s.hasPreferences,
+  }));
+  const professors = (dashboardProfessors ?? []).map((p) => ({
+    id: p.id,
+    name: p.name ?? "",
+    email: p.email ?? "",
+    courseCount: p.courseCount ?? 0,
+    submitted: p.hasPreferences ?? false,
+  }));
 
-  const fetchDashboardData = async (termId: string) => {
-    setIsLoading(true);
-    try {
-      const { data } = await getDashboardQuery.refetch();
-
-      if (!data) {
-        console.error("Dashboard API error");
-        toast.error("Dashboard API error");
-        setCourses([]);
-        setStaff([]);
-        setProfessors([]);
-        return;
-      }
-
-      // Transform courses with graduate course handling
-      const transformedCourses = (data.courses ?? []).map(
-        (course: GetDashboardResponse["courses"][number]) => {
-          // Check if it's a graduate course using academicLevel
-          const isGradCourse = course.academicLevel === "GRADUATE";
-
-          // For grad courses, determine term display
-          let termDisplay =
-            terms.find((t) => t.id === termId)?.name ?? "Unknown Term";
-          let spansTerms = null;
-
-          if (isGradCourse) {
-            // Extract which terms it spans
-            const currentTermLetter =
-              terms.find((t) => t.id === termId)?.termLetter ?? "";
-
-            if (currentTermLetter === "A" || currentTermLetter === "B") {
-              spansTerms = "A+B";
-              termDisplay = `A+B Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
-            } else if (currentTermLetter === "C" || currentTermLetter === "D") {
-              spansTerms = "C+D";
-              termDisplay = `C+D Terms ${terms.find((t) => t.id === termId)?.year ?? ""}`;
-            }
-          }
-
-          return {
-            id: course.id ?? "",
-            courseCode: course.courseCode ?? "",
-            courseTitle: course.courseTitle ?? "",
-            enrollment: course.enrollment ?? 0,
-            capacity: course.capacity ?? 0,
-            requiredHours: course.requiredHours ?? 0,
-            assignedStaff: course.assignedHours ?? 0,
-            professorName: course.professorName ?? "",
-            term: termDisplay,
-            description: course.description,
-            isGradSemesterCourse: isGradCourse,
-            spansTerms: spansTerms,
-          };
-        },
-      );
-
-      setCourses(transformedCourses);
-      setStaff(
-        (data.staff ?? []).map((s) => ({
-          id: s.id,
-          name: s.name ?? "",
-          email: s.email ?? "",
-          hours: 0,
-          role: s.roles?.[0] ?? Role.PLA,
-          submitted: s.hasPreferences,
-        })),
-      );
-      setProfessors(
-        (data.professors ?? []).map((p) => ({
-          id: p.id,
-          name: p.name ?? "",
-          email: p.email ?? "",
-          courseCount: p.courseCount ?? 0,
-          submitted: p.hasPreferences ?? false,
-        })),
-      );
-    } catch (err: unknown) {
-      console.error("Error fetching dashboard data:", err);
-      toast.error("Failed to load dashboard data");
-      setCourses([]);
-      setStaff([]);
-      setProfessors([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const publishTermMutation = api.term.publishTerm.useMutation();
 
   // Publish term
   const publishTerm = async (termId: string) => {
     try {
       const response = await publishTermMutation.mutateAsync({ id: termId });
-
       if (response.success) {
         toast.success("Term published successfully!");
-        void fetchTerms();
+        window.location.reload(); // Simple reload for now
       } else {
         toast.error("Failed to publish term");
       }
@@ -320,10 +230,11 @@ export default function DashboardContent() {
       ? Math.round((submittedProfessorsCount / professors.length) * 100)
       : 0;
   const totalAvailableHours = staff.reduce((sum, s) => sum + (s.hours ?? 0), 0);
-  const staffingGap = courses
-    .filter((c) => !c.isDisplayOnly)
+  const staffingGap = transformedCourses
+    .filter((c: Course) => !c.isDisplayOnly)
     .reduce(
-      (sum, c) => sum + Math.max(0, c.requiredHours - c.assignedStaff),
+      (sum: number, c: Course) =>
+        sum + Math.max(0, c.requiredHours - c.assignedStaff),
       0,
     );
   const hasCompletedSubmissions =
@@ -351,18 +262,18 @@ export default function DashboardContent() {
   const professorDeadline = formatDeadline(currentTerm?.termProfessorDueDate);
 
   // Loading UI
-  if (isLoading) {
-    return (
-      <div className="bg-background flex min-h-screen items-center justify-center">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="text-primary h-8 w-8 animate-spin" />
-          <span className="text-muted-foreground text-lg">
-            Loading dashboard...
-          </span>
-        </div>
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="bg-background flex min-h-screen items-center justify-center">
+  //       <div className="flex items-center gap-3">
+  //         <RefreshCw className="text-primary h-8 w-8 animate-spin" />
+  //         <span className="text-muted-foreground text-lg">
+  //           Loading dashboard...
+  //         </span>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   function copyEmailsToClipboard(
     people: Array<{ email?: string | null }>,
@@ -415,25 +326,19 @@ export default function DashboardContent() {
                 </Label>
                 <div className="flex items-center gap-2">
                   <Select
-                    value={selectedTerm ?? ""}
-                    onValueChange={(value) =>
-                      setSelectedTerm(value === "" ? null : value)
-                    }
-                    disabled={loadingTerms}
+                    value={selectedTerm}
+                    onValueChange={(value) => setSelectedTerm(value)}
                   >
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue
-                        placeholder={loadingTerms ? "Loading…" : "Select term"}
-                      />
+                      <SelectValue placeholder={"Select term"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {!loadingTerms &&
-                        terms.map((term) => (
-                          <SelectItem key={term.id} value={term.id}>
-                            {term.name ?? ""}{" "}
-                            {term.status === "draft" && "(Draft)"}
-                          </SelectItem>
-                        ))}
+                      {terms.map((term) => (
+                        <SelectItem key={term.id} value={term.id}>
+                          {term.name ?? ""}{" "}
+                          {term.status === "draft" && "(Draft)"}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
 
