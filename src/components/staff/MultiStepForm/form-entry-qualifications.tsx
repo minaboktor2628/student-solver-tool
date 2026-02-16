@@ -163,7 +163,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                       e.stopPropagation();
                       toggleDescription(course.code);
                     }}
-                    className="hover:bg-secondary hover:bg-secondary inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs"
+                    className="hover:bg-secondary hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
                   >
                     i
                   </button>

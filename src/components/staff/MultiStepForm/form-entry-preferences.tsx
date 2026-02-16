@@ -225,7 +225,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                       e.stopPropagation();
                       toggleDescription(course.code);
                     }}
-                    className="hover:bg-secondary inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs"
+                    className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
                   >
                     i
                   </button>
@@ -256,7 +256,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                           {mapping[section.id] ? (
                             <button
                               onClick={() => handleRemoveToken(section.id)}
-                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
+                              className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
                                 mapping[section.id] === "strong"
                                   ? "bg-indigo-200 text-indigo-800"
                                   : "bg-blue-200 text-blue-800"
