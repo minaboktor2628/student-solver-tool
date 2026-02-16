@@ -113,7 +113,7 @@ export const courseRoute = createTRPCRouter({
             name: c.professor?.name,
             comments: c.professorPreference?.comments,
             timesRequired: c.professorPreference?.timesRequired ?? [],
-            preferedStaff: c.professorPreference?.preferredStaff.map((s) => ({
+            preferredStaff: c.professorPreference?.preferredStaff.map((s) => ({
               ...s.staff,
               roles: s.staff.roles.map((r) => r.role),
             })),
@@ -148,7 +148,7 @@ export const courseRoute = createTRPCRouter({
               } as { id: string; code: string } | undefined,
               timesAvailable: sp?.timesAvailable ?? [],
               comments: sp?.comments ?? null,
-              preferedSections: sp?.preferredSections ?? [],
+              preferredSections: sp?.preferredSections ?? [],
               locked: s.locked,
               flags: {
                 qualifiedForThisSection,

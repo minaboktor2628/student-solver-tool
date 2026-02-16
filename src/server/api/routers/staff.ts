@@ -12,7 +12,7 @@ type StaffMember = {
   roles: Role[];
   comments: string | null;
   timesAvailable: Array<{ day: Day; hour: number }>;
-  preferedSections: Array<{
+  preferredSections: Array<{
     rank: PreferenceLevel;
     section: {
       id: string;
@@ -120,7 +120,7 @@ export const staffRoute = createTRPCRouter({
             roles: (u.roles ?? []).map((r) => r.role),
             comments: sp.comments ?? "",
             timesAvailable: sp.timesAvailable ?? [],
-            preferedSections: sp.preferredSections ?? [],
+            preferredSections: sp.preferredSections ?? [],
             locked: false,
             assignedSection: undefined, // will be set later if needed
             flags: {
