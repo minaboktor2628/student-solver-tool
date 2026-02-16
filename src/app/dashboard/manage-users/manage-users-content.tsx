@@ -65,6 +65,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { createColumns, type User } from "./columns";
+import { UploadAllowedUsersForm } from "@/app/dashboard/manage-terms/upload-allowed-users-form";
 
 interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
   name: string;
@@ -340,10 +341,10 @@ export default function ManageUsersContent() {
               </p>
             </div>
           </div>
-          <Button onClick={handleAddUser} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Add User
-          </Button>
+          <UploadAllowedUsersForm
+            termId={activeTermId}
+            triggerVariant="destructive"
+          />
         </div>
 
         {/* Stats Cards */}

@@ -120,7 +120,16 @@ export function TermTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <UploadAllowedUsersForm termId={term.id} />
+                      <UploadAllowedUsersForm
+                        termId={term.id}
+                        trigger={
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                          >
+                            Upload Users
+                          </DropdownMenuItem>
+                        }
+                      />
                       <SyncSectionsForm
                         year={term.year}
                         termLetter={term.termLetter}
