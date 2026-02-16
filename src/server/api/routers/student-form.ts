@@ -250,6 +250,13 @@ export const studentFormRoute = createTRPCRouter({
                 })),
               });
             }
+            // Set isAvailableForTerm to false if array is empty
+            else {
+              await tx.staffPreference.update({
+                where: { userId_termId: { userId, termId } },
+                data: { isAvailableForTerm: false },
+              });
+            }
           }
 
           // 5. Upsert preferred sections (replace existing)
@@ -340,9 +347,16 @@ export const studentFormRoute = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db.staffPreference.updateMany({
-        where: { userId, termId },
-        data: { isAvailableForTerm: isAvailable },
+      const result = await ctx.db.staffPreference.upsert({
+        where: { userId_termId: { userId, termId } },
+        update: {
+          isAvailableForTerm: isAvailable,
+        },
+        create: {
+          userId,
+          termId,
+          isAvailableForTerm: isAvailable,
+        },
       });
       return result;
     }),
