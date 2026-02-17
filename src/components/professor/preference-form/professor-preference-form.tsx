@@ -301,7 +301,11 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
           <Button variant="outline">Cancel</Button>
         </Link>
         <Button onClick={handleSubmit} disabled={mutateSections.isPending}>
-          {mutateSections.isPending ? "Submitting..." : "Submit Preferences"}
+          {mutateSections.isPending
+            ? "Submitting..."
+            : mutateSections.isError
+              ? "Retry Submission"
+              : "Submit Preferences"}
         </Button>
       </div>
     </div>
