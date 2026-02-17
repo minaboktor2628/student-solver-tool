@@ -70,8 +70,9 @@ type Professor = Pick<User, "id" | "name" | "email"> & {
 
 type TermData = Pick<
   Term,
-  "id" | "termLetter" | "year" | "termStaffDueDate" | "termProfessorDueDate"
+  "id" | "year" | "termStaffDueDate" | "termProfessorDueDate"
 > & {
+  termLetter: TermLetter;
   name: string;
   staffDueDate: string;
   professorDueDate: string;
@@ -81,21 +82,8 @@ type TermData = Pick<
 type GetTermsResponse = RouterOutputs["term"]["getAllTerms"]["terms"][number];
 type GetDashboardResponse = RouterOutputs["dashboard"]["getDashboardData"];
 
-const LOCAL_TERMS_KEY = "sata:terms";
-
-const parseStoredTerms = (raw: string | null): string[] | null => {
-  if (!raw) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    const terms = parsed.filter(
-      (item): item is string => typeof item === "string",
-    );
-    return terms.length > 0 ? terms : null;
-  } catch {
-    return null;
-  }
-};
+// Term invariants (termLetter, due dates) are enforced by the server/schema.
+// Keep client-side code compact and trust server data; remove unused helpers.
 
 export default function DashboardContent() {
   // Suspense-enabled queries
@@ -107,7 +95,7 @@ export default function DashboardContent() {
     return {
       id: term.id ?? "",
       name: term.name ?? "",
-      termLetter: term.termLetter ?? "A",
+      termLetter: term.termLetter,
       year: term.year ?? new Date().getFullYear(),
       termStaffDueDate: new Date(term.staffDueDate ?? ""),
       termProfessorDueDate: new Date(term.professorDueDate ?? ""),
@@ -143,8 +131,9 @@ export default function DashboardContent() {
         terms.find((t) => t.id === selectedTerm)?.name ?? "Unknown Term";
       let spansTerms = null;
       if (isGradCourse) {
-        const currentTermLetter =
-          terms.find((t) => t.id === selectedTerm)?.termLetter ?? "";
+        const currentTermLetter = terms.find(
+          (t) => t.id === selectedTerm,
+        )?.termLetter;
         if (currentTermLetter === "A" || currentTermLetter === "B") {
           spansTerms = "A+B";
           termDisplay = `A+B Terms ${terms.find((t) => t.id === selectedTerm)?.year ?? ""}`;
@@ -171,7 +160,7 @@ export default function DashboardContent() {
   );
 
   // Staff and professors
-  const staff = (dashboardStaff ?? []).map((s) => ({
+  const staff: StaffMember[] = (dashboardStaff ?? []).map((s) => ({
     id: s.id,
     name: s.name ?? "",
     email: s.email ?? "",
@@ -179,7 +168,7 @@ export default function DashboardContent() {
     role: s.roles?.[0] ?? Role.PLA,
     submitted: s.hasPreferences,
   }));
-  const professors = (dashboardProfessors ?? []).map((p) => ({
+  const professors: Professor[] = (dashboardProfessors ?? []).map((p) => ({
     id: p.id,
     name: p.name ?? "",
     email: p.email ?? "",
