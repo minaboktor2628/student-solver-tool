@@ -56,3 +56,4 @@ yarn-error.log*
 
 # cypress 
 cypress/screenshots
+prisma/local-seed.ts
