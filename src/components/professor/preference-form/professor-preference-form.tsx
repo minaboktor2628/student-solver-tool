@@ -181,13 +181,10 @@ function InternalPage({
       };
     });
 
-    const payload = {
+    mutateSections.mutate({
       professorId: userId,
       sections: sectionsPayload,
-    };
-
-    console.log("Submitting:", payload);
-    mutateSections.mutate(payload);
+    });
   };
 
   if (sections.length === 0) {

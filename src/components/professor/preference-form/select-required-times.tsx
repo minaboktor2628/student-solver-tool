@@ -111,7 +111,7 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
         </div>
       </div>
       {wantsSpecificTimes && (
-        <div>
+        <div className="pt-4">
           <BaseScheduleSelector
             selection={selection}
             onChange={(newSelection: Date[]) => toggleTime(newSelection)}
