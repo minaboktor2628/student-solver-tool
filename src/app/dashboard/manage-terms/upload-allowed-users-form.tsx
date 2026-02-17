@@ -14,7 +14,7 @@ import z from "zod";
 import { CSVDropzone } from "@/components/csv-dropzone";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type FormEvent } from "react";
 
 const CSVRowSchema = z.object({
   name: z.string(),
@@ -57,8 +57,8 @@ export function UploadAllowedUsersForm({
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"" | Role>("");
 
-  function handleSingleSubmit(e?: any) {
-    e?.preventDefault?.();
+  function handleSingleSubmit(e?: FormEvent<HTMLFormElement>) {
+    e?.preventDefault();
     try {
       const user = CSVRowSchema.parse({ name, email, role });
       uploadUsers.mutate({ users: [user], termId });
