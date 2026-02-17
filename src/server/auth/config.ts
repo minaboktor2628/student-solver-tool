@@ -64,14 +64,24 @@ export const authConfig = {
   session: { strategy: "jwt" },
   adapter: PrismaAdapter(db),
   callbacks: {
-    async jwt({ token, user }) {
-      if (user?.id) token.id = user.id;
-      if (user?.email) {
-        token.roles = await getAllowedRolesForEmail(user.email);
-      }
+    async jwt({ token, user, trigger }) {
+      // Only do DB work when the token is created/updated
+      const shouldHydrate =
+        trigger === "signIn" || trigger === "update" || !!user;
 
-      if (token.id) {
-        token.allowedInActiveTerm = await computeAllowedInActiveTerm(token.id);
+      if (shouldHydrate) {
+        if (user?.id) token.id = user.id;
+
+        const email = user?.email ?? token.email;
+        if (email) {
+          token.roles = await getAllowedRolesForEmail(email);
+        }
+
+        if (token.id) {
+          token.allowedInActiveTerm = await computeAllowedInActiveTerm(
+            token.id,
+          );
+        }
       }
 
       return token;
