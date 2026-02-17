@@ -84,11 +84,16 @@ export const SelectRequiredTimes: React.FC<SelectRequiredTimesProps> = ({
   return (
     <div className="p-4 shadow-sm">
       <div>
-        <Label className="mb-2 block text-base font-medium">
-          Do you want to select times that you need assistants available?
+        <Label className="block text-base font-medium">
+          Do you want to select times that you need assistants available for
+          labs and lectures?
         </Label>
+        <p className="mb-2 font-bold">
+          Do not include time slots for office hours.
+        </p>
         <p className="text-muted-foreground mb-2 text-sm">
-          You may not receive your preference
+          You have a higher likelihood of receiving an assistant with your
+          preference if you select fewer time slots.
         </p>
         <div className="flex gap-4">
           <Button
