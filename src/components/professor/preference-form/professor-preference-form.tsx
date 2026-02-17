@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/dist/client/link";
 import { api } from "@/trpc/react";
 import type { Assistant, TimesRequiredOutput } from "@/types/professor";
@@ -86,12 +86,16 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
     return initialComments;
   });
 
+  const isDirtyRef = useRef(true);
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isDirtyRef.current) return;
       e.preventDefault();
     };
     // The back button on the browser is not handled by the beforeunload event, so it needs to be handled separately
     const handlePopState = () => {
+      if (!isDirtyRef.current) return;
       const confirmed = window.confirm(
         "Are you sure you want to leave? Your form data will not be saved.",
       );
@@ -152,6 +156,7 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
   const mutateSections =
     api.professorForm.updateProfessorSectionsForTerm.useMutation({
       onSuccess: () => {
+        isDirtyRef.current = false;
         toast(
           <div className="container mx-auto max-w-4xl">
             <Card className="bg-secondary border-green-200">
