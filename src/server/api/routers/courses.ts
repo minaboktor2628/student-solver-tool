@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { calculateRequiredAssistantHours } from "@/lib/utils";
+import { TermLetter, AcademicLevel } from "@prisma/client";
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
@@ -105,12 +108,12 @@ export const courseRoute = createTRPCRouter({
           meetingPattern: c.meetingPattern,
           academicLevel: c.academicLevel,
           professor: {
-            id: c.professor.id,
-            email: c.professor.email,
-            name: c.professor.name,
+            id: c.professor?.id,
+            email: c.professor?.email,
+            name: c.professor?.name,
             comments: c.professorPreference?.comments,
             timesRequired: c.professorPreference?.timesRequired ?? [],
-            preferedStaff: c.professorPreference?.preferredStaff.map((s) => ({
+            preferredStaff: c.professorPreference?.preferredStaff.map((s) => ({
               ...s.staff,
               roles: s.staff.roles.map((r) => r.role),
             })),
@@ -135,9 +138,9 @@ export const courseRoute = createTRPCRouter({
 
             return {
               id: s.staff.id,
-              name: s.staff.name,
-              email: s.staff.email,
-              hours: s.staff.hours,
+              name: s.staff.name ?? "",
+              email: s.staff.email ?? "",
+              hours: s.staff.hours ?? 0,
               roles: s.staff.roles.map((r) => r.role),
               assignedSection: {
                 id: c.id,
@@ -145,7 +148,7 @@ export const courseRoute = createTRPCRouter({
               } as { id: string; code: string } | undefined,
               timesAvailable: sp?.timesAvailable ?? [],
               comments: sp?.comments ?? null,
-              preferedSections: sp?.preferredSections ?? [],
+              preferredSections: sp?.preferredSections ?? [],
               locked: s.locked,
               flags: {
                 qualifiedForThisSection,
@@ -156,6 +159,300 @@ export const courseRoute = createTRPCRouter({
             };
           }),
         })),
+      };
+    }),
+
+  getAllCourses: coordinatorProcedure
+    .input(z.object({ termId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const sections = await ctx.db.section.findMany({
+        where: { termId: input.termId },
+        include: {
+          professor: true,
+          term: true,
+          assignments: {
+            include: {
+              staff: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        courses: sections.map((course) => ({
+          id: course.id,
+          termId: course.termId,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          courseSection: course.courseSection,
+          meetingPattern: course.meetingPattern,
+          description: course.description,
+          professorName: course.professor?.name ?? "Unknown Professor",
+          professorEmail: course.professor?.email ?? "",
+          enrollment: course.enrollment,
+          capacity: course.capacity,
+          requiredHours: course.requiredHours,
+          assignedStaff: course.assignments.reduce(
+            (sum, assignment) => sum + (assignment.staff?.hours ?? 0),
+            0,
+          ),
+          term: course.term
+            ? `${course.term.termLetter} ${course.term.year}`
+            : "Unknown Term",
+          academicLevel: course.academicLevel,
+        })),
+      };
+    }),
+
+  getCoursesForTermCreation: coordinatorProcedure
+    .input(
+      z.object({
+        termLetter: z.nativeEnum(TermLetter),
+        year: z.number(),
+      }),
+    )
+    .query(async ({ input: { termLetter, year }, ctx }) => {
+      // Fetch sections for this term (term is required in the schema)
+      const sections = await ctx.db.section.findMany({
+        where: {
+          term: {
+            termLetter,
+            year,
+          },
+        },
+        include: {
+          professor: true,
+          term: true,
+        },
+      });
+
+      return {
+        success: true,
+        courses: sections.map((course) => ({
+          id: course.id,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          professorName: course.professor?.name ?? "Unknown Professor",
+          enrollment: course.enrollment,
+          capacity: course.capacity,
+          requiredHours: course.requiredHours,
+          description: course.description,
+          academicLevel: course.academicLevel,
+          courseSection: course.courseSection,
+          meetingPattern: course.meetingPattern,
+          termId: course.termId,
+        })),
+      };
+    }),
+
+  getCourse: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input: { id }, ctx }) => {
+      const course = await ctx.db.section.findUnique({
+        where: { id },
+        include: {
+          professor: true,
+          term: true,
+          assignments: {
+            include: {
+              staff: true,
+            },
+          },
+        },
+      });
+
+      if (!course) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Course not found",
+        });
+      }
+
+      return {
+        success: true,
+        course: {
+          id: course.id,
+          courseCode: course.courseCode,
+          courseTitle: course.courseTitle,
+          professorName: course.professor?.name ?? "Unknown Professor",
+          professorId: course.professorId,
+          enrollment: course.enrollment,
+          capacity: course.capacity,
+          requiredHours: course.requiredHours,
+          description: course.description,
+          academicLevel: course.academicLevel,
+          courseSection: course.courseSection,
+          meetingPattern: course.meetingPattern,
+          term: course.term
+            ? `${course.term.termLetter} ${course.term.year}`
+            : "Unknown Term",
+          assignedStaff: course.assignments,
+        },
+      };
+    }),
+
+  createCourses: coordinatorProcedure
+    .input(
+      z.object({
+        courses: z.array(
+          z.object({
+            courseCode: z.string(),
+            courseTitle: z.string(),
+            professorName: z.string().optional(),
+            enrollment: z.number().default(0),
+            capacity: z.number().default(0),
+            requiredHours: z.number().optional(),
+            academicLevel: z
+              .nativeEnum(AcademicLevel)
+              .default(AcademicLevel.UNDERGRADUATE),
+            courseSection: z.string().default("01"),
+            meetingPattern: z.string().default("TBD"),
+            description: z.string().default(""),
+            term: z.string().optional(),
+          }),
+        ),
+        termId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { courses, termId } = input;
+
+      if (courses.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No courses provided",
+        });
+      }
+
+      const createdCourses = [];
+
+      for (const courseData of courses) {
+        const {
+          courseCode,
+          courseTitle,
+          professorName,
+          enrollment,
+          capacity,
+          requiredHours,
+          academicLevel,
+          courseSection,
+          meetingPattern,
+          description,
+          term: selectedTerm,
+        } = courseData;
+
+        // Determine which term to use
+        let finalTermId: string | undefined = termId;
+        if (!finalTermId && selectedTerm) {
+          const termParts = selectedTerm.split(" ");
+          const termLetter = termParts[0];
+          const termYear = termParts[1] ?? "";
+
+          if (
+            !termLetter ||
+            !Object.values(TermLetter).includes(termLetter as TermLetter)
+          ) {
+            continue;
+          }
+
+          const termData = await ctx.db.term.findFirst({
+            where: {
+              termLetter: termLetter as TermLetter,
+              year: parseInt(termYear),
+            },
+          });
+          finalTermId = termData?.id;
+        }
+
+        if (!finalTermId) {
+          continue;
+        }
+
+        // Find professor if name provided
+        let professorId: string | undefined;
+        if (professorName) {
+          const professor = await ctx.db.user.findFirst({
+            where: {
+              name: {
+                contains: professorName,
+              },
+            },
+          });
+          professorId = professor?.id;
+        }
+
+        const calculatedHours = calculateRequiredAssistantHours(enrollment);
+        const finalRequiredHours = requiredHours ?? calculatedHours;
+
+        const createdCourse = await ctx.db.section.create({
+          data: {
+            termId: finalTermId,
+            courseCode,
+            courseTitle,
+            description,
+            professorId,
+            enrollment,
+            capacity,
+            requiredHours: finalRequiredHours,
+            academicLevel,
+            courseSection,
+            meetingPattern,
+          },
+        });
+
+        createdCourses.push(createdCourse);
+      }
+
+      return {
+        success: true,
+        message: `Created ${createdCourses.length} courses`,
+        courseCount: createdCourses.length,
+      };
+    }),
+
+  updateCourse: coordinatorProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        data: z.object({
+          courseCode: z.string().optional(),
+          courseTitle: z.string().optional(),
+          description: z.string().optional(),
+          enrollment: z.number().optional(),
+          capacity: z.number().optional(),
+          requiredHours: z.number().optional(),
+          courseSection: z.string().optional(),
+          meetingPattern: z.string().optional(),
+          academicLevel: z.nativeEnum(AcademicLevel).optional(),
+          professorId: z.string().optional(),
+        }),
+      }),
+    )
+    .mutation(async ({ input: { id, data }, ctx }) => {
+      const updated = await ctx.db.section.update({
+        where: { id },
+        data: {
+          ...data,
+        },
+      });
+
+      return {
+        success: true,
+        course: updated,
+      };
+    }),
+
+  deleteCourse: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input: { id }, ctx }) => {
+      await ctx.db.section.delete({
+        where: { id },
+      });
+
+      return {
+        success: true,
+        message: "Course deleted successfully",
       };
     }),
 });

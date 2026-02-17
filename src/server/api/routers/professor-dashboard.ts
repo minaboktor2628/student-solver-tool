@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { hasPermission } from "@/lib/permissions";
 
 export const professorDashboardRoute = createTRPCRouter({
   getDashBoardInfo: professorProcedure
@@ -12,8 +13,12 @@ export const professorDashboardRoute = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       if (
-        ctx.session.user.id !== input.professorId &&
-        !ctx.session.user.roles.includes("COORDINATOR")
+        !hasPermission(
+          ctx.session.user,
+          "professorPreferenceForm",
+          "viewActiveTerm",
+          { id: input.professorId },
+        )
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
@@ -22,11 +27,13 @@ export const professorDashboardRoute = createTRPCRouter({
           id: input.professorId,
         },
       });
+
       const term = await ctx.db.term.findUnique({
         where: {
           id: input.termId,
         },
       });
+
       return {
         info: {
           professor: professor?.name,

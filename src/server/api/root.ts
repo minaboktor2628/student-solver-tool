@@ -10,6 +10,8 @@ import { studentFormRoute } from "./routers/student-form";
 import { studentDashboardRoute } from "./routers/student-dashboard";
 import { staffRoute } from "./routers/staff";
 import { termRoute } from "./routers/term";
+import { dashboardRoute } from "./routers/dashboard";
+import { userRoute } from "./routers/users";
 
 /**
  * This is the primary router for your server.
@@ -28,6 +30,8 @@ export const appRouter = createTRPCRouter({
   studentDashboard: studentDashboardRoute,
   staff: staffRoute,
   term: termRoute,
+  user: userRoute,
+  dashboard: dashboardRoute,
 });
 
 // export type definition of API

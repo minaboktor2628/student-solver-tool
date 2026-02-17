@@ -19,18 +19,24 @@ import { SelectAssistantPref } from "./select-assistant-pref";
 import { SelectAssistantAntipref } from "./select-assistant-antipref";
 import { SelectRequiredTimes } from "./select-required-times";
 import { FormEntryComments } from "./comment-box";
-import { useTerm } from "@/components/term-combobox";
+import { useTerm, type Term } from "@/components/term-combobox";
 
 interface ProfessorPreferenceFormProps {
   userId: string;
 }
 
-const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
-  userId,
-}) => {
+function ProfessorPreferenceForm({ userId }: ProfessorPreferenceFormProps) {
   const { active: activeTerm } = useTerm();
-  if (!activeTerm) throw new Error("Term is invalid.");
 
+  if (!activeTerm) throw new Error("No active term. Please contact admin.");
+
+  return <InternalPage userId={userId} activeTerm={activeTerm} />;
+}
+
+function InternalPage({
+  userId,
+  activeTerm,
+}: ProfessorPreferenceFormProps & { activeTerm: Term }) {
   const [{ sections }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
       termId: activeTerm.id,
@@ -279,6 +285,6 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
       </div>
     </div>
   );
-};
+}
 
 export default ProfessorPreferenceForm;

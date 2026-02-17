@@ -1,11 +1,13 @@
 import type { PermissionCheck } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 import {
+  BookOpenIcon,
   ComputerIcon,
   DatabaseIcon,
   HomeIcon,
   InfoIcon,
   ScanFaceIcon,
+  UsersIcon,
   UserStarIcon,
   History,
   FileText,
@@ -44,14 +46,24 @@ export const ROUTES: NavItem[] = [
     icon: UserStarIcon,
     children: [
       {
-        label: "Solver",
-        href: "/dashboard/solver",
+        label: "Manage Terms",
+        href: "/dashboard/manage-terms",
         icon: ComputerIcon,
       },
       {
-        label: "Permissions",
-        href: "/dashboard/permissions",
-        icon: ScanFaceIcon,
+        label: "Manage Users",
+        href: "/dashboard/manage-users",
+        icon: UsersIcon,
+      },
+      {
+        label: "Manage Courses",
+        href: "/dashboard/manage-courses",
+        icon: BookOpenIcon,
+      },
+      {
+        label: "Solver",
+        href: "/dashboard/solver",
+        icon: ComputerIcon,
       },
       {
         label: "Studio",
