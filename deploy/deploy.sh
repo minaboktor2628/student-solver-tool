@@ -2,13 +2,55 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BRANCH="${1:-main}"
+BRANCH="main"
+DO_BACKUP=true
 BACKUP_DIR="/home/backups" # IT made it so backups here last 60 days
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [options]
+
+Options:
+  -b, --branch <name>   Git branch to deploy (default: main)
+      --no-backup       Skip SQLite backup
+  -h, --help            Show this help message
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") --branch dev
+  $(basename "$0") -b staging --no-backup
+EOF
+}
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -b|--branch)
+      BRANCH="$2"
+      shift 2
+      ;;
+    --no-backup)
+      DO_BACKUP=false
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo
+      usage
+      exit 1
+      ;;
+  esac
+done
 
 cd "$APP_DIR"
 
 echo "==> Deploying sts from branch: $BRANCH"
 echo "==> Repo dir: $APP_DIR"
+echo "==> Backup enabled: $DO_BACKUP"
 
 # Make sure docker compose is available
 if ! docker compose version >/dev/null 2>&1; then
@@ -24,17 +66,21 @@ git reset --hard "origin/$BRANCH"
 echo "==> Build images"
 docker compose build --pull
 
-echo "==> SQLite backup"
-ts="$(date +%Y%m%d-%H%M%S)"
+if [[ "$DO_BACKUP" == true ]]; then
+  echo "==> SQLite backup"
+  ts="$(date +%Y%m%d-%H%M%S)"
 
-mkdir -p "$BACKUP_DIR"
+  mkdir -p "$BACKUP_DIR"
 
-docker run --rm \
-  -v sts_sqlite:/data \
-  -v "$BACKUP_DIR:/backups" \
-  alpine:3 sh -lc "cp -f /data/prod.db /backups/prod.db.$ts 2>/dev/null || true"
+  docker run --rm \
+    -v sts_sqlite:/data \
+    -v "$BACKUP_DIR:/backups" \
+    alpine:3 sh -lc "cp -f /data/prod.db /backups/prod.db.$ts 2>/dev/null || true"
 
-echo "Backup saved to $BACKUP_DIR/prod.db.$ts"
+  echo "Backup saved to $BACKUP_DIR/prod.db.$ts"
+else
+  echo "==> Skipping SQLite backup"
+fi
 
 echo "==> Run DB migrations"
 docker compose --profile migrate run --rm sts-migrate
@@ -42,30 +88,7 @@ docker compose --profile migrate run --rm sts-migrate
 echo "==> Start / update services"
 docker compose up -d --remove-orphans
 
-# echo "==> Waiting for sts to become healthy..."
-# Poll health status (up to ~2 minutes)
-# deadline=$((SECONDS + 120))
-# while true; do
-#   status="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q sts)" 2>/dev/null || true)"
-#   if [[ "$status" == "healthy" ]]; then
-#     echo "sts is healthy"
-#     break
-#   fi
-#   if [[ "$status" == "unhealthy" ]]; then
-#     echo "sts is unhealthy. Recent logs:"
-#     docker compose logs --no-color --tail=200 sts
-#     exit 1
-#   fi
-#   if (( SECONDS > deadline )); then
-#     echo "Timed out waiting for healthcheck. Recent logs:"
-#     docker compose logs --no-color --tail=200 sts
-#     exit 1
-#   fi
-#   sleep 3
-# done
-
 echo "==> Current status:"
 docker compose ps
 
 echo "==> Done."
-
