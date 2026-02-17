@@ -41,8 +41,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // FIX: for some reason, we have to replace it with prisma/ instead of ""
-    const dbPath = url.replace("file:", "prisma/");
+    const dbPath = url.replace("file:", "");
     const database = new DatabaseSync(dbPath);
     const [error, results] =
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
