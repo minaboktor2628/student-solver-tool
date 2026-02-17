@@ -3,7 +3,6 @@ import "@/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { TRPCReactProvider } from "@/trpc/react";
-import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DevDock from "@/components/dev-dock";
@@ -21,6 +20,8 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { GlobalErrorBoundary } from "@/components/global-error-boundry";
 import { GlobalSuspense } from "@/components/global-suspense";
 import { TermProvider } from "@/components/term-combobox";
+import { AnyQueryFetchingSpinner } from "@/components/header-spinner";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "STS",
@@ -49,7 +50,7 @@ export default async function RootLayout({
       <body>
         <TooltipProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <Toaster richColors toastOptions={{ duration: 5000 }} />
+            <Toaster />
             <TRPCReactProvider>
               {/* Only let TermProvider fetch when the user is authenticated */}
               <TermProvider enabled={!!session}>
@@ -64,6 +65,7 @@ export default async function RootLayout({
                           className="mr-2 data-[orientation=vertical]:h-4"
                         />
                         <HeaderBreadcrumbs />
+                        <AnyQueryFetchingSpinner />
                       </div>
                       <div className="px-2">
                         <ModeToggle />

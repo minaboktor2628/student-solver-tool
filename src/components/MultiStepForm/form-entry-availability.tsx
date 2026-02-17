@@ -17,7 +17,7 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
   onExit,
 }) => {
   const updateAvailabilityMutation =
-    api.studentForm.setAvailabilityForTerm.useMutation({
+    api.studentForm.saveStudentForm.useMutation({
       onError: (error) => {
         console.error("Failed to update availability:", error);
       },
@@ -26,13 +26,13 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
       },
     });
 
-  function handleYNClick(answer: boolean) {
+  function handleYNClick(isAvailableForTerm: boolean) {
     updateAvailabilityMutation.mutate({
       userId,
       termId,
-      isAvailable: answer,
+      isAvailableForTerm,
     });
-    if (answer === true) onNext();
+    if (isAvailableForTerm === true) onNext();
     else onExit();
   }
 
