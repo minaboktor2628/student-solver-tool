@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { Role, type Term, type TermLetter } from "@prisma/client";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import {
-  UserPlus,
   RefreshCw,
   Users,
   Save,
@@ -66,7 +64,8 @@ import {
 import { createColumns, type User } from "./columns";
 import { UploadAllowedUsersForm } from "@/app/dashboard/manage-terms/upload-allowed-users-form";
 
-interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
+interface TermDisplay extends Pick<Term, "id" | "year"> {
+  termLetter: TermLetter;
   name: string;
   active: boolean;
 }
@@ -104,7 +103,7 @@ export default function ManageUsersContent() {
       (rawTerms ?? []).map((term) => ({
         id: term.id ?? "",
         name: term.name ?? "",
-        termLetter: term.termLetter ?? ("A" as TermLetter),
+        termLetter: term.termLetter,
         year: term.year ?? new Date().getFullYear(),
         active: term.active ?? false,
       })),

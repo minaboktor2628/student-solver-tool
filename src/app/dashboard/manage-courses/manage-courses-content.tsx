@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import {
   AcademicLevel,
   Role,
@@ -9,9 +8,8 @@ import {
   type TermLetter,
 } from "@prisma/client";
 import { api } from "@/trpc/react";
-import { type UseFormReturn, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { toast } from "sonner";
 
 import { CourseForm } from "./CourseForm";
@@ -19,10 +17,8 @@ import { BookOpen, RefreshCw, Save, Users as UsersIcon } from "lucide-react";
 
 // shadcn components
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { DataTable } from "@/components/ui/data-table";
-import { Combobox } from "@/components/ui/combobox";
+
 import {
   Dialog,
   DialogContent,
@@ -38,15 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,7 +53,8 @@ import {
   type CourseFormValues,
 } from "./add-course-card";
 
-interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
+interface TermDisplay extends Pick<Term, "id" | "year"> {
+  termLetter: TermLetter;
   name: string;
   active: boolean;
 }
@@ -80,7 +69,7 @@ export default function ManageCoursesContent() {
       (rawTerms ?? []).map((term) => ({
         id: term.id ?? "",
         name: term.name ?? "",
-        termLetter: term.termLetter ?? ("A" as TermLetter),
+        termLetter: term.termLetter,
         year: term.year ?? new Date().getFullYear(),
         active: term.active ?? false,
       })),
@@ -101,8 +90,7 @@ export default function ManageCoursesContent() {
     termId: selectedTerm,
   });
 
-  // ...existing code...
-  // Filtered courses (move after allCourses and selectedTerm)
+  // Filtered courses
   let courses: Course[] = [];
   if (Array.isArray(allCourses)) {
     courses = allCourses.filter((course) => course.termId === selectedTerm);
@@ -133,7 +121,7 @@ export default function ManageCoursesContent() {
       courseTitle: "",
       courseSection: "",
       meetingPattern: "",
-      academicLevel: "UNDERGRADUATE",
+      academicLevel: AcademicLevel.UNDERGRADUATE,
       description: "",
       professorId: "",
       enrollment: 0,
@@ -149,7 +137,7 @@ export default function ManageCoursesContent() {
       courseTitle: "",
       courseSection: "",
       meetingPattern: "",
-      academicLevel: "UNDERGRADUATE",
+      academicLevel: AcademicLevel.UNDERGRADUATE,
       description: "",
       professorId: "",
       enrollment: 0,
