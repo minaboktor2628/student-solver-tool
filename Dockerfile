@@ -27,12 +27,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 EXPOSE 3000
 
-# non-root
-RUN useradd -m -u 1001 nextjs
-# ensure sqlite volume mount path is writable
-RUN mkdir -p /data && chown -R nextjs:nextjs /data
-USER nextjs
-
 COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
