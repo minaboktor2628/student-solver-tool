@@ -86,7 +86,7 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
     const solution: string[] = [];
 
     // i = 10, staffsToTake = "0101", take staffs[1], staffs[3]
-    var j = 0;
+    let j = 0;
     staffsToTake.forEach((binary) => {
       const staff = staffs[j];
       if (binary === "1" && staff !== undefined) {
@@ -145,7 +145,7 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
     let bestSolution: [string[], number] | null = null;
     let bestDistance = Infinity;
 
-    var j = i + 1;
+    let j = i + 1;
     const maxIterations = 10000; // safety limit to prevent infinite loops
     let iterations = 0;
 
@@ -235,8 +235,8 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
   //      if bad: next valid solution for section i
   //    if bad: return error
 
-  const solution: Map<string, string[]> = new Map();
-  const sectionIndices: Map<string, number> = new Map();
+  const solution = new Map<string, string[]>();
+  const sectionIndices = new Map<string, number>();
 
   sections.forEach((section) => {
     sectionIndices.set(section.id, 0);
