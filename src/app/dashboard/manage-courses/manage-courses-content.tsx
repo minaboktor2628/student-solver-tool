@@ -15,13 +15,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 
 import { CourseForm } from "./CourseForm";
-import {
-  BookOpen,
-  ArrowLeft,
-  RefreshCw,
-  Save,
-  Users as UsersIcon,
-} from "lucide-react";
+import { BookOpen, RefreshCw, Save, Users as UsersIcon } from "lucide-react";
 
 // shadcn components
 import { Button } from "@/components/ui/button";
@@ -306,12 +300,6 @@ export default function ManageCoursesContent() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="gap-2" asChild>
-              <Link href="/dashboard">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Link>
-            </Button>
             <div>
               <h1 className="text-foreground text-3xl font-bold">
                 Manage Courses

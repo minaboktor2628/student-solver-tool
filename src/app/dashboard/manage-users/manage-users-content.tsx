@@ -7,7 +7,6 @@ import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import {
   UserPlus,
-  ArrowLeft,
   RefreshCw,
   Users,
   Save,
@@ -324,12 +323,6 @@ export default function ManageUsersContent() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="gap-2" asChild>
-              <Link href="/dashboard">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Link>
-            </Button>
             <div>
               <h1 className="text-foreground text-3xl font-bold">
                 Manage Users

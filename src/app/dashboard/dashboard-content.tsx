@@ -9,7 +9,6 @@ import {
   Clock,
   Mail,
   AlertCircle,
-  RefreshCw,
   Plus,
   Calendar,
 } from "lucide-react";
