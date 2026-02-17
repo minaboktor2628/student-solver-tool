@@ -37,7 +37,7 @@ function InternalPage({
   userId,
   activeTerm,
 }: ProfessorPreferenceFormProps & { activeTerm: Term }) {
-  const [{ sections }] =
+  const [{ sections, availableAssistants }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
       termId: activeTerm.id,
       professorId: userId,
@@ -159,7 +159,9 @@ function InternalPage({
       },
       onError: (err) => {
         console.error("Mutation failed:", err);
-        toast.error("Failed to submit preferences");
+        toast.error("Failed to submit preferences", {
+          description: err.message,
+        });
       },
     });
 
@@ -230,26 +232,17 @@ function InternalPage({
                 <CardContent>
                   <SelectAssistantPref
                     sectionId={section.sectionId}
-                    availableAssistants={section.availableAssistants.map(
-                      (assistant) => ({
-                        ...assistant,
-                        roles: assistant.roles.map((r) => r.role),
-                      }),
-                    )}
+                    availableAssistants={availableAssistants}
                     preferredStaff={preferredStaff[section.sectionId] ?? []}
                     avoidedStaff={avoidedStaff[section.sectionId] ?? []}
+                    title="Do you want to select specific assistants for this course?"
                     onChange={(sectionId, preferredStaff) =>
                       handlePreferredStaffChange(sectionId, preferredStaff)
                     }
                   />
                   <SelectAssistantAntipref
                     sectionId={section.sectionId}
-                    availableAssistants={section.availableAssistants.map(
-                      (assistant) => ({
-                        ...assistant,
-                        roles: assistant.roles.map((r) => r.role),
-                      }),
-                    )}
+                    availableAssistants={availableAssistants}
                     preferredStaff={preferredStaff[section.sectionId] ?? []}
                     avoidedStaff={avoidedStaff[section.sectionId] ?? []}
                     onChange={(sectionId, avoidedStaff) =>

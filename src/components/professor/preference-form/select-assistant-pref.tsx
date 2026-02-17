@@ -1,12 +1,22 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import type { Assistant } from "@/types/professor";
 import { normalize } from "@/lib/utils";
 import { XIcon } from "lucide-react";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 type SelectAssistantPreferenceProps = {
   sectionId: string;
@@ -25,12 +35,14 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
 }) => {
   const [wantsSpecificAssistants, setWantsSpecificAssistants] =
     React.useState<boolean>((preferredStaff?.length ?? 0) > 0);
+
   const toggleAssistant = (assistant: Assistant, checked: boolean) => {
     const newStaff = checked
       ? [...(preferredStaff ?? []), assistant]
       : (preferredStaff ?? []).filter((a) => a.id !== assistant.id);
     onChange(sectionId, newStaff);
   };
+
   const [searchTerm, setSearchTerm] = React.useState("");
   const filteredStaff = React.useMemo(() => {
     const result = availableAssistants.filter(
@@ -77,35 +89,14 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
           </Button>
         </div>
       </div>
-
       {wantsSpecificAssistants && (
         <div>
           {preferredStaff && preferredStaff.length > 0 && (
             <div className="pt-2">
-              <Label className="text-sm font-medium">
-                List of preferred assistants
-              </Label>
-              <div className="flex flex-row">
-                {preferredStaff?.map((staff) => {
-                  return (
-                    <div key={staff.id} className="w-1/3 shrink-0 px-2 pt-2">
-                      <div className="border-primary bg-primary/5 flex items-center justify-between rounded-lg border p-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            {staff.name}
-                            <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                              {staff.roles}
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground text-sm">
-                            {staff.email}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <p className="text-sm font-medium">
+                List of preferred assistants:{" "}
+                {preferredStaff.map((s) => s.name).join(", ")}
+              </p>
             </div>
           )}
           <div className="space-y-3 pt-2">
@@ -132,40 +123,40 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
               )}
             </div>
             <div className="max-h-96 overflow-y-auto rounded-lg border p-3">
-              {filteredStaff.map((staff) => {
-                return (
-                  <div key={staff.id} className="p-1">
-                    <div
-                      className={`flex items-center justify-between rounded-lg border p-3 ${
-                        preferredStaff?.some((a) => a.id === staff.id)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-accent"
-                      }`}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {staff.name}
-                          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                            {staff.roles}
-                          </span>
-                        </div>
-                        <p className="text-muted-foreground text-sm">
-                          {staff.email}
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        id={`${sectionId}-${staff.id}`}
-                        checked={preferredStaff?.some((a) => a.id === staff.id)}
-                        onChange={(e) =>
-                          toggleAssistant(staff, e.target.checked)
-                        }
-                        className="text-primary focus:ring-primary h-4 w-4 cursor-pointer rounded border-gray-300"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+              <FieldGroup className="gap-2">
+                {filteredStaff.length === 0 ? (
+                  <p>No staff.</p>
+                ) : (
+                  filteredStaff.map((staff) => {
+                    const checked =
+                      preferredStaff?.some((a) => a.id === staff.id) ?? false;
+
+                    return (
+                      <FieldLabel key={staff.id}>
+                        <Field orientation="horizontal">
+                          <FieldContent className="gap-0">
+                            <FieldTitle>
+                              {staff.name}{" "}
+                              <Badge variant="secondary">
+                                {staff.roles.join(", ")}
+                              </Badge>
+                            </FieldTitle>
+                            <FieldDescription>{staff.email}</FieldDescription>
+                          </FieldContent>
+
+                          <Checkbox
+                            id={`${sectionId}-${staff.id}`}
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              toggleAssistant(staff, next === true);
+                            }}
+                          />
+                        </Field>
+                      </FieldLabel>
+                    );
+                  })
+                )}
+              </FieldGroup>
             </div>
           </div>
         </div>
