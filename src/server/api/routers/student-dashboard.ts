@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { hasPermission } from "@/lib/permissions";
 
 const baseInput = z.object({
   userId: z.string().min(1),
@@ -86,7 +88,21 @@ export const studentDashboardRoute = createTRPCRouter({
   getStudentDashboardInfo: assistantProcedure
     .input(baseInput)
     .query(async ({ input: { userId, termId }, ctx }) => {
-      //TODO auth check
+      if (
+        !hasPermission(
+          ctx.session.user,
+          "staffPreferenceForm",
+          "viewActiveTerm",
+          {
+            id: userId,
+          },
+        )
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
 
       const staff = await ctx.db.user.findUnique({
         where: {
@@ -114,7 +130,16 @@ export const studentDashboardRoute = createTRPCRouter({
   getPastAssignments: assistantProcedure
     .input(z.object({ userId: z.string() }))
     .query(async ({ input: { userId }, ctx }) => {
-      //TODO add auth check
+      if (
+        !hasPermission(ctx.session.user, "staffPreferenceForm", "viewHistory", {
+          id: userId,
+        })
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
 
       const rows = await ctx.db.sectionAssignment.findMany({
         where: {
@@ -146,7 +171,21 @@ export const studentDashboardRoute = createTRPCRouter({
   getCurrentAssignment: assistantProcedure
     .input(baseInput)
     .query(async ({ input: { userId, termId }, ctx }) => {
-      //TODO add auth check
+      if (
+        !hasPermission(
+          ctx.session.user,
+          "staffPreferenceForm",
+          "viewActiveTerm",
+          {
+            id: userId,
+          },
+        )
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
 
       const activeTerm = await ctx.db.term.findUnique({
         where: { id: termId },
