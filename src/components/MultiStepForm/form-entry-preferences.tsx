@@ -22,6 +22,9 @@ export type Section = {
 };
 export type Course = { code: string; title: string; sections: Section[] };
 
+export const allowedStrongTokens = 2;
+export const allowedPreferTokens = 5;
+
 interface CoursePreferencesProps {
   userId: string;
   termId: string;
@@ -111,17 +114,14 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
     onNext();
   }
 
-  const originalNumStrongTokens = 1;
-  const originalNumPreferTokens = 3;
-
   const usedStrong = Object.values(mapping).filter(
     (v) => v === "strong",
   ).length;
   const usedPrefer = Object.values(mapping).filter(
     (v) => v === "prefer",
   ).length;
-  const numStrongTokens = Math.max(0, originalNumStrongTokens - usedStrong);
-  const numPreferTokens = Math.max(0, originalNumPreferTokens - usedPrefer);
+  const numStrongTokens = Math.max(0, allowedStrongTokens - usedStrong);
+  const numPreferTokens = Math.max(0, allowedPreferTokens - usedPrefer);
 
   function handleRemoveToken(sectionId: string) {
     setMapping((prev) => {
@@ -155,7 +155,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
               )}
             </Draggable>
             <span className="text-muted-foreground text-sm">
-              {numPreferTokens}/{originalNumPreferTokens}
+              {numPreferTokens}/{allowedPreferTokens}
             </span>
           </div>
 
@@ -168,7 +168,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
               )}
             </Draggable>
             <span className="text-muted-foreground text-sm">
-              {numStrongTokens}/{originalNumStrongTokens}
+              {numStrongTokens}/{allowedStrongTokens}
             </span>
           </div>
           <div className="text-muted-foreground text-sm">
