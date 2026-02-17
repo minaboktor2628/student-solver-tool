@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/dist/client/link";
 import { api } from "@/trpc/react";
 import type { Assistant, TimesRequiredOutput } from "@/types/professor";
@@ -85,6 +85,33 @@ const ProfessorPreferenceForm: React.FC<ProfessorPreferenceFormProps> = ({
 
     return initialComments;
   });
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    // The back button on the browser is not handled by the beforeunload event, so it needs to be handled separately
+    const handlePopState = () => {
+      const confirmed = window.confirm(
+        "Are you sure you want to leave? Your form data will not be saved.",
+      );
+      if (!confirmed) {
+        // Re-insert the current entry so the next back press triggers popstate again
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+
+    // Insert an extra history entry so the first back press triggers popstate
+    window.history.pushState(null, "", window.location.href);
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const handlePreferredStaffChange = (
     sectionId: string,
     newPreferredStaff: Assistant[],
