@@ -42,7 +42,7 @@ docker compose --profile migrate run --rm sts-migrate
 echo "==> Start / update services"
 docker compose up -d --remove-orphans
 
-echo "==> Waiting for sts to become healthy..."
+# echo "==> Waiting for sts to become healthy..."
 # Poll health status (up to ~2 minutes)
 # deadline=$((SECONDS + 120))
 # while true; do
