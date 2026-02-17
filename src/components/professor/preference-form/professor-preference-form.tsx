@@ -13,7 +13,7 @@ import {
 } from "../../ui/card";
 
 import { Button } from "../../ui/button";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SelectAssistantPref } from "./select-assistant-pref";
 import { SelectAssistantAntipref } from "./select-assistant-antipref";
@@ -55,6 +55,7 @@ function InternalPage({
 
     return initialPreferredStaff;
   });
+
   const [avoidedStaff, setAvoidedStaff] = useState<Record<string, Assistant[]>>(
     () => {
       const initialAvoidedStaff: Record<string, Assistant[]> = {};
@@ -67,6 +68,7 @@ function InternalPage({
       return initialAvoidedStaff;
     },
   );
+
   const [timesRequired, setTimesRequired] = useState<
     Record<string, TimesRequiredOutput[]>
   >(() => {
@@ -79,6 +81,7 @@ function InternalPage({
 
     return initialTimesRequired;
   });
+
   const [comments, setComments] = useState<
     Record<string, string | null | undefined>
   >(() => {
@@ -91,6 +94,7 @@ function InternalPage({
 
     return initialComments;
   });
+
   const handlePreferredStaffChange = (
     sectionId: string,
     newPreferredStaff: Assistant[],
@@ -100,6 +104,7 @@ function InternalPage({
       [sectionId]: newPreferredStaff,
     }));
   };
+
   const handleAvoidedStaffChange = (
     sectionId: string,
     newAvoidedStaff: Assistant[],
@@ -109,6 +114,7 @@ function InternalPage({
       [sectionId]: newAvoidedStaff,
     }));
   };
+
   const handleTimesRequiredChange = (
     sectionId: string,
     newTimesRequired: TimesRequiredOutput[],
@@ -118,6 +124,7 @@ function InternalPage({
       [sectionId]: newTimesRequired,
     }));
   };
+
   const handleCommentsChange = (
     sectionId: string,
     newComments: string | null | undefined,
@@ -183,25 +190,23 @@ function InternalPage({
     mutateSections.mutate(payload);
   };
 
+  if (sections.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-4">
+        <h1 className="text-3xl font-bold">
+          No sections assigned to you for this term. If you think this is a
+          mistake, please contact the coordinator.
+        </h1>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="mb-6 flex items-center gap-4">
-        <Link href="/">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+    <div className="flex flex-col space-y-4 p-4">
+      <div className="flex flex-row content-center justify-between">
+        <h1 className="text-foreground text-3xl font-bold">Preference Form</h1>
       </div>
       <div className="flex flex-col items-center justify-center">
-        <Card className="flex w-1/2 items-center justify-center">
-          <div className="w-fit px-8 py-3 text-center text-xl">
-            <CardTitle>
-              Professor Preference Form
-              <br />
-              {activeTerm.termLetter} Term {activeTerm.year}
-            </CardTitle>
-          </div>
-        </Card>
         <form
           className="w-full"
           onSubmit={(e) => {
@@ -218,13 +223,14 @@ function InternalPage({
                     {section.courseCode} - {section.courseSection}
                     <br />
                     Meeting Time: {section.meetingPattern}
-                  </CardDescription>
-                  <CardDescription>
+                    <br />
                     Enrollment: {section.enrollment} / {section.capacity}
-                  </CardDescription>
-                  <CardDescription>
+                    <br />
                     Potential Staff Hours: {section.requiredHours}
+                    <br />
                   </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <SelectAssistantPref
                     sectionId={section.sectionId}
                     availableAssistants={section.availableAssistants.map(
@@ -269,14 +275,14 @@ function InternalPage({
                       handleCommentsChange(sectionId, comments)
                     }
                   />
-                </CardHeader>
+                </CardContent>
               </Card>
             </div>
           ))}
         </form>
       </div>
-      <div className="my-6 flex justify-end gap-4 pb-8">
-        <Link href="/professor">
+      <div className="flex justify-end gap-4">
+        <Link href="/">
           <Button variant="outline">Cancel</Button>
         </Link>
         <Button onClick={handleSubmit} disabled={mutateSections.isPending}>
