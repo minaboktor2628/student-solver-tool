@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/dist/client/link";
+import Link from "next/link";
 import { api } from "@/trpc/react";
-import type { Assistant, TimesRequiredOutput } from "@/types/professor";
 import {
   Card,
   CardContent,
@@ -16,122 +15,69 @@ import { Button } from "../../ui/button";
 import { CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SelectAssistantPref } from "./select-assistant-pref";
-import { SelectAssistantAntipref } from "./select-assistant-antipref";
 import { SelectRequiredTimes } from "./select-required-times";
 import { FormEntryComments } from "./comment-box";
-import { useTerm, type Term } from "@/components/term-combobox";
+import type { Slot } from "@/lib/schedule-selector";
+import { Separator } from "@/components/ui/separator";
+import type { User } from "next-auth";
 
 interface ProfessorPreferenceFormProps {
   userId: string;
+  termId: string;
 }
 
-function ProfessorPreferenceForm({ userId }: ProfessorPreferenceFormProps) {
-  const { active: activeTerm } = useTerm();
+type SectionPrefs = {
+  preferredStaff: User[];
+  avoidedStaff: User[];
+  timesRequired: Slot[];
+  comments: string;
+};
 
-  if (!activeTerm) throw new Error("No active term. Please contact admin.");
+const EMPTY_PREFS: SectionPrefs = {
+  preferredStaff: [],
+  avoidedStaff: [],
+  timesRequired: [],
+  comments: "",
+};
 
-  return <InternalPage userId={userId} activeTerm={activeTerm} />;
-}
-
-function InternalPage({
+export default function ProfessorPreferenceForm({
   userId,
-  activeTerm,
-}: ProfessorPreferenceFormProps & { activeTerm: Term }) {
+  termId,
+}: ProfessorPreferenceFormProps) {
   const [{ sections, availableAssistants }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
-      termId: activeTerm.id,
+      termId,
       professorId: userId,
     });
 
-  const [preferredStaff, setPreferredStaff] = useState<
-    Record<string, Assistant[]>
+  const [prefsBySection, setPrefsBySection] = useState<
+    Record<string, SectionPrefs>
   >(() => {
-    const initialPreferredStaff: Record<string, Assistant[]> = {};
+    const initial: Record<string, SectionPrefs> = {};
 
     sections.forEach((section) => {
-      initialPreferredStaff[section.sectionId] =
-        section.professorPreference.preferredStaff ?? [];
+      initial[section.sectionId] = {
+        preferredStaff: section.professorPreference.preferredStaff ?? [],
+        avoidedStaff: section.professorPreference.avoidedStaff ?? [],
+        timesRequired: section.professorPreference.timesRequired ?? [],
+        comments: section.professorPreference.comments ?? "",
+      };
     });
 
-    return initialPreferredStaff;
+    return initial;
   });
 
-  const [avoidedStaff, setAvoidedStaff] = useState<Record<string, Assistant[]>>(
-    () => {
-      const initialAvoidedStaff: Record<string, Assistant[]> = {};
-
-      sections.forEach((section) => {
-        initialAvoidedStaff[section.sectionId] =
-          section.professorPreference.avoidedStaff ?? [];
-      });
-
-      return initialAvoidedStaff;
-    },
-  );
-
-  const [timesRequired, setTimesRequired] = useState<
-    Record<string, TimesRequiredOutput[]>
-  >(() => {
-    const initialTimesRequired: Record<string, TimesRequiredOutput[]> = {};
-
-    sections.forEach((section) => {
-      initialTimesRequired[section.sectionId] =
-        section.professorPreference.timesRequired ?? [];
-    });
-
-    return initialTimesRequired;
-  });
-
-  const [comments, setComments] = useState<
-    Record<string, string | null | undefined>
-  >(() => {
-    const initialComments: Record<string, string | null | undefined> = {};
-
-    sections.forEach((section) => {
-      initialComments[section.sectionId] =
-        section.professorPreference.comments ?? null;
-    });
-
-    return initialComments;
-  });
-
-  const handlePreferredStaffChange = (
+  const updateSection = <K extends keyof SectionPrefs>(
     sectionId: string,
-    newPreferredStaff: Assistant[],
+    key: K,
+    value: SectionPrefs[K],
   ) => {
-    setPreferredStaff((prev) => ({
+    setPrefsBySection((prev) => ({
       ...prev,
-      [sectionId]: newPreferredStaff,
-    }));
-  };
-
-  const handleAvoidedStaffChange = (
-    sectionId: string,
-    newAvoidedStaff: Assistant[],
-  ) => {
-    setAvoidedStaff((prev) => ({
-      ...prev,
-      [sectionId]: newAvoidedStaff,
-    }));
-  };
-
-  const handleTimesRequiredChange = (
-    sectionId: string,
-    newTimesRequired: TimesRequiredOutput[],
-  ) => {
-    setTimesRequired((prev) => ({
-      ...prev,
-      [sectionId]: newTimesRequired,
-    }));
-  };
-
-  const handleCommentsChange = (
-    sectionId: string,
-    newComments: string | null | undefined,
-  ) => {
-    setComments((prev) => ({
-      ...prev,
-      [sectionId]: newComments,
+      [sectionId]: {
+        ...(prev[sectionId] ?? EMPTY_PREFS),
+        [key]: value,
+      },
     }));
   };
 
@@ -172,13 +118,15 @@ function InternalPage({
 
     const sectionsPayload = sections.map((section) => {
       const id = section.sectionId;
+      const p = prefsBySection[id];
+
       return {
         sectionId: id,
         professorPreference: {
-          preferredStaffId: preferredStaff[id]?.map((a) => a.id) ?? [],
-          avoidedStaffId: avoidedStaff[id]?.map((a) => a.id) ?? [],
-          timesRequired: timesRequired[id] ?? [],
-          comments: comments?.[id] ?? "",
+          preferredStaffId: p?.preferredStaff.map((a) => a.id) ?? [],
+          avoidedStaffId: p?.avoidedStaff.map((a) => a.id) ?? [],
+          timesRequired: p?.timesRequired ?? [],
+          comments: p?.comments ?? "",
         },
       };
     });
@@ -204,83 +152,115 @@ function InternalPage({
     <div className="flex flex-col space-y-4 p-4">
       <div className="flex flex-row content-center justify-between">
         <h1 className="text-foreground text-3xl font-bold">Preference Form</h1>
+        <p className="text-muted-foreground">{sections.length} section(s)</p>
       </div>
       <div className="flex flex-col items-center justify-center">
         <form
-          className="w-full"
+          className="flex w-full flex-col space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit();
           }}
         >
-          {sections.map((section) => (
-            <div key={section.sectionId} className="px-4 py-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{section.courseTitle}</CardTitle>
-                  <CardDescription>
-                    {section.courseCode} - {section.courseSection}
-                    <br />
-                    Meeting Time: {section.meetingPattern}
-                    <br />
-                    Enrollment: {section.enrollment} / {section.capacity}
-                    <br />
-                    Potential Staff Hours: {section.requiredHours}
-                    <br />
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SelectAssistantPref
-                    sectionId={section.sectionId}
-                    availableAssistants={availableAssistants}
-                    preferredStaff={preferredStaff[section.sectionId] ?? []}
-                    avoidedStaff={avoidedStaff[section.sectionId] ?? []}
-                    title="Do you want to select specific assistants for this course?"
-                    onChange={(sectionId, preferredStaff) =>
-                      handlePreferredStaffChange(sectionId, preferredStaff)
-                    }
-                  />
-                  <SelectAssistantAntipref
-                    sectionId={section.sectionId}
-                    availableAssistants={availableAssistants}
-                    preferredStaff={preferredStaff[section.sectionId] ?? []}
-                    avoidedStaff={avoidedStaff[section.sectionId] ?? []}
-                    onChange={(sectionId, avoidedStaff) =>
-                      handleAvoidedStaffChange(sectionId, avoidedStaff)
-                    }
-                  />
-                  <SelectRequiredTimes
-                    sectionId={section.sectionId}
-                    timesRequired={
-                      section.professorPreference.timesRequired ?? []
-                    }
-                    onChange={(sectionId, timesRequired) =>
-                      handleTimesRequiredChange(sectionId, timesRequired)
-                    }
-                  />
-                  <FormEntryComments
-                    sectionId={section.sectionId}
-                    initialComment={section.professorPreference.comments}
-                    onChange={(sectionId, comments) =>
-                      handleCommentsChange(sectionId, comments)
-                    }
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          ))}
+          {sections.map((section) => {
+            const sectionId = section.sectionId;
+
+            const prefs = prefsBySection[sectionId] ?? EMPTY_PREFS;
+
+            const pref = prefs.preferredStaff;
+            const anti = prefs.avoidedStaff;
+
+            const prefIds = new Set(pref.map((a) => a.id));
+            const antiIds = new Set(anti.map((a) => a.id));
+
+            const availableForPref: User[] = [];
+            const availableForAnti: User[] = [];
+
+            for (const a of availableAssistants) {
+              if (!antiIds.has(a.id)) availableForPref.push(a);
+              if (!prefIds.has(a.id)) availableForAnti.push(a);
+            }
+
+            return (
+              <div key={section.sectionId} className="px-4 py-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      {section.courseCode}-{section.courseSection} -{" "}
+                      {section.courseTitle}
+                    </CardTitle>
+                    <CardDescription className="flex flex-row gap-4">
+                      <span>Meeting time: {section.meetingPattern}</span>
+                      <span>
+                        Enrollment: {section.enrollment}/{section.capacity}
+                      </span>
+                      <span>
+                        Allocated staff help hours: {section.requiredHours}
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col space-y-2">
+                    <SelectAssistantPref
+                      title="Do you have any assistants that you want for this section?"
+                      description="You may not receive your preference."
+                      sectionId={sectionId}
+                      availableAssistants={availableForPref}
+                      selectedStaff={pref}
+                      onChange={(nextPref) =>
+                        // if they somehow got an anti person into prefs, remove it
+                        updateSection(
+                          sectionId,
+                          "preferredStaff",
+                          nextPref.filter((a) => !antiIds.has(a.id)),
+                        )
+                      }
+                    />
+                    <Separator />
+                    <SelectAssistantPref
+                      title="Do you have any assistants that you do not want for this section?"
+                      description="You will not be placed with these staff. You are not guaranteed to be assigned any help if you put too many anti-preferences."
+                      sectionId={sectionId}
+                      availableAssistants={availableForAnti}
+                      selectedStaff={anti}
+                      onChange={(nextAnti) =>
+                        // if they somehow got a pref person into anti, remove it
+                        updateSection(
+                          sectionId,
+                          "avoidedStaff",
+                          nextAnti.filter((a) => !prefIds.has(a.id)),
+                        )
+                      }
+                    />
+                    <Separator />
+                    <SelectRequiredTimes
+                      timesRequired={prefs.timesRequired}
+                      onChange={(next) =>
+                        updateSection(sectionId, "timesRequired", next)
+                      }
+                    />
+                    <Separator />
+                    <FormEntryComments
+                      comment={prefs.comments}
+                      onChange={(next) =>
+                        updateSection(sectionId, "comments", next)
+                      }
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })}
+
+          <div className="flex justify-end gap-2">
+            <Link href="/">
+              <Button variant="outline">Cancel</Button>
+            </Link>
+            <Button type="submit" disabled={mutateSections.isPending}>
+              {mutateSections.isPending ? "Submitting..." : "Submit"}
+            </Button>
+          </div>
         </form>
-      </div>
-      <div className="flex justify-end gap-4">
-        <Link href="/">
-          <Button variant="outline">Cancel</Button>
-        </Link>
-        <Button onClick={handleSubmit} disabled={mutateSections.isPending}>
-          {mutateSections.isPending ? "Submitting..." : "Submit Preferences"}
-        </Button>
       </div>
     </div>
   );
 }
-
-export default ProfessorPreferenceForm;
