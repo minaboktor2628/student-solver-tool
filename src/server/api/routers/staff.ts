@@ -247,6 +247,13 @@ export const staffRoute = createTRPCRouter({
       const termId = input.termId;
 
       const users = await ctx.db.user.findMany({
+        where: {
+          AllowedInTerms: {
+            some: {
+              id: termId,
+            },
+          },
+        },
         include: {
           roles: true,
           staffPreferences: {
