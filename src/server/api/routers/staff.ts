@@ -436,7 +436,7 @@ export const staffRoute = createTRPCRouter({
       const result = await ctx.db.user.updateMany({
         where: {
           AllowedInTerms: {
-            some: { termId: termId },
+            some: { id: termId },
           },
         },
         data: { canEditForm: true },

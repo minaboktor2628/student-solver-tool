@@ -42,8 +42,10 @@ export default async function PreferencesFormPage() {
             courseCode={assignment.section.courseCode}
             courseTitle={assignment.section.courseTitle}
             courseSection={assignment.section.courseSection}
-            professorName={assignment.section.professor.name}
-            professorEmail={assignment.section.professor.email}
+            professorName={
+              assignment.section.professor?.name ?? "Professor TBD"
+            }
+            professorEmail={assignment.section.professor?.email ?? ""}
             meetingPattern={assignment.section.meetingPattern}
           />
         ))}
