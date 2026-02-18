@@ -3,12 +3,15 @@ import ProfessorPreferenceForm from "@/components/professor/preference-form/prof
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { hasPermission } from "@/lib/permissions";
 import { redirectToForbidden } from "@/lib/navigation";
+import { api } from "@/trpc/server";
 
 export default async function ProfessorPreferencesPage() {
   const session = await auth();
+  const activeTerm = await api.term.getActive();
   const userId = session?.user.id;
 
   if (!userId) return <LoadingSpinner />;
+  if (!activeTerm) throw new Error("No active term in the database.");
 
   if (
     !hasPermission(session.user, "professorPreferenceForm", "viewActiveTerm", {
@@ -18,5 +21,7 @@ export default async function ProfessorPreferencesPage() {
     redirectToForbidden();
   }
 
-  return <ProfessorPreferenceForm userId={session.user.id} />;
+  return (
+    <ProfessorPreferenceForm userId={session.user.id} termId={activeTerm.id} />
+  );
 }

@@ -73,17 +73,10 @@ export const ROUTES: NavItem[] = [
     ],
   },
   {
-    label: "Professor Dashboard",
+    label: "Preferences",
     href: "/professor",
     allowed: ["PROFESSOR"],
     icon: UserStarIcon,
-    children: [
-      {
-        label: "Preferences",
-        href: "/professor/preferences",
-        icon: ComputerIcon,
-      },
-    ],
   },
   {
     label: "Preferences",
