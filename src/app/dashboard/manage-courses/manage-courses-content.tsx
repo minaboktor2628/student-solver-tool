@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 import { CourseForm } from "./CourseForm";
-import { BookOpen, RefreshCw, Save, Users as UsersIcon } from "lucide-react";
+import { BookOpen, RefreshCw, Users as UsersIcon } from "lucide-react";
 
 // shadcn components
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";

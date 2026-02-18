@@ -108,7 +108,7 @@ export function UploadAllowedUsersForm({
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Last, First"
+                      placeholder="Anthony, Roman"
                     />
                   </div>
                   <div>
@@ -116,7 +116,7 @@ export function UploadAllowedUsersForm({
                     <Input
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="mboktor@wpi.edu"
+                      placeholder="ranthony@wpi.edu"
                       type="email"
                     />
                   </div>

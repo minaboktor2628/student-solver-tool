@@ -223,11 +223,6 @@ export default function ManageUsersContent() {
     },
   });
 
-  const handleAddUser = () => {
-    addForm.reset();
-    setIsAddDialogOpen(true);
-  };
-
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     // Find the first allowed role, or default to PLA
