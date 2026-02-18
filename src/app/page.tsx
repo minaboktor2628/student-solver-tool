@@ -1,5 +1,6 @@
 import { auth } from "@/server/auth";
 import ProfessorHomePageComponent from "@/components/professor/professor-dashboard/professor-homepage";
+import StaffHomePage from "@/components/staff/staff-homepage";
 import { isAssistant, isProfessor } from "@/lib/utils";
 import { api } from "@/trpc/server";
 
@@ -17,7 +18,7 @@ export default async function Home() {
       />
     );
   } else if (isAssistant(session)) {
-    return "hi assistant" + session.user.name;
+    return <StaffHomePage userId={session?.user?.id} />;
   } else {
     return "you dont belong here.";
   }

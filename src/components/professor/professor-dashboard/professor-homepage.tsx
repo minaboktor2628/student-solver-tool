@@ -1,9 +1,9 @@
 "use client";
 import React from "react";
-import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
+import { DeadlineCard } from "@/components/professor/professor-dashboard/professor-deadline-card";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
-import { Header } from "@/components/professor/professor-dashboard/header";
 import { api } from "@/trpc/react";
+import { Header } from "./professor-dashboard-header";
 
 interface ProfessorHomePageProps {
   professorId: string;

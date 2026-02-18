@@ -21,15 +21,19 @@ export const dashboardRoute = createTRPCRouter({
           ctx.db.staffPreference.count({
             where: {
               termId,
-              canEdit: true,
+              user: {
+                canEditForm: true,
+              },
             },
           }),
 
           ctx.db.professorPreference.count({
             where: {
-              canEdit: true,
               section: {
                 termId,
+                professor: {
+                  canEditForm: true,
+                },
               },
             },
           }),

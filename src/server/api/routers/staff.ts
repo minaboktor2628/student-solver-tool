@@ -247,11 +247,18 @@ export const staffRoute = createTRPCRouter({
       const termId = input.termId;
 
       const users = await ctx.db.user.findMany({
+        where: {
+          AllowedInTerms: {
+            some: {
+              id: termId,
+            },
+          },
+        },
         include: {
           roles: true,
           staffPreferences: {
             where: { termId },
-            select: { canEdit: true, id: true },
+            select: { id: true },
           },
         },
         orderBy: {
@@ -268,7 +275,7 @@ export const staffRoute = createTRPCRouter({
             email: user.email,
             hours: user.hours,
             roles: user.roles.map((r) => r.role),
-            locked: staffPref ? !staffPref.canEdit : false,
+            locked: staffPref ? !user.canEditForm : false,
             hasPreference: !!staffPref,
           };
         }),
@@ -411,9 +418,13 @@ export const staffRoute = createTRPCRouter({
       const { termId } = input;
 
       // Lock all existing staff preferences
-      const result = await ctx.db.staffPreference.updateMany({
-        where: { termId },
-        data: { canEdit: false },
+      const result = await ctx.db.user.updateMany({
+        where: {
+          AllowedInTerms: {
+            some: { id: termId },
+          },
+        },
+        data: { canEditForm: false },
       });
 
       return {
@@ -429,9 +440,13 @@ export const staffRoute = createTRPCRouter({
       const { termId } = input;
 
       // Unlock all existing staff preferences
-      const result = await ctx.db.staffPreference.updateMany({
-        where: { termId },
-        data: { canEdit: true },
+      const result = await ctx.db.user.updateMany({
+        where: {
+          AllowedInTerms: {
+            some: { id: termId },
+          },
+        },
+        data: { canEditForm: true },
       });
 
       return {
@@ -459,21 +474,24 @@ export const staffRoute = createTRPCRouter({
             termId,
           },
         },
-        select: { id: true, canEdit: true },
+        select: { id: true, user: true },
       });
 
       if (staffPref) {
         // Toggle existing preference
-        const updated = await ctx.db.staffPreference.update({
-          where: { id: staffPref.id },
-          data: { canEdit: !staffPref.canEdit },
-          select: { id: true, canEdit: true },
+        const updated = await ctx.db.user.update({
+          where: {
+            id: userId,
+            staffPreferences: { some: { termId: termId } },
+          },
+          data: { canEditForm: !staffPref.user.canEditForm },
+          select: { id: true, canEditForm: true },
         });
 
         return {
           success: true,
-          canEdit: updated.canEdit,
-          message: updated.canEdit
+          canEdit: updated.canEditForm,
+          message: updated.canEditForm
             ? "User unlocked - can now edit preferences"
             : "User locked - cannot edit preferences",
         };
@@ -483,14 +501,12 @@ export const staffRoute = createTRPCRouter({
           data: {
             userId,
             termId,
-            canEdit: false,
           },
-          select: { id: true, canEdit: true },
+          select: { id: true },
         });
 
         return {
           success: true,
-          canEdit: created.canEdit,
           message: "User locked - cannot submit preferences",
         };
       }

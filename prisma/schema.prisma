@@ -53,6 +53,9 @@ model Term {
 
   termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
   termProfessorDueDate DateTime // When professors should have their preferences submitted by
+
+  published Boolean @default(false)
+
   createdAt            DateTime @default(now())
   active               Boolean  @default(false)
 
@@ -73,7 +76,6 @@ model StaffPreference {
   isAvailableForTerm Boolean @default(false) // Whether the staff is available to work this term at all
 
   timesAvailable StaffAvailableHour[]
-  canEdit        Boolean              @default(true) // Has ability to still modify their preferences or not
   comments       String? // Any additional comments that the staff has
 
   qualifiedForSections StaffPreferenceQualifiedSection[]
@@ -161,7 +163,6 @@ model ProfessorPreference {
   section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   sectionId String  @unique
 
-  canEdit       Boolean             @default(true) // Has ability to still modify their preferences or not
   timesRequired SectionNeededHour[]
   comments      String?
 
@@ -215,6 +216,7 @@ model User {
   name          String?
   email         String?    @unique
   emailVerified DateTime?
+  canEditForm   Boolean @default(true)
   accounts      Account[]
   sessions      Session[]
   roles         UserRole[]
