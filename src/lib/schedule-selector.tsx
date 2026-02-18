@@ -19,6 +19,8 @@ function keyOf(slot: Slot) {
   return `${slot.day}:${slot.hour}`;
 }
 
+export const isSlot = (s: Slot | null): s is Slot => s !== null;
+
 export function dedupe(slots: Slot[]): Slot[] {
   const seen = new Map<string, Slot>();
   for (const slot of slots) {

@@ -3,12 +3,6 @@ import * as z from "zod";
 export const AcademicLevelSchema = z.enum(["Graduate", "Undergraduate"]);
 export type AcademicLevel = z.infer<typeof AcademicLevelSchema>;
 
-export const DeliveryModeSchema = z.enum(["Hybrid", "In-Person", "Online"]);
-export type DeliveryMode = z.infer<typeof DeliveryModeSchema>;
-
-export const SectionStatusSchema = z.enum(["Closed", "Open", "Waitlist"]);
-export type SectionStatus = z.infer<typeof SectionStatusSchema>;
-
 export const ReportEntrySchema = z.object({
   Course_Section_Start_Date: z.string(),
   CF_LRV_Cluster_Ref_ID: z.string(),
@@ -21,9 +15,9 @@ export const ReportEntrySchema = z.object({
   Course_Description: z.string(),
   Public_Notes: z.string(),
   Subject: z.string(),
-  Delivery_Mode: DeliveryModeSchema,
+  Delivery_Mode: z.string(),
   Academic_Level: AcademicLevelSchema,
-  Section_Status: SectionStatusSchema,
+  Section_Status: z.string(),
   Credits: z.string(),
   Section_Details: z.string(),
   Instructors: z.string(),
