@@ -14,6 +14,7 @@ import z from "zod";
 import { CSVDropzone } from "@/components/csv-dropzone";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, type ReactNode, type FormEvent } from "react";
 
 const CSVRowSchema = z.object({
@@ -84,71 +85,84 @@ export function UploadAllowedUsersForm({
           <DialogTitle>Allowed Users</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div>
-            <CSVDropzone
-              schema={CSVRowSchema}
-              onSubmit={handleSubmit}
-              disabled={uploadUsers.isPending}
-              dedupeBy={(row) => row.email}
-              exampleRow={{
-                name: "Boktor, Mina",
-                email: "mboktor@wpi.edu",
-                role: "PLA",
-              }}
-            />
-          </div>
+          <Tabs defaultValue="csv">
+            <TabsList>
+              <TabsTrigger value="csv">Upload CSV</TabsTrigger>
+              <TabsTrigger value="form">Add Individual</TabsTrigger>
+            </TabsList>
 
-          <div className="flex justify-start">
-            <div className="w-80">
-              <div className="bg-background/50 space-y-2 rounded-md border p-4">
-                <div className="text-lg font-medium">Add Individual User</div>
-                <form onSubmit={handleSingleSubmit} className="space-y-2">
-                  <div>
-                    <label className="text-sm font-medium">Name</label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Anthony, Roman"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <Input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="ranthony@wpi.edu"
-                      type="email"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Role</label>
-                    <select
-                      value={role}
-                      onChange={(e) => setRole(e.target.value as Role)}
-                      className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-                    >
-                      <option value="">Select role</option>
-                      {Object.values(Role).map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={uploadUsers.isPending}
-                      variant="default"
-                    >
-                      Add User
-                    </Button>
-                  </div>
-                </form>
+            <TabsContent value="csv">
+              <div>
+                <CSVDropzone
+                  schema={CSVRowSchema}
+                  onSubmit={handleSubmit}
+                  disabled={uploadUsers.isPending}
+                  dedupeBy={(row) => row.email}
+                  exampleRow={{
+                    name: "Boktor, Mina",
+                    email: "mboktor@wpi.edu",
+                    role: "PLA",
+                  }}
+                />
               </div>
-            </div>
-          </div>
+            </TabsContent>
+
+            <TabsContent value="form">
+              <div className="flex justify-start">
+                <div className="w-80">
+                  <div className="bg-background/50 space-y-2 rounded-md border p-4">
+                    <div className="text-lg font-medium">
+                      Add Individual User
+                    </div>
+                    <form onSubmit={handleSingleSubmit} className="space-y-2">
+                      <div>
+                        <label className="text-sm font-medium">Name</label>
+                        <Input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Anthony, Roman"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Email</label>
+                        <Input
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="ranthony@wpi.edu"
+                          type="email"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Role</label>
+                        <select
+                          value={role}
+                          onChange={(e) => setRole(e.target.value as Role)}
+                          className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm"
+                        >
+                          <option value="">Select role</option>
+                          {Object.values(Role).map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          disabled={uploadUsers.isPending}
+                          variant="default"
+                        >
+                          Add User
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
