@@ -29,10 +29,10 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   const router = useRouter();
 
   const [{ term }] = api.studentDashboard.getTermInfo.useSuspenseQuery({
-    termId: selectedTermId ?? "",
+    termId,
   });
   const [{ canEdit }] = api.studentForm.getCanEdit.useSuspenseQuery({
-    userId: userId ?? "",
+    userId,
   });
 
   // fetch sections for the selected term and pass to qualifications UI

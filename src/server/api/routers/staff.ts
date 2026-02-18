@@ -251,7 +251,7 @@ export const staffRoute = createTRPCRouter({
           roles: true,
           staffPreferences: {
             where: { termId },
-            select: { canEdit: true, id: true },
+            select: { id: true },
           },
         },
         orderBy: {
@@ -268,7 +268,7 @@ export const staffRoute = createTRPCRouter({
             email: user.email,
             hours: user.hours,
             roles: user.roles.map((r) => r.role),
-            locked: staffPref ? !staffPref.canEdit : false,
+            locked: staffPref ? !user.canEditForm : false,
             hasPreference: !!staffPref,
           };
         }),
@@ -411,9 +411,13 @@ export const staffRoute = createTRPCRouter({
       const { termId } = input;
 
       // Lock all existing staff preferences
-      const result = await ctx.db.staffPreference.updateMany({
-        where: { termId },
-        data: { canEdit: false },
+      const result = await ctx.db.user.updateMany({
+        where: {
+          AllowedInTerms: {
+            some: { termId: termId },
+          },
+        },
+        data: { canEditForm: false },
       });
 
       return {
@@ -429,9 +433,13 @@ export const staffRoute = createTRPCRouter({
       const { termId } = input;
 
       // Unlock all existing staff preferences
-      const result = await ctx.db.staffPreference.updateMany({
-        where: { termId },
-        data: { canEdit: true },
+      const result = await ctx.db.user.updateMany({
+        where: {
+          AllowedInTerms: {
+            some: { termId: termId },
+          },
+        },
+        data: { canEditForm: true },
       });
 
       return {
@@ -460,6 +468,11 @@ export const staffRoute = createTRPCRouter({
           },
         },
         select: { id: true, canEdit: true },
+      });
+
+      const result = await ctx.db.user.findUnique({
+        where: { id: userId, AllowedInTerms: {} },
+        data: { canEditForm: false },
       });
 
       if (staffPref) {

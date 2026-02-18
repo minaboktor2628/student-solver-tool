@@ -73,9 +73,12 @@ const StaffHomePage: React.FC<StaffHomePageProps> = ({ userId }) => {
             courseCode={currentAssignment.assignment.section.courseCode}
             courseSection={currentAssignment.assignment.section.courseSection}
             meetingPattern={currentAssignment.assignment.section.meetingPattern}
-            professorName={currentAssignment.assignment.section.professor.name}
+            professorName={
+              currentAssignment.assignment.section.professor?.name ??
+              "Professor TBD"
+            }
             professorEmail={
-              currentAssignment.assignment.section.professor.email
+              currentAssignment.assignment.section.professor?.email ?? ""
             }
           />
         ) : (
