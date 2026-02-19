@@ -164,11 +164,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
           const courseSelected = isCourseSelected(course);
           return (
             <div key={course.code} className="rounded-lg border shadow-sm">
-              <div className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left">
-                <div
-                  className="flex flex-1 items-center gap-2"
-                  onClick={() => toggleCourse(course)}
-                >
+              <label
+                htmlFor={course.code}
+                className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left"
+              >
+                <div className="flex flex-1 items-center gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -189,6 +189,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                 <div>
                   <Label className="inline-flex items-center gap-2">
                     <Checkbox
+                      id={course.code}
                       checked={courseSelected}
                       onClick={() => toggleCourse(course)}
                       onChange={() => toggleCourse(course)}
@@ -196,7 +197,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                     />
                   </Label>
                 </div>
-              </div>
+              </label>
               {!isMobile && expandedDescriptions.has(course.code) && (
                 <div className="bg-secondary border-t px-4 py-3 text-sm">
                   {course.description}
@@ -208,11 +209,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   {course.sections.map((section) => (
                     <li
                       key={section.id}
-                      className="hover:bg-input flex items-center justify-between rounded-md p-2"
+                      className="hover:bg-input flex items-center justify-between rounded-md"
                     >
-                      <button
-                        onClick={() => toggleSection(section.id)}
-                        className="flex w-full items-center justify-between gap-3 text-left"
+                      <label
+                        htmlFor={section.id}
+                        className="flex w-full items-center justify-between gap-3 p-2 text-left"
                       >
                         <div>
                           <div className="font-medium">
@@ -221,14 +222,15 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                             {section.instructor ?? "TBD"}
                           </div>
                         </div>
-                      </button>
-                      <Checkbox
-                        checked={isSectionSelected(section.id)}
-                        onClick={() => toggleSection(section.id)}
-                        onChange={() => toggleSection(section.id)}
-                        tabIndex={0}
-                        aria-label={`Select section ${section.term}${section.courseSection} for ${course.code}`}
-                      />
+                        <Checkbox
+                          id={section.id}
+                          checked={isSectionSelected(section.id)}
+                          onClick={() => toggleSection(section.id)}
+                          onChange={() => toggleSection(section.id)}
+                          tabIndex={0}
+                          aria-label={`Select section ${section.term}${section.courseSection} for ${course.code}`}
+                        />
+                      </label>
                     </li>
                   ))}
                 </ul>
