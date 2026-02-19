@@ -1,8 +1,21 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 
 export const professorFormRoute = createTRPCRouter({
+  getCanEdit: professorProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input: { userId }, ctx }) => {
+      const canEdit = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: {
+          canEditForm: true,
+        },
+      });
+      return { canEdit };
+    }),
   /** Fetch all sections in a term for a professor */
   getProfessorSectionsForTerm: professorProcedure
     .input(
@@ -13,11 +26,51 @@ export const professorFormRoute = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       if (
-        ctx.session.user.id !== input.professorId &&
-        !ctx.session.user.roles.includes("COORDINATOR")
+        !hasPermission(
+          ctx.session.user,
+          "professorPreferenceForm",
+          "viewActiveTerm",
+          {
+            userId: input.professorId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
+        )
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
+
+      const availableStaffInThisTerm = await ctx.db.user.findMany({
+        where: {
+          AllowedInTerms: { some: { id: input.termId } },
+          roles: { some: { role: { in: ["TA", "PLA"] } } },
+          OR: [
+            // no preference row for this term yet => include
+            { staffPreferences: { none: { termId: input.termId } } },
+
+            // preference exists and they said they're available => include
+            {
+              staffPreferences: {
+                some: { termId: input.termId, isAvailableForTerm: true },
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          hours: true,
+          roles: { select: { role: true } },
+        },
+      });
+
+      const availableStaff = availableStaffInThisTerm.map((u) => ({
+        ...u,
+        roles: u.roles.map((r) => r.role),
+      }));
+
       const sections = await ctx.db.section.findMany({
         where: {
           professorId: input.professorId,
@@ -61,26 +114,11 @@ export const professorFormRoute = createTRPCRouter({
               },
             },
           },
-          qualifiedPreferences: {
-            select: {
-              staffPreference: {
-                select: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                      hours: true,
-                      roles: { select: { role: true } },
-                    },
-                  },
-                },
-              },
-            },
-          },
         },
       });
+
       return {
+        availableAssistants: availableStaff,
         sections: sections.map((s) => ({
           sectionId: s.id,
           courseCode: s.courseCode,
@@ -90,21 +128,22 @@ export const professorFormRoute = createTRPCRouter({
           enrollment: s.enrollment,
           capacity: s.capacity,
           requiredHours: s.requiredHours,
-          availableAssistants: s.qualifiedPreferences?.flatMap(
-            (qp) => qp.staffPreference?.user,
-          ),
-          professorPreference: {
-            preferredStaff: s.professorPreference?.preferredStaff.map((ps) => ({
-              ...ps.staff,
-              roles: ps.staff.roles.map((r) => r.role),
-            })),
-            avoidedStaff: s.professorPreference?.avoidedStaff.map((as) => ({
-              ...as.staff,
-              roles: as.staff.roles.map((r) => r.role),
-            })),
-            timesRequired: s.professorPreference?.timesRequired ?? [],
-            comments: s.professorPreference?.comments,
-          },
+          professorPreference: !s.professorPreference
+            ? undefined
+            : {
+                preferredStaff: s.professorPreference.preferredStaff.map(
+                  (ps) => ({
+                    ...ps.staff,
+                    roles: ps.staff.roles.map((r) => r.role),
+                  }),
+                ),
+                avoidedStaff: s.professorPreference.avoidedStaff.map((as) => ({
+                  ...as.staff,
+                  roles: as.staff.roles.map((r) => r.role),
+                })),
+                timesRequired: s.professorPreference.timesRequired ?? [],
+                comments: s.professorPreference.comments,
+              },
         })),
       };
     }),
@@ -132,15 +171,37 @@ export const professorFormRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const { professorId, sections } = input;
       if (
-        ctx.session.user.id !== input.professorId &&
-        !ctx.session.user.roles.includes("COORDINATOR")
+        !hasPermission(ctx.session.user, "professorPreferenceForm", "update", {
+          userId: input.professorId,
+          isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+            ctx.session.user.id,
+          ),
+        })
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const { professorId, sections } = input;
 
       return await ctx.db.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+          where: { id: professorId },
+          select: { canEditForm: true },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `User with ID ${professorId} not found.`,
+          });
+        }
+
+        if (!user.canEditForm) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "No permission to edit form.",
+          });
+        }
         return Promise.all(
           sections.map(async (section) => {
             const { sectionId, professorPreference } = section;

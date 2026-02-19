@@ -1,6 +1,6 @@
 import { api } from "@/trpc/react";
-import { useTerm } from "../term-combobox";
-import { Button } from "../ui/button";
+import { useTerm } from "@/components/term-combobox";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface AvailabilityProps {
@@ -16,24 +16,26 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
   onNext,
   onExit,
 }) => {
+  const utils = api.useUtils();
   const updateAvailabilityMutation =
-    api.studentForm.setAvailabilityForTerm.useMutation({
+    api.studentForm.saveStudentForm.useMutation({
       onError: (error) => {
         console.error("Failed to update availability:", error);
       },
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
         toast.success("Form saved successfully");
+        void utils.studentDashboard.invalidate();
+        if (variables.isAvailableForTerm) onNext();
+        else onExit();
       },
     });
 
-  function handleYNClick(answer: boolean) {
+  function handleYNClick(isAvailableForTerm: boolean) {
     updateAvailabilityMutation.mutate({
       userId,
       termId,
-      isAvailable: answer,
+      isAvailableForTerm,
     });
-    if (answer === true) onNext();
-    else onExit();
   }
 
   const { selectedTerm } = useTerm();

@@ -1,33 +1,29 @@
 "use client";
-import React, { useState } from "react";
+import { Item, ItemContent, ItemTitle } from "@/components/ui/item";
+import { Textarea } from "@/components/ui/textarea";
+import React from "react";
 
 export type ProfessorCommentBoxProps = {
-  sectionId: string;
-  initialComment: string | undefined | null;
-  onChange: (sectionId: string, comments: string | null) => void;
+  comment: string | undefined;
+  onChange: (comments: string) => void;
 };
 
 export const FormEntryComments: React.FC<ProfessorCommentBoxProps> = ({
-  sectionId,
-  initialComment,
+  comment,
   onChange,
 }) => {
-  const [comments, setComments] = useState<string | null>(initialComment ?? "");
-  const toggleComments = (comment: string | null) => {
-    setComments(comment);
-    onChange(sectionId, comment);
-  };
-
   return (
-    <div className="p-4">
-      <h2 className="mb-4 text-xl font-semibold">Any additional comments?</h2>
-      <textarea
-        value={comments ?? ""}
-        onChange={(e) => toggleComments(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 p-3"
+    <Item className="px-0">
+      <ItemContent>
+        <ItemTitle>Any additional comments?</ItemTitle>
+      </ItemContent>
+
+      <Textarea
+        value={comment ?? ""}
+        onChange={(e) => onChange(e.target.value)}
         placeholder="Please leave any additional comments here..."
         rows={4}
       />
-    </div>
+    </Item>
   );
 };

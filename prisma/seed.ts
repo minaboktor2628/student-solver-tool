@@ -12,7 +12,6 @@ async function main() {
     prisma.staffPreferencePreferredSection.deleteMany(),
     prisma.staffPreferenceQualifiedSection.deleteMany(),
     prisma.staffPreference.deleteMany(),
-    prisma.allowedTermUser.deleteMany(),
     prisma.userRole.deleteMany(),
     prisma.section.deleteMany(),
     prisma.term.deleteMany(),
@@ -34,54 +33,53 @@ async function main() {
   });
 
   // ----- USERS -----
-  const [professor, ahrens, ta, pla, pla2, coordinator, testprof] =
-    await Promise.all([
-      prisma.user.create({
-        data: {
-          name: "Prof. Discrete",
-          email: "prof.discrete@wpi.edu",
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Matthew Ahrens",
-          email: "mahrens@wpi.edu",
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Taylor TA",
-          email: "ta.taylor@wpi.edu",
-          hours: 20,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Pat PLA",
-          email: "pla.pat@wpi.edu",
-          hours: 10,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Mat PLA",
-          email: "pla.mat@wpi.edu",
-          hours: 10,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Casey Coordinator",
-          email: "coordinator.casey@wpi.edu",
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: "Test Professor",
-          email: "testprof@wpi.edu",
-        },
-      }),
-    ]);
+  const [professor, testprof, ta, pla, pla2, coordinator] = await Promise.all([
+    prisma.user.create({
+      data: {
+        name: "Prof. Discrete",
+        email: "prof.discrete@wpi.edu",
+        AllowedInTerms: { connect: { id: term.id } },
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Prof, prof",
+        email: "prof2@wpi.edu",
+        AllowedInTerms: { connect: { id: term.id } },
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Taylor TA",
+        email: "ta.taylor@wpi.edu",
+        hours: 20,
+        AllowedInTerms: { connect: { id: term.id } },
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Pat PLA",
+        email: "pla.pat@wpi.edu",
+        hours: 10,
+        AllowedInTerms: { connect: { id: term.id } },
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Mat PLA",
+        email: "pla.mat@wpi.edu",
+        hours: 10,
+        AllowedInTerms: { connect: { id: term.id } },
+      },
+    }),
+    prisma.user.create({
+      data: {
+        name: "Casey Coordinator",
+        email: "coordinator.casey@wpi.edu",
+        AllowedInTerms: { connect: { id: term.id } },
+      },
+    }),
+  ]);
 
   // ----- ROLES -----
   await prisma.userRole.createMany({
@@ -92,36 +90,6 @@ async function main() {
       { userId: pla2.id, role: Role.PLA },
       { userId: coordinator.id, role: Role.COORDINATOR },
       { userId: testprof.id, role: Role.PROFESSOR },
-    ],
-  });
-
-  // ----- ALLOWED EMAILS FOR THIS TERM -----
-  await prisma.allowedTermUser.createMany({
-    data: [
-      {
-        userId: professor.id,
-        termId: term.id,
-      },
-      {
-        userId: ta.id,
-        termId: term.id,
-      },
-      {
-        userId: pla.id,
-        termId: term.id,
-      },
-      {
-        userId: pla2.id,
-        termId: term.id,
-      },
-      {
-        userId: coordinator.id,
-        termId: term.id,
-      },
-      {
-        userId: testprof.id,
-        termId: term.id,
-      },
     ],
   });
 

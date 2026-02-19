@@ -18,14 +18,12 @@ declare module "next-auth" {
     user: {
       id: string;
       roles: Role[];
-      allowedInActiveTerm?: boolean; // whether the user has been added by the coordinator as a participant in this term
     } & DefaultSession["user"];
   }
 
   interface User {
     id: string;
     roles?: Role[];
-    allowedInActiveTerm?: boolean;
   }
 }
 
@@ -33,7 +31,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     roles?: Role[];
-    allowedInActiveTerm?: boolean;
   }
 }
 
@@ -70,10 +67,6 @@ export const authConfig = {
         token.roles = await getAllowedRolesForEmail(user.email);
       }
 
-      if (token.id) {
-        token.allowedInActiveTerm = await computeAllowedInActiveTerm(token.id);
-      }
-
       return token;
     },
 
@@ -81,7 +74,6 @@ export const authConfig = {
       if (session.user) {
         if (token.id) session.user.id = token.id;
         session.user.roles = token.roles ?? [];
-        session.user.allowedInActiveTerm = token.allowedInActiveTerm ?? false;
       }
       return session;
     },
@@ -172,25 +164,10 @@ async function hasEverBeenAllowed(email: string): Promise<boolean> {
 
   const user = await db.user.findUnique({
     where: { email },
-    include: { AllowedTermUsers: true },
+    select: { _count: { select: { AllowedInTerms: true } } },
   });
 
   if (!user) return false;
 
-  // any AllowedTermUser record at all = allowed at some point in history
-  return user.AllowedTermUsers.length > 0;
-}
-
-async function computeAllowedInActiveTerm(userId: string): Promise<boolean> {
-  const activeTerm = await db.term.findFirst({ where: { active: true } });
-  if (!activeTerm) return false;
-
-  const count = await db.allowedTermUser.count({
-    where: {
-      userId,
-      termId: activeTerm.id,
-    },
-  });
-
-  return count > 0;
+  return user._count.AllowedInTerms > 0;
 }

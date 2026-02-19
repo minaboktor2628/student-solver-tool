@@ -22,7 +22,7 @@ export function StaffItem({
   roles,
   comments,
   timesAvailable,
-  preferedSections,
+  preferredSections,
   assignedSection,
   children,
 }: StaffItemProps) {
@@ -71,11 +71,11 @@ export function StaffItem({
             </p>
           </div>
 
-          {preferedSections && preferedSections.length > 0 && (
+          {preferredSections && preferredSections.length > 0 && (
             <div>
               <p className="font-medium">Preferred Sections:</p>
               <ol className="mx-4 list-disc">
-                {preferedSections.map((s) => (
+                {preferredSections.map((s) => (
                   <li key={s.section.id}>
                     {s.section.courseCode} - {s.section.courseSection}{" "}
                     <span className="text-sm font-medium">({s.rank})</span>

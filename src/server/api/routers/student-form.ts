@@ -2,6 +2,11 @@ import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
+import {
+  allowedPreferTokens,
+  allowedStrongTokens,
+} from "@/components/staff/MultiStepForm/form-entry-preferences";
 
 /**
  * Router: studentFormRoute
@@ -17,6 +22,18 @@ const baseInput = z.object({
 });
 
 export const studentFormRoute = createTRPCRouter({
+  getCanEdit: assistantProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input: { userId }, ctx }) => {
+      const canEdit = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: {
+          canEditForm: true,
+        },
+      });
+      return { canEdit };
+    }),
+
   /** Fetch all sections for a given term, grouped by courseCode */
   getSections: assistantProcedure
     .input(z.object({ termId: z.string() }))
@@ -27,6 +44,7 @@ export const studentFormRoute = createTRPCRouter({
         select: {
           term: { select: { termLetter: true, year: true } },
           id: true,
+          description: true,
           courseCode: true,
           courseSection: true,
           courseTitle: true,
@@ -50,6 +68,7 @@ export const studentFormRoute = createTRPCRouter({
         ([courseCode, items]) => ({
           code: courseCode,
           title: items[0] ? items[0].courseTitle : "",
+          description: items[0] ? items[0].description : "",
           sections: items.map((it) => ({
             term: it.term.termLetter,
             id: it.id,
@@ -85,7 +104,12 @@ export const studentFormRoute = createTRPCRouter({
           ctx.session.user,
           "staffPreferenceForm",
           "viewActiveTerm",
-          { id: userId },
+          {
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
         )
       ) {
         throw new TRPCError({
@@ -142,6 +166,7 @@ export const studentFormRoute = createTRPCRouter({
           )
           .optional(),
         qualifiedSectionIds: z.array(z.string()).optional(),
+        isAvailableForTerm: z.boolean().optional(),
         sectionPreferences: z
           .record(z.string(), z.enum(["prefer", "strong"]).optional())
           .optional(),
@@ -157,12 +182,16 @@ export const studentFormRoute = createTRPCRouter({
           qualifiedSectionIds,
           sectionPreferences,
           comments,
+          isAvailableForTerm,
         },
         ctx,
       }) => {
         if (
           !hasPermission(ctx.session.user, "staffPreferenceForm", "create", {
-            id: userId,
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
           })
         ) {
           throw new TRPCError({
@@ -184,6 +213,13 @@ export const studentFormRoute = createTRPCRouter({
             });
           }
 
+          if (!user.canEditForm) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "No permission to edit form.",
+            });
+          }
+
           // 2. Verify term exists
           const term = await tx.term.findUniqueOrThrow({
             where: { id: termId },
@@ -201,12 +237,13 @@ export const studentFormRoute = createTRPCRouter({
             where: { userId_termId: { userId, termId: term.id } },
             update: {
               ...(comments !== undefined && { comments: comments || null }),
-              updatedAt: new Date(),
+              isAvailableForTerm,
             },
             create: {
               userId,
               termId: term.id,
               comments: comments ?? null,
+              isAvailableForTerm,
             },
           });
 
@@ -225,6 +262,13 @@ export const studentFormRoute = createTRPCRouter({
                 })),
               });
             }
+            // Set isAvailableForTerm to false if array is empty
+            else {
+              await tx.staffPreference.update({
+                where: { userId_termId: { userId, termId } },
+                data: { isAvailableForTerm: false },
+              });
+            }
           }
 
           // 5. Upsert preferred sections (replace existing)
@@ -241,7 +285,7 @@ export const studentFormRoute = createTRPCRouter({
             const preferCount = Object.entries(sectionPreferences).filter(
               ([, rank]) => rank === "prefer",
             ).length;
-            if (preferCount > 3) {
+            if (preferCount > allowedPreferTokens) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: `Cannot prefer more than 3 sections.`,
@@ -251,7 +295,7 @@ export const studentFormRoute = createTRPCRouter({
             const strongPreferCount = Object.entries(sectionPreferences).filter(
               ([, rank]) => rank === "strong",
             ).length;
-            if (strongPreferCount > 1) {
+            if (strongPreferCount > allowedStrongTokens) {
               throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: `Cannot strongly prefer more than 1 section.`,
@@ -305,8 +349,11 @@ export const studentFormRoute = createTRPCRouter({
     )
     .mutation(async ({ input: { userId, termId, isAvailable }, ctx }) => {
       if (
-        !hasPermission(ctx.session.user, "staffPreferenceForm", "create", {
-          id: userId,
+        !hasPermission(ctx.session.user, "staffPreferenceForm", "update", {
+          userId,
+          isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+            ctx.session.user.id,
+          ),
         })
       ) {
         throw new TRPCError({
@@ -315,9 +362,16 @@ export const studentFormRoute = createTRPCRouter({
         });
       }
 
-      const result = await ctx.db.staffPreference.updateMany({
-        where: { userId, termId },
-        data: { isAvailableForTerm: isAvailable },
+      const result = await ctx.db.staffPreference.upsert({
+        where: { userId_termId: { userId, termId } },
+        update: {
+          isAvailableForTerm: isAvailable,
+        },
+        create: {
+          userId,
+          termId,
+          isAvailableForTerm: isAvailable,
+        },
       });
       return result;
     }),
