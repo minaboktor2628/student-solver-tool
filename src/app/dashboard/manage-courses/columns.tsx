@@ -31,37 +31,25 @@ export const createColumns = (
   onDelete: (course: Course) => void,
 ): ColumnDef<Course>[] => [
   {
-    accessorKey: "courseCode",
-    header: "Course Code",
+    id: "title",
+    header: "Title",
     cell: ({ row }) => {
-      return <div className="font-medium">{row.getValue("courseCode")}</div>;
-    },
-  },
-  {
-    accessorKey: "courseTitle",
-    header: "Course Title",
-    cell: ({ row }) => {
-      const title = row.getValue<string>("courseTitle");
+      const code = row.original.courseCode ?? "";
+      const section = row.original.courseSection ?? "";
+      const title = row.original.courseTitle ?? "";
+      const combined = `${code}-${section} ${title}`.trim();
       return (
-        <div className="max-w-[200px] truncate" title={title}>
-          {title}
+        <div className="max-w-[400px] truncate" title={combined}>
+          <span className="font-medium">{combined}</span>
         </div>
       );
-    },
-  },
-  {
-    accessorKey: "courseSection",
-    header: "Section",
-    cell: ({ row }) => {
-      const section = row.getValue<string>("courseSection");
-      return <div className="font-medium">{section}</div>;
     },
   },
   {
     accessorKey: "professorName",
     header: "Professor",
     cell: ({ row }) => {
-      const name = row.getValue<string>("professorName");
+      const name = row.original.professorName ?? "";
       return (
         <div className="flex items-center gap-2">
           <GraduationCap className="text-muted-foreground h-4 w-4" />

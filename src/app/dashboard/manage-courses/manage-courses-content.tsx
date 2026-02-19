@@ -17,7 +17,7 @@ import { BookOpen, RefreshCw, Users as UsersIcon } from "lucide-react";
 
 // shadcn components
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/shadcn-io/data-table/data-table";
 
 import {
   Dialog,
@@ -366,8 +366,7 @@ export default function ManageCoursesContent() {
             <DataTable
               columns={columns}
               data={courses}
-              searchKey="courseCode"
-              searchPlaceholder="Search by code..."
+              filterByString="title"
             />
           </CardContent>
         </Card>

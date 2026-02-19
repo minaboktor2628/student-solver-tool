@@ -19,7 +19,7 @@ import * as z from "zod";
 // shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/ui/shadcn-io/data-table/data-table";
 import {
   Dialog,
   DialogContent,
@@ -465,12 +465,7 @@ export default function ManageUsersContent() {
             )}
           </CardHeader>
           <CardContent className="p-6">
-            <DataTable
-              columns={columns}
-              data={users}
-              searchKey="name"
-              searchPlaceholder="Search by name..."
-            />
+            <DataTable columns={columns} data={users} filterByString="name" />
           </CardContent>
         </Card>
 
