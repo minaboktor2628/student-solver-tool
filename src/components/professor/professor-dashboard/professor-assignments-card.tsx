@@ -49,7 +49,7 @@ const ProfessorAssignmentsCard: React.FC<ProfessorAssignmentsCardProps> = ({
 
               <h4 className="mt-3 font-medium">Assigned Staff</h4>
               {section.assignedStaff.length === 0 ? (
-                <p className="text-sm text-gray-500">No staff assigned yet.</p>
+                <p className="text-sm text-gray-500">No staff assigned for this term.</p>
               ) : (
                 <ul className="mt-1 space-y-2">
                   {section.assignedStaff.map((staff) => (
