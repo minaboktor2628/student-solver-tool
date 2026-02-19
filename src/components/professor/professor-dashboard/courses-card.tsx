@@ -7,44 +7,17 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import type {
-  ProfessorSection,
-  TimesRequiredOutput,
-  WeeklySlot,
-} from "@/types/professor";
-import { BaseScheduleSelector } from "@/lib/schedule-selector";
+import { BaseScheduleSelector, slotToDate } from "@/lib/schedule-selector";
+import type { RouterOutputs } from "@/trpc/react";
 
 type CoursesCardProps = {
-  sections: ProfessorSection[];
+  sections: RouterOutputs["professorForm"]["getProfessorSectionsForTerm"]["sections"];
   isSubmitted: boolean;
 };
 export const CoursesCard: React.FC<CoursesCardProps> = ({
   sections,
   isSubmitted,
 }) => {
-  const calendarStart = new Date(1970, 0, 5);
-  const dayMap: Record<WeeklySlot["day"], number> = {
-    M: 0,
-    T: 1,
-    W: 2,
-    R: 3,
-    F: 4,
-  };
-  function timesRequiredToDate(
-    times: TimesRequiredOutput[],
-    calendarStart: Date,
-  ): Date[] {
-    return times.map((time) => {
-      const dayOffset = dayMap[time.day];
-
-      const date = new Date(calendarStart);
-      date.setDate(calendarStart.getDate() + dayOffset);
-      date.setHours(time.hour, 0, 0, 0);
-
-      return date;
-    });
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -58,9 +31,8 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({
           {Object.values(sections ?? {}).map((course) => (
             <div key={course.sectionId} className="rounded-lg border p-4">
               <h3 className="font-semibold">
+                {course.courseCode}-{course.courseSection} -{" "}
                 {course.courseTitle}
-                <br />
-                {course.courseCode}-{course.courseSection}
               </h3>
               {isSubmitted && (
                 <div>
@@ -100,9 +72,8 @@ export const CoursesCard: React.FC<CoursesCardProps> = ({
                   {course.professorPreference?.timesRequired?.length ? (
                     <div className="pointer-events-none max-w-[800px]">
                       <BaseScheduleSelector
-                        selection={timesRequiredToDate(
-                          course.professorPreference.timesRequired,
-                          calendarStart,
+                        selection={course.professorPreference.timesRequired.map(
+                          slotToDate,
                         )}
                       />
                     </div>

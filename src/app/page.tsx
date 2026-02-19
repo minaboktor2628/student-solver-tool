@@ -2,16 +2,24 @@ import { auth } from "@/server/auth";
 import ProfessorHomePageComponent from "@/components/professor/professor-dashboard/professor-homepage";
 import { isAssistant, isCoordinator, isProfessor } from "@/lib/utils";
 import { redirect } from "next/navigation";
+import StaffHomePage from "@/components/staff/staff-homepage";
+import { api } from "@/trpc/server";
 
 export default async function Home() {
   const session = await auth();
-
+  const activeTerm = await api.term.getActive();
   if (!session) return;
 
   if (isProfessor(session)) {
-    return <ProfessorHomePageComponent userId={session?.user?.id} />;
+    if (!activeTerm) return "No active term.";
+    return (
+      <ProfessorHomePageComponent
+        professorId={session?.user?.id}
+        termId={activeTerm.id}
+      />
+    );
   } else if (isAssistant(session)) {
-    return "hi assistant" + session.user.name;
+    return <StaffHomePage userId={session?.user?.id} />;
   } else if (isCoordinator(session) && !isProfessor(session)) {
     // rare case, for testing
     redirect("dashboard");
