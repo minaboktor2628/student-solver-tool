@@ -122,18 +122,22 @@ export const professorFormRoute = createTRPCRouter({
           enrollment: s.enrollment,
           capacity: s.capacity,
           requiredHours: s.requiredHours,
-          professorPreference: {
-            preferredStaff: s.professorPreference?.preferredStaff.map((ps) => ({
-              ...ps.staff,
-              roles: ps.staff.roles.map((r) => r.role),
-            })),
-            avoidedStaff: s.professorPreference?.avoidedStaff.map((as) => ({
-              ...as.staff,
-              roles: as.staff.roles.map((r) => r.role),
-            })),
-            timesRequired: s.professorPreference?.timesRequired ?? [],
-            comments: s.professorPreference?.comments,
-          },
+          professorPreference: !s.professorPreference
+            ? undefined
+            : {
+                preferredStaff: s.professorPreference.preferredStaff.map(
+                  (ps) => ({
+                    ...ps.staff,
+                    roles: ps.staff.roles.map((r) => r.role),
+                  }),
+                ),
+                avoidedStaff: s.professorPreference.avoidedStaff.map((as) => ({
+                  ...as.staff,
+                  roles: as.staff.roles.map((r) => r.role),
+                })),
+                timesRequired: s.professorPreference.timesRequired ?? [],
+                comments: s.professorPreference.comments,
+              },
         })),
       };
     }),
