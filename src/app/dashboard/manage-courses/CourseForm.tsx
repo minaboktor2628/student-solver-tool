@@ -23,6 +23,7 @@ import { AcademicLevel } from "@prisma/client";
 import { Combobox } from "@/components/ui/combobox";
 import { RefreshCw, Save, BookOpen } from "lucide-react";
 import React from "react";
+import { FormCombobox } from "@/components/form";
 
 export interface CourseFormProps {
   form: UseFormReturn<CourseFormValues>;
@@ -104,28 +105,14 @@ export function CourseForm({
               )}
             />
           </div>
-          <FormField
+          <FormCombobox
             control={form.control}
             name="professorId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Professor</FormLabel>
-                <FormControl>
-                  <Combobox
-                    options={professors.map((p) => ({
-                      value: p.id,
-                      label: p.name ?? "Unknown Professor",
-                    }))}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    placeholder="Select a professor..."
-                    searchPlaceholder="Search professors..."
-                    emptyMessage="No professors found."
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Professor"
+            options={professors.map((p) => ({
+              value: p.id,
+              label: p.name ?? "Unknown Professor",
+            }))}
           />
           <div className="grid grid-cols-2 gap-4">
             <FormField
