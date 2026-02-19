@@ -3,7 +3,7 @@ import z from "zod";
 
 export const createTermInputSchema = z.object({
   termLetter: z.nativeEnum(TermLetter),
-  year: z.number().int().nonnegative(),
+  year: z.coerce.number().int().nonnegative(),
   termStaffDueDate: z.coerce.date(),
   termProfessorDueDate: z.coerce.date(),
 });

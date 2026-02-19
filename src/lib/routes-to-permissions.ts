@@ -9,6 +9,8 @@ import {
   ScanFaceIcon,
   UsersIcon,
   UserStarIcon,
+  History,
+  FileText,
   type LucideProps,
 } from "lucide-react";
 import type { Route } from "next";
@@ -71,23 +73,22 @@ export const ROUTES: NavItem[] = [
     ],
   },
   {
-    label: "Professor Dashboard",
+    label: "Preferences",
     href: "/professor",
     allowed: ["PROFESSOR"],
     icon: UserStarIcon,
-    children: [
-      {
-        label: "Preferences",
-        href: "/professor/preferences",
-        icon: ComputerIcon,
-      },
-    ],
   },
   {
     label: "Preferences",
     href: "/preferences-form",
     allowed: ["PLA", "TA"],
-    icon: ScanFaceIcon,
+    icon: FileText,
+  },
+  {
+    label: "History",
+    href: "/assignment-history",
+    allowed: ["PLA", "TA"],
+    icon: History,
   },
 ];
 

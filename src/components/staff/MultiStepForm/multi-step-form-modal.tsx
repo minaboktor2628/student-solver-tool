@@ -28,6 +28,13 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
   const router = useRouter();
 
+  const [{ term }] = api.studentDashboard.getTermInfo.useSuspenseQuery({
+    termId,
+  });
+  const [{ canEdit }] = api.studentForm.getCanEdit.useSuspenseQuery({
+    userId,
+  });
+
   // fetch sections for the selected term and pass to qualifications UI
   const [{ sections }] = api.studentForm.getSections.useSuspenseQuery({
     termId,
@@ -43,6 +50,28 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
     onClose?.();
   };
 
+  const cantEditContainer = (
+    // <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
+    //   <h1>Preferences Form locked for {term.termLetter} Term {term.year}</h1>
+    // </div>
+    <div className="mb-8">
+      <h1 className="text-3xl font-bold">
+        Preferences Form is closed for {term.termLetter} Term {term.year}
+      </h1>
+      <p className="text-muted-foreground mt-2">
+        The coordinator has locked the form, and edits cannot be made at this
+        time.
+      </p>
+    </div>
+  );
+  if (!canEdit?.canEditForm) {
+    if (inline) return cantEditContainer;
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="border-foreground bg-background h-[600px] w-[90vw] max-w-2xl overflow-y-auto rounded-2xl border p-10 shadow-lg">
+        {cantEditContainer}
+      </div>
+    </div>;
+  }
   const container = (
     <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
       <ProgressIndicator step={step} totalSteps={5} />

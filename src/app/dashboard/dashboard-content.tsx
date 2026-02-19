@@ -249,20 +249,6 @@ export default function DashboardContent() {
   const staffDeadline = formatDeadline(currentTerm?.termStaffDueDate);
   const professorDeadline = formatDeadline(currentTerm?.termProfessorDueDate);
 
-  // Loading UI
-  // if (isLoading) {
-  //   return (
-  //     <div className="bg-background flex min-h-screen items-center justify-center">
-  //       <div className="flex items-center gap-3">
-  //         <RefreshCw className="text-primary h-8 w-8 animate-spin" />
-  //         <span className="text-muted-foreground text-lg">
-  //           Loading dashboard...
-  //         </span>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   function copyEmailsToClipboard(
     people: Array<{ email?: string | null }>,
   ): void {
