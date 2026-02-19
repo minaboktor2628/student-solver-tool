@@ -20,6 +20,7 @@ import { FormEntryComments } from "./comment-box";
 import type { Slot } from "@/lib/schedule-selector";
 import { Separator } from "@/components/ui/separator";
 import type { User } from "next-auth";
+import { useRouter } from "next/navigation";
 
 interface ProfessorPreferenceFormProps {
   userId: string;
@@ -44,6 +45,7 @@ export default function ProfessorPreferenceForm({
   userId,
   termId,
 }: ProfessorPreferenceFormProps) {
+  const router = useRouter();
   const [{ sections, availableAssistants }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
       termId,
@@ -57,10 +59,10 @@ export default function ProfessorPreferenceForm({
 
     sections.forEach((section) => {
       initial[section.sectionId] = {
-        preferredStaff: section.professorPreference.preferredStaff ?? [],
-        avoidedStaff: section.professorPreference.avoidedStaff ?? [],
-        timesRequired: section.professorPreference.timesRequired ?? [],
-        comments: section.professorPreference.comments ?? "",
+        preferredStaff: section.professorPreference?.preferredStaff ?? [],
+        avoidedStaff: section.professorPreference?.avoidedStaff ?? [],
+        timesRequired: section.professorPreference?.timesRequired ?? [],
+        comments: section.professorPreference?.comments ?? "",
       };
     });
 
@@ -84,24 +86,8 @@ export default function ProfessorPreferenceForm({
   const mutateSections =
     api.professorForm.updateProfessorSectionsForTerm.useMutation({
       onSuccess: () => {
-        toast(
-          <div className="container mx-auto max-w-4xl">
-            <Card className="bg-secondary border-green-200">
-              <CardContent className="">
-                <div className="flex flex-col items-center justify-center py-2 text-center">
-                  <CheckCircle className="h-16 w-16 text-green-600" />
-                  <h2 className="text-2xl font-bold">Preferences Submitted!</h2>
-                  <p className="text-muted-foreground mb-2">
-                    Your assistant preferences have been successfully submitted.
-                  </p>
-                  <Link href="/">
-                    <Button>Return to Dashboard</Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </div>,
-        );
+        toast.success("Form submitted successfully!");
+        router.push("/");
       },
       onError: (err) => {
         console.error("Mutation failed:", err);
