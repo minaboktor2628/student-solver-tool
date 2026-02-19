@@ -1,7 +1,7 @@
 import { LoadingSpinner } from "@/components/loading-spinner";
 import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
 import { redirectToForbidden } from "@/lib/navigation";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
 
@@ -19,7 +19,8 @@ export default async function PreferencesFormPage() {
 
   if (
     !hasPermission(session.user, "staffPreferenceForm", "viewActiveTerm", {
-      id: userId,
+      userId,
+      isAllowedInActiveTerm: await isUserAllowedInActiveTerm(userId),
     })
   ) {
     redirectToForbidden();

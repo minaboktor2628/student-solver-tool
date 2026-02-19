@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
 
 export const professorDashboardRoute = createTRPCRouter({
   getDashBoardInfo: professorProcedure
@@ -17,7 +17,12 @@ export const professorDashboardRoute = createTRPCRouter({
           ctx.session.user,
           "professorPreferenceForm",
           "viewActiveTerm",
-          { id: input.professorId },
+          {
+            userId: input.professorId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
         )
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
@@ -60,7 +65,12 @@ export const professorDashboardRoute = createTRPCRouter({
           ctx.session.user,
           "professorPreferenceForm",
           "viewActiveTerm",
-          { id: input.professorId },
+          {
+            userId: input.professorId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
         )
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });

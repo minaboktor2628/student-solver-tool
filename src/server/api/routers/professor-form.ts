@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
 
 export const professorFormRoute = createTRPCRouter({
   getCanEdit: professorProcedure
@@ -29,7 +29,12 @@ export const professorFormRoute = createTRPCRouter({
           ctx.session.user,
           "professorPreferenceForm",
           "viewActiveTerm",
-          { id: input.professorId },
+          {
+            userId: input.professorId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
         )
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
@@ -165,14 +170,17 @@ export const professorFormRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      const { professorId, sections } = input;
       if (
         !hasPermission(ctx.session.user, "professorPreferenceForm", "update", {
-          id: input.professorId,
+          userId: input.professorId,
+          isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+            ctx.session.user.id,
+          ),
         })
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const { professorId, sections } = input;
 
       return await ctx.db.$transaction(async (tx) => {
         const user = await tx.user.findUnique({

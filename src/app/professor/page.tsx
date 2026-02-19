@@ -1,7 +1,7 @@
 import { auth } from "@/server/auth";
 import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
 import { redirectToForbidden } from "@/lib/navigation";
 import { api } from "@/trpc/server";
 
@@ -15,7 +15,8 @@ export default async function ProfessorPreferencesPage() {
 
   if (
     !hasPermission(session.user, "professorPreferenceForm", "viewActiveTerm", {
-      id: userId,
+      userId,
+      isAllowedInActiveTerm: await isUserAllowedInActiveTerm(userId),
     })
   ) {
     redirectToForbidden();

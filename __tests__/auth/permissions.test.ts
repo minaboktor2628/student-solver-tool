@@ -7,7 +7,6 @@ const U = (roles: Role[]): User => ({
   id: "u",
   email: "t@wpi.edu",
   roles,
-  allowedInActiveTerm: true,
 });
 
 describe("permissions", () => {

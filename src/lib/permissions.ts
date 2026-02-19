@@ -10,6 +10,7 @@ import {
   ROUTES,
   type NavItem,
 } from "@/lib/routes-to-permissions";
+import { db } from "@/server/db";
 import type { Role } from "@prisma/client";
 import type { User } from "next-auth";
 
@@ -36,11 +37,11 @@ type Permissions = {
     action: "view" | "call";
   };
   staffPreferenceForm: {
-    dataType: { id: string };
+    dataType: { userId: string; isAllowedInActiveTerm: boolean };
     action: "viewActiveTerm" | "viewHistory" | "update" | "create";
   };
   professorPreferenceForm: {
-    dataType: { id: string };
+    dataType: { userId: string; isAllowedInActiveTerm: boolean };
     action: "viewActiveTerm" | "viewHistory" | "update" | "create";
   };
 };
@@ -66,36 +67,36 @@ const ROLES = {
     pages: { view: canViewPage },
     professorPreferenceForm: {
       create: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
+        data.userId === user.id && data.isAllowedInActiveTerm,
       update: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
+        data.userId === user.id && data.isAllowedInActiveTerm,
       viewActiveTerm: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
-      viewHistory: (user, data) => data.id === user.id,
+        data.userId === user.id && data.isAllowedInActiveTerm,
+      viewHistory: (user, data) => data.userId === user.id,
     },
   },
   TA: {
     pages: { view: canViewPage },
     staffPreferenceForm: {
       create: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
+        data.userId === user.id && data.isAllowedInActiveTerm,
       update: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
+        data.userId === user.id && data.isAllowedInActiveTerm,
       viewActiveTerm: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
-      viewHistory: (user, data) => data.id === user.id,
+        data.userId === user.id && data.isAllowedInActiveTerm,
+      viewHistory: (user, data) => data.userId === user.id,
     },
   },
   PLA: {
     pages: { view: canViewPage },
     staffPreferenceForm: {
       create: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
+        data.userId === user.id && data.isAllowedInActiveTerm,
       update: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
+        data.userId === user.id && data.isAllowedInActiveTerm,
       viewActiveTerm: (user, data) =>
-        data.id === user.id && user.allowedInActiveTerm === true,
-      viewHistory: (user, data) => data.id === user.id,
+        data.userId === user.id && data.isAllowedInActiveTerm,
+      viewHistory: (user, data) => data.userId === user.id,
     },
   },
   GLA: {
@@ -122,6 +123,17 @@ export function hasPermission<Resource extends keyof Permissions>(
     return data != null && permission(user, data);
   });
 }
+
+export async function isUserAllowedInActiveTerm(
+  userId: string,
+): Promise<boolean> {
+  const activeTerm = await db.term.findFirst({
+    where: { active: true, allowedUsers: { some: { id: userId } } },
+  });
+  if (!activeTerm) return false;
+  else return true; // if this term exists, then they are allowed
+}
+
 export function matchRoute(path: string) {
   return findRouteForPath(path, ROUTES) ?? undefined;
 }

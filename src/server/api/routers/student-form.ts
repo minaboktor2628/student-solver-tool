@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
 import {
   allowedPreferTokens,
   allowedStrongTokens,
@@ -103,7 +103,12 @@ export const studentFormRoute = createTRPCRouter({
           ctx.session.user,
           "staffPreferenceForm",
           "viewActiveTerm",
-          { id: userId },
+          {
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
         )
       ) {
         throw new TRPCError({
@@ -182,7 +187,10 @@ export const studentFormRoute = createTRPCRouter({
       }) => {
         if (
           !hasPermission(ctx.session.user, "staffPreferenceForm", "create", {
-            id: userId,
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
           })
         ) {
           throw new TRPCError({
@@ -341,7 +349,10 @@ export const studentFormRoute = createTRPCRouter({
     .mutation(async ({ input: { userId, termId, isAvailable }, ctx }) => {
       if (
         !hasPermission(ctx.session.user, "staffPreferenceForm", "update", {
-          id: userId,
+          userId,
+          isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+            ctx.session.user.id,
+          ),
         })
       ) {
         throw new TRPCError({
