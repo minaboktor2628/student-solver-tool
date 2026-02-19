@@ -7,7 +7,7 @@ import {
   dayLetterFromDate,
   dateToSlot,
 } from "@/lib/schedule-selector";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
@@ -28,12 +28,15 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   initialSelection = [],
 }) => {
   const [selection, setSelection] = useState<Date[]>(initialSelection);
+  const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save form:", error);
     },
-    onSuccess: (success) => {
+    onSuccess: () => {
       toast.success("Form saved successfully");
+      void utils.studentDashboard.invalidate();
+      onNext();
     },
   });
 
@@ -45,7 +48,6 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
       termId,
       weeklyAvailability: weekly,
     });
-    onNext();
   }
 
   function selectionToWeekly(sel: Date[]): WeeklySlot[] {
@@ -62,7 +64,8 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   return (
     <div className="mx-auto max-w-3xl p-4">
       <h2 className="mb-4 text-xl font-semibold">
-        Select the times you are available for this term
+        Select the times you are available for in-person, on campus work this
+        term
       </h2>
 
       <div className="border-secondary rounded-lg border p-4 shadow-sm">
@@ -72,16 +75,16 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
         />
       </div>
 
-      <div className="mt-4 flex gap-3">
-        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
-          Next
-        </Button>
+      <div className="mt-4 flex justify-between">
         <Button
           onClick={onBack}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >
           Back
+        </Button>
+        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
+          Next
         </Button>
       </div>
     </div>

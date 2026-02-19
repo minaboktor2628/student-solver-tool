@@ -172,25 +172,18 @@ async function hasEverBeenAllowed(email: string): Promise<boolean> {
 
   const user = await db.user.findUnique({
     where: { email },
-    include: { AllowedTermUsers: true },
+    select: { _count: { select: { AllowedInTerms: true } } },
   });
 
   if (!user) return false;
 
-  // any AllowedTermUser record at all = allowed at some point in history
-  return user.AllowedTermUsers.length > 0;
+  return user._count.AllowedInTerms > 0;
 }
 
 async function computeAllowedInActiveTerm(userId: string): Promise<boolean> {
-  const activeTerm = await db.term.findFirst({ where: { active: true } });
-  if (!activeTerm) return false;
-
-  const count = await db.allowedTermUser.count({
-    where: {
-      userId,
-      termId: activeTerm.id,
-    },
+  const activeTerm = await db.term.findFirst({
+    where: { active: true, allowedUsers: { some: { id: userId } } },
   });
-
-  return count > 0;
+  if (!activeTerm) return false;
+  else return true; // if this term exists, then they are allowed
 }

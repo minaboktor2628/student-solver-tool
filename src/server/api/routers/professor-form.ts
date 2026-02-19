@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { hasPermission } from "@/lib/permissions";
 
 export const professorFormRoute = createTRPCRouter({
   /** Fetch all sections in a term for a professor */
@@ -13,11 +14,46 @@ export const professorFormRoute = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       if (
-        ctx.session.user.id !== input.professorId &&
-        !ctx.session.user.roles.includes("COORDINATOR")
+        !hasPermission(
+          ctx.session.user,
+          "professorPreferenceForm",
+          "viewActiveTerm",
+          { id: input.professorId },
+        )
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
+
+      const availableStaffInThisTerm = await ctx.db.user.findMany({
+        where: {
+          AllowedInTerms: { some: { id: input.termId } },
+          roles: { some: { role: { in: ["TA", "PLA"] } } },
+          OR: [
+            // no preference row for this term yet => include
+            { staffPreferences: { none: { termId: input.termId } } },
+
+            // preference exists and they said they're available => include
+            {
+              staffPreferences: {
+                some: { termId: input.termId, isAvailableForTerm: true },
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          hours: true,
+          roles: { select: { role: true } },
+        },
+      });
+
+      const availableStaff = availableStaffInThisTerm.map((u) => ({
+        ...u,
+        roles: u.roles.map((r) => r.role),
+      }));
+
       const sections = await ctx.db.section.findMany({
         where: {
           professorId: input.professorId,
@@ -61,26 +97,11 @@ export const professorFormRoute = createTRPCRouter({
               },
             },
           },
-          qualifiedPreferences: {
-            select: {
-              staffPreference: {
-                select: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                      hours: true,
-                      roles: { select: { role: true } },
-                    },
-                  },
-                },
-              },
-            },
-          },
         },
       });
+
       return {
+        availableAssistants: availableStaff,
         sections: sections.map((s) => ({
           sectionId: s.id,
           courseCode: s.courseCode,
@@ -90,9 +111,6 @@ export const professorFormRoute = createTRPCRouter({
           enrollment: s.enrollment,
           capacity: s.capacity,
           requiredHours: s.requiredHours,
-          availableAssistants: s.qualifiedPreferences?.flatMap(
-            (qp) => qp.staffPreference?.user,
-          ),
           professorPreference: {
             preferredStaff: s.professorPreference?.preferredStaff.map((ps) => ({
               ...ps.staff,
@@ -133,8 +151,9 @@ export const professorFormRoute = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       if (
-        ctx.session.user.id !== input.professorId &&
-        !ctx.session.user.roles.includes("COORDINATOR")
+        !hasPermission(ctx.session.user, "professorPreferenceForm", "update", {
+          id: input.professorId,
+        })
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }

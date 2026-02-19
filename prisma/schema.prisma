@@ -49,10 +49,13 @@ model Term {
 
   staffPreferences StaffPreference[]
   sections         Section[]
-  allowedUsers     AllowedTermUser[] // This term's available PLAs/TAs/Professors
+  allowedUsers     User[] // This term's participating PLAs/TAs/Professors
 
   termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
   termProfessorDueDate DateTime // When professors should have their preferences submitted by
+
+  published Boolean @default(false)
+
   createdAt            DateTime @default(now())
   active               Boolean  @default(false)
 
@@ -73,7 +76,6 @@ model StaffPreference {
   isAvailableForTerm Boolean @default(false) // Whether the staff is available to work this term at all
 
   timesAvailable StaffAvailableHour[]
-  canEdit        Boolean              @default(true) // Has ability to still modify their preferences or not
   comments       String? // Any additional comments that the staff has
 
   qualifiedForSections StaffPreferenceQualifiedSection[]
@@ -136,10 +138,10 @@ model Section {
   courseCode     String // Ex: "CS 2022"
   courseSection  String // Ex: "LO1"
   meetingPattern String // Ex: "M-R | 2:00pm - 3:50pm"
-  description    String // Course description
+  description    String // Course description (stored as an html string)
 
-  professor   User   @relation("TeachesSections", fields: [professorId], references: [id])
-  professorId String
+  professor   User?   @relation("TeachesSections", fields: [professorId], references: [id])
+  professorId String?
 
   enrollment    Int // Number of students enrolled in this course
   capacity      Int // Max number of students allowed to enroll in this course
@@ -150,6 +152,9 @@ model Section {
   qualifiedPreferences StaffPreferenceQualifiedSection[]
   preferredPreferences StaffPreferencePreferredSection[]
   professorPreference  ProfessorPreference?
+
+  // only one section like "CS 2022 LO1" per term
+  @@unique([termId, courseCode, courseSection])
 }
 
 model ProfessorPreference {
@@ -158,7 +163,6 @@ model ProfessorPreference {
   section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   sectionId String  @unique
 
-  canEdit       Boolean             @default(true) // Has ability to still modify their preferences or not
   timesRequired SectionNeededHour[]
   comments      String?
 
@@ -212,6 +216,7 @@ model User {
   name          String?
   email         String?    @unique
   emailVerified DateTime?
+  canEditForm   Boolean @default(true)
   accounts      Account[]
   sessions      Session[]
   roles         UserRole[]
@@ -226,7 +231,7 @@ model User {
   // professor specific
   teaches Section[] @relation("TeachesSections")
 
-  AllowedTermUsers AllowedTermUser[]
+  AllowedInTerms Term[]
 }
 
 model UserRole {
@@ -235,16 +240,6 @@ model UserRole {
   userId String
 
   @@id([userId, role])
-}
-
-model AllowedTermUser {
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
-
-  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
-  termId String
-
-  @@id([termId, userId])
 }
 
 model Account {

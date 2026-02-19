@@ -1,10 +1,19 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/trpc/react";
-import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Label } from "../ui/label";
+import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from "@/components/ui/drawer";
 
 export type Section = {
   term: string;
@@ -12,7 +21,12 @@ export type Section = {
   courseSection: string;
   instructor: string | null;
 };
-export type Course = { code: string; title: string; sections: Section[] };
+export type Course = {
+  code: string;
+  title: string;
+  description: string;
+  sections: Section[];
+};
 
 interface FormEntryQualificationsProps {
   userId: string;
@@ -33,18 +47,32 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   onBack,
   onSubmit,
 }) => {
+  const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save qualifications:", error);
     },
-    onSuccess: (success) => {
+    onSuccess: (_data, variables) => {
       toast.success("Form saved successfully");
+      void utils.studentDashboard.invalidate();
+      if (
+        !variables.qualifiedSectionIds ||
+        variables.qualifiedSectionIds.length === 0
+      ) {
+        onSubmit();
+      }
+      onNext();
     },
   });
 
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
     () => new Set([]),
   );
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
+    () => new Set([]),
+  );
+  const [drawerCourse, setDrawerCourse] = useState<Course | null>(null);
+  const isMobile = useIsMobile();
 
   // derived map from course code -> section ids for quick lookup
   const courseToSectionIds = useMemo(() => {
@@ -68,11 +96,6 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
       qualifiedSectionIds:
         selectedSections.size === 0 ? [] : Array.from(selectedSections),
     });
-
-    if (selectedSections.size === 0) {
-      onSubmit();
-    }
-    onNext();
   }
 
   function isSectionSelected(id: string) {
@@ -109,22 +132,56 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
     });
   }
 
+  function toggleDescription(courseCode: string) {
+    setExpandedDescriptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(courseCode)) next.delete(courseCode);
+      else next.add(courseCode);
+      return next;
+    });
+  }
+
+  function clearSelections() {
+    setSelectedSections(new Set([]));
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="mb-4 text-xl font-semibold">
         Select courses and sections you are qualified to work for
       </h2>
 
-      <div className="grid grid-cols-1 gap-4">
+      <Button
+        onClick={clearSelections}
+        disabled={selectedSections.size === 0}
+        variant="destructive"
+      >
+        Clear
+      </Button>
+
+      <div className="grid max-h-[calc(100vh-22rem)] grid-cols-1 gap-4 overflow-y-auto pr-4">
         {courses.map((course) => {
           const courseSelected = isCourseSelected(course);
           return (
             <div key={course.code} className="rounded-lg border shadow-sm">
-              <div
-                onClick={() => toggleCourse(course)}
-                className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left"
-              >
-                <div>
+              <div className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left">
+                <div
+                  className="flex flex-1 items-center gap-2"
+                  onClick={() => toggleCourse(course)}
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isMobile) {
+                        setDrawerCourse(course);
+                      } else {
+                        toggleDescription(course.code);
+                      }
+                    }}
+                    className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
+                  >
+                    i
+                  </button>
                   <div className="text-lg font-medium">
                     {course.code} - {course.title}
                   </div>
@@ -140,6 +197,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                   </Label>
                 </div>
               </div>
+              {!isMobile && expandedDescriptions.has(course.code) && (
+                <div className="bg-secondary border-t px-4 py-3 text-sm">
+                  {course.description}
+                </div>
+              )}
 
               <div className="border-t p-3">
                 <ul className="space-y-2">
@@ -176,10 +238,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         })}
       </div>
 
-      <div className="mt-4 flex gap-3">
-        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
-          Next
-        </Button>
+      <div className="mt-4 flex justify-between">
         <Button
           onClick={onBack}
           variant="outline"
@@ -187,7 +246,31 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         >
           Back
         </Button>
+        <Button onClick={handleNextClick} disabled={saveFormMutation.isPending}>
+          Next
+        </Button>
       </div>
+
+      <Drawer
+        open={!!drawerCourse}
+        onOpenChange={(open) => {
+          if (!open) setDrawerCourse(null);
+        }}
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>
+              {drawerCourse?.code} - {drawerCourse?.title}
+            </DrawerTitle>
+            <DrawerDescription>{drawerCourse?.description}</DrawerDescription>
+          </DrawerHeader>
+          <div className="flex justify-center p-4">
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };

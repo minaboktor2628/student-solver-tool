@@ -17,6 +17,7 @@ yarn.lock
 /prisma/db.sqlite-journal
 db.sqlite
 /prisma/*.db
+/**/dev.db
 
 # next.js
 /.next/
@@ -56,3 +57,4 @@ yarn-error.log*
 
 # cypress 
 cypress/screenshots
+prisma/local-seed.ts

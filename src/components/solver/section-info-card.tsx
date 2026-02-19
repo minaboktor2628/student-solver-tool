@@ -114,7 +114,7 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!professor?.preferedStaff && !professor?.avoidedStaff ? (
+                  {!professor?.preferredStaff && !professor?.avoidedStaff ? (
                     <TableRow>
                       <TableCell
                         colSpan={3}
@@ -125,7 +125,7 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
                     </TableRow>
                   ) : (
                     <>
-                      {professor?.preferedStaff?.map((s) => (
+                      {professor?.preferredStaff?.map((s) => (
                         <TableRow
                           key={s.id}
                           title="This staff is a preference of this professor"

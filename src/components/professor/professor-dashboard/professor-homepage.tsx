@@ -1,52 +1,40 @@
 "use client";
 import React from "react";
-import { DeadlineCard } from "@/components/professor/professor-dashboard/deadline-card";
+import { DeadlineCard } from "@/components/professor/professor-dashboard/professor-deadline-card";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
-import { useTerm } from "@/components/term-combobox";
-import { Header } from "@/components/professor/professor-dashboard/header";
 import { api } from "@/trpc/react";
-import type { ProfessorSection } from "@/types/professor";
+import { Header } from "./professor-dashboard-header";
 
 interface ProfessorHomePageProps {
-  userId: string;
+  professorId: string;
+  termId: string;
 }
-const ProfessorHomePage: React.FC<ProfessorHomePageProps> = ({ userId }) => {
-  const { active: activeTerm } = useTerm();
-  if (!activeTerm) throw new Error("Term is invalid.");
 
+function ProfessorHomePage({ professorId, termId }: ProfessorHomePageProps) {
   const [{ sections }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
-      professorId: userId,
-      termId: activeTerm.id,
+      professorId,
+      termId,
     });
-  const professorSections = sections as ProfessorSection[];
+
   const [{ info }] = api.professorDashboard.getDashBoardInfo.useSuspenseQuery({
-    professorId: userId,
-    termId: activeTerm.id,
+    professorId,
+    termId,
   });
+
   const username = info.professor;
   const deadlineDate = info.term.termProfDueDate;
   if (!deadlineDate) throw new Error("Deadline Date Invalid");
-  const isSubmitted = sections.some((section) => {
-    const pref = section.professorPreference;
-
-    return !!(
-      pref &&
-      ((pref.preferredStaff && pref.preferredStaff.length > 0) ??
-        (pref.avoidedStaff && pref.avoidedStaff.length > 0) ??
-        (pref.timesRequired && pref.timesRequired.length > 0) ??
-        (pref.comments && pref.comments.trim() !== ""))
-    );
-  });
+  const isSubmitted = sections.some((section) => section.professorPreference);
 
   return (
     <div className="container mx-auto max-w-6xl p-6">
       <Header username={username} />
       <DeadlineCard deadlineDate={deadlineDate} isSubmitted={isSubmitted} />
       {/* Courses Overview */}
-      <CoursesCard sections={professorSections} isSubmitted={isSubmitted} />
+      <CoursesCard sections={sections} isSubmitted={isSubmitted} />
     </div>
   );
-};
+}
 
 export default ProfessorHomePage;
