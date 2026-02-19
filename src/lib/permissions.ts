@@ -3,14 +3,7 @@
  * @link https://www.youtube.com/watch?v=5GG-VUvruzE
  * */
 
-import {
-  canViewPage,
-  findRouteForPath,
-  FLAT_ROUTES,
-  ROUTES,
-  type NavItem,
-} from "@/lib/routes-to-permissions";
-import { db } from "@/server/db";
+import { canViewPage, ROUTES, type NavItem } from "@/lib/routes-to-permissions";
 import type { Role } from "@prisma/client";
 import type { User } from "next-auth";
 
@@ -124,27 +117,6 @@ export function hasPermission<Resource extends keyof Permissions>(
   });
 }
 
-export async function isUserAllowedInActiveTerm(
-  userId: string,
-): Promise<boolean> {
-  const activeTerm = await db.term.findFirst({
-    where: { active: true, allowedUsers: { some: { id: userId } } },
-  });
-  if (!activeTerm) return false;
-  else return true; // if this term exists, then they are allowed
-}
-
-export function matchRoute(path: string) {
-  return findRouteForPath(path, ROUTES) ?? undefined;
-}
-
-export function allowedLinks(user: User | undefined) {
-  if (!user) return [];
-  // We evaluate permission against each item's own href.
-  return FLAT_ROUTES.filter((r) =>
-    hasPermission(user, "pages", "view", r.href),
-  );
-}
 export function allowedTree(user: User): NavItem[] {
   if (!user) return [];
 

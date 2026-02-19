@@ -1,7 +1,8 @@
 import { LoadingSpinner } from "@/components/loading-spinner";
 import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
 import { redirectToForbidden } from "@/lib/navigation";
-import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
 

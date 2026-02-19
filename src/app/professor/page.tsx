@@ -1,7 +1,8 @@
 import { auth } from "@/server/auth";
 import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { redirectToForbidden } from "@/lib/navigation";
 import { api } from "@/trpc/server";
 

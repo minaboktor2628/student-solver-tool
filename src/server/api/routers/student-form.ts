@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import {
   allowedPreferTokens,
   allowedStrongTokens,

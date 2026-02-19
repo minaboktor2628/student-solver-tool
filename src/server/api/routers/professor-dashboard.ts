@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, professorProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { hasPermission, isUserAllowedInActiveTerm } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 
 export const professorDashboardRoute = createTRPCRouter({
   getDashBoardInfo: professorProcedure
