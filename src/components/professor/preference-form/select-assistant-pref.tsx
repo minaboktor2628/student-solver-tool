@@ -53,7 +53,6 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
     () => selectedStaff.map((a) => a.id),
     [selectedStaff],
   );
-
   return (
     <div>
       <Item className="px-0">

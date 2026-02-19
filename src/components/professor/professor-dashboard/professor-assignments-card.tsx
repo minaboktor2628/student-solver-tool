@@ -8,27 +8,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Mail } from "lucide-react";
+import type { AppRouter } from "@/server/api/root";
+import type { inferRouterOutputs } from "node_modules/@trpc/server/dist/unstable-core-do-not-import.d-x-roAJpB.mjs";
+import type { TermLetter } from "@prisma/client";
 
-interface AssignedStaff {
-  id: string;
-  name: string | null;
-  email: string | null;
-  roles: string[];
-}
-
-interface AssignedSection {
-  sectionId: string;
-  courseCode: string;
-  courseSection: string;
-  courseTitle: string;
-  meetingPattern: string;
-  assignedStaff: AssignedStaff[];
-}
+type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 interface ProfessorAssignmentsCardProps {
-  sections: AssignedSection[];
-  termLetter?: string | null;
-  termYear?: number | null;
+  sections: RouterOutputs["professorDashboard"]["getProfessorAssignments"]["sections"];
+  termLetter?: TermLetter;
+  termYear?: number;
 }
 
 const ProfessorAssignmentsCard: React.FC<ProfessorAssignmentsCardProps> = ({
@@ -68,7 +57,7 @@ const ProfessorAssignmentsCard: React.FC<ProfessorAssignmentsCardProps> = ({
                       <p className="text-sm font-medium">
                         {staff.name ?? "Unknown"}{" "}
                         <span className="text-muted-foreground font-normal">
-                          ({staff.roles.join(", ")})
+                          ({staff.roles?.join(", ")})
                         </span>
                       </p>
                       {staff.email && (
