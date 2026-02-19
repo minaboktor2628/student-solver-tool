@@ -4,6 +4,17 @@ import { TRPCError } from "@trpc/server";
 import { hasPermission } from "@/lib/permissions";
 
 export const professorFormRoute = createTRPCRouter({
+  getCanEdit: professorProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ input: { userId }, ctx }) => {
+      const canEdit = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: {
+          canEditForm: true,
+        },
+      });
+      return { canEdit };
+    }),
   /** Fetch all sections in a term for a professor */
   getProfessorSectionsForTerm: professorProcedure
     .input(
@@ -160,6 +171,24 @@ export const professorFormRoute = createTRPCRouter({
       const { professorId, sections } = input;
 
       return await ctx.db.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({
+          where: { id: professorId },
+          select: { canEditForm: true },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `User with ID ${professorId} not found.`,
+          });
+        }
+
+        if (!user.canEditForm) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "No permission to edit form.",
+          });
+        }
         return Promise.all(
           sections.map(async (section) => {
             const { sectionId, professorPreference } = section;

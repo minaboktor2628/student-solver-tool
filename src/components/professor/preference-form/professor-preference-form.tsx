@@ -84,7 +84,6 @@ export default function ProfessorPreferenceForm({
   const mutateSections =
     api.professorForm.updateProfessorSectionsForTerm.useMutation({
       onSuccess: () => {
-        isDirtyRef.current = false;
         toast(
           <div className="container mx-auto max-w-4xl">
             <Card className="bg-secondary border-green-200">
