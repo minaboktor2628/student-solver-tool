@@ -2,6 +2,7 @@ import { z } from "zod";
 import { assistantProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 
 const baseInput = z.object({
   userId: z.string().min(1),
@@ -94,7 +95,10 @@ export const studentDashboardRoute = createTRPCRouter({
           "staffPreferenceForm",
           "viewActiveTerm",
           {
-            id: userId,
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
           },
         )
       ) {
@@ -132,7 +136,10 @@ export const studentDashboardRoute = createTRPCRouter({
     .query(async ({ input: { userId }, ctx }) => {
       if (
         !hasPermission(ctx.session.user, "staffPreferenceForm", "viewHistory", {
-          id: userId,
+          userId,
+          isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+            ctx.session.user.id,
+          ),
         })
       ) {
         throw new TRPCError({
@@ -177,7 +184,10 @@ export const studentDashboardRoute = createTRPCRouter({
           "staffPreferenceForm",
           "viewActiveTerm",
           {
-            id: userId,
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
           },
         )
       ) {
