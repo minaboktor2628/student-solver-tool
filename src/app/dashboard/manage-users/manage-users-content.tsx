@@ -1,14 +1,10 @@
 "use client";
-// TODO: Clean up this component.
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import { Role, type Term, type TermLetter } from "@prisma/client";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import {
-  UserPlus,
-  ArrowLeft,
   RefreshCw,
   Users,
   Save,
@@ -20,7 +16,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-// shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/data-table";
@@ -68,11 +63,7 @@ import {
 import { createColumns, type User } from "./columns";
 import { UploadAllowedUsersForm } from "@/app/dashboard/manage-terms/upload-allowed-users-form";
 import { humanizeKey } from "@/lib/utils";
-
-interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
-  name: string;
-  active: boolean;
-}
+import { TermCombobox, useTerm } from "@/components/term-combobox";
 
 // Zod schemas for validation
 const ALLOWED_ROLES = [Role.PLA, Role.TA, Role.GLA, Role.PROFESSOR] as const;
@@ -98,38 +89,14 @@ const ROLE_OPTIONS: Array<{
 ];
 
 export default function ManageUsersContent() {
-  // tRPC queries (suspense)
-  const [{ terms: rawTerms }] = api.term.getAllTerms.useSuspenseQuery();
+  const { selectedTerm } = useTerm();
 
-  // Derived data
-  const terms: TermDisplay[] = useMemo(
-    () =>
-      (rawTerms ?? []).map((term) => ({
-        id: term.id ?? "",
-        name: term.name ?? "",
-        termLetter: term.termLetter ?? ("A" as TermLetter),
-        year: term.year ?? new Date().getFullYear(),
-        active: term.active ?? false,
-      })),
-    [rawTerms],
-  );
-
-  // State
-  const [activeTermId, setActiveTermId] = useState<string>(() => {
-    const activeTerm = terms.find((t) => t.active);
-    return activeTerm?.id ?? terms[0]?.id ?? "";
-  });
+  if (!selectedTerm) throw new Error("No selected term!");
 
   // Query users based on selected term
   const [{ users }] = api.staff.getAllUsers.useSuspenseQuery({
-    termId: activeTermId,
+    termId: selectedTerm.id,
   });
-
-  // Derived state
-  const activeTerm = useMemo(
-    () => terms.find((t) => t.id === activeTermId)?.name ?? null,
-    [terms, activeTermId],
-  );
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -277,27 +244,15 @@ export default function ManageUsersContent() {
   };
 
   const handleLockAll = () => {
-    if (!activeTermId) {
-      toast.error("No active term found");
-      return;
-    }
-    lockAllMutation.mutate({ termId: activeTermId });
+    lockAllMutation.mutate({ termId: selectedTerm.id });
   };
 
   const handleUnlockAll = () => {
-    if (!activeTermId) {
-      toast.error("No active term found");
-      return;
-    }
-    unlockAllMutation.mutate({ termId: activeTermId });
+    unlockAllMutation.mutate({ termId: selectedTerm.id });
   };
 
   const handleToggleUserLock = (user: User) => {
-    if (!activeTermId) {
-      toast.error("No active term found");
-      return;
-    }
-    toggleUserLockMutation.mutate({ userId: user.id, termId: activeTermId });
+    toggleUserLockMutation.mutate({ userId: user.id, termId: selectedTerm.id });
   };
 
   // Create table columns with handlers
@@ -305,7 +260,7 @@ export default function ManageUsersContent() {
     handleEditUser,
     handleDeleteUser,
     handleToggleUserLock,
-    activeTermId,
+    selectedTerm.id,
   );
 
   // Count users by role for stats
@@ -331,13 +286,98 @@ export default function ManageUsersContent() {
                 Manage Users
               </h1>
               <p className="text-muted-foreground text-sm">
-                {activeTerm
-                  ? `Managing users for ${activeTerm}`
-                  : "Add, edit, and remove users from the system"}
+                Managing users for {selectedTerm.label}
               </p>
             </div>
           </div>
+          <TermCombobox />
         </div>
+
+        {/* Users Data Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Users</CardTitle>
+                <CardDescription>
+                  Manage staff and professors in the system
+                </CardDescription>
+              </div>
+            </div>
+            <div className="bg-muted/50 border-border mt-4 rounded-md border p-3">
+              <div className="flex items-center gap-2">
+                <LockKeyhole className="text-primary h-4 w-4" />
+                <p className="text-muted-foreground text-sm">
+                  Lock/unlock preferences for {selectedTerm.label}. Locked users
+                  cannot edit their preferences. Individual locks override the
+                  global setting.
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              columns={columns}
+              data={users}
+              selectable
+              toolbarProps={{
+                searchPlaceholder: "Search by name...",
+                searchColumnIds: ["name"],
+                facetedFilters: [
+                  {
+                    columnId: "roles",
+                    title: "Roles",
+                    options: Object.values(Role).map((value) => ({
+                      value,
+                      label: humanizeKey(value),
+                    })),
+                  },
+                ],
+              }}
+              renderFooterExtras={(table) => {
+                // TODO: use the tables selected rows to only lock/unlock the selected people
+                return (
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      onClick={handleLockAll}
+                      variant="destructive"
+                      className="gap-2"
+                      disabled={lockAllMutation.isPending}
+                    >
+                      {lockAllMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                      Lock All
+                    </Button>
+                    <Button
+                      onClick={handleUnlockAll}
+                      variant="outline"
+                      className="gap-2"
+                      disabled={unlockAllMutation.isPending}
+                    >
+                      {unlockAllMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Unlock className="h-4 w-4" />
+                      )}
+                      Unlock All
+                    </Button>
+                  </div>
+                );
+              }}
+              renderToolbarActions={(table) => {
+                return (
+                  <UploadAllowedUsersForm
+                    termId={selectedTerm.id}
+                    triggerVariant="default"
+                  />
+                );
+              }}
+            />
+          </CardContent>
+        </Card>
 
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
@@ -395,113 +435,6 @@ export default function ManageUsersContent() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Term Filter */}
-        <div className="mb-6 flex gap-4">
-          <Select
-            value={activeTermId ?? ""}
-            onValueChange={(value) => setActiveTermId(value)}
-          >
-            <SelectTrigger className="w-[250px]">
-              <SelectValue placeholder="Filter by term" />
-            </SelectTrigger>
-            <SelectContent>
-              {terms.map((term) => (
-                <SelectItem key={term.id} value={term.id}>
-                  {term.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Users Data Table */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Users</CardTitle>
-                <CardDescription>
-                  Manage staff and professors in the system
-                </CardDescription>
-              </div>
-            </div>
-            {activeTerm && (
-              <div className="bg-muted/50 border-border mt-4 rounded-md border p-3">
-                <div className="flex items-center gap-2">
-                  <LockKeyhole className="text-primary h-4 w-4" />
-                  <p className="text-muted-foreground text-sm">
-                    Lock/unlock preferences for {activeTerm}. Locked users
-                    cannot edit their preferences. Individual locks override the
-                    global setting.
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            <DataTable
-              columns={columns}
-              data={users}
-              selectable
-              toolbarProps={{
-                searchPlaceholder: "Search by name...",
-                searchColumnIds: ["name"],
-                facetedFilters: [
-                  {
-                    columnId: "roles",
-                    title: "Roles",
-                    options: Object.values(Role).map((value) => ({
-                      value,
-                      label: humanizeKey(value),
-                    })),
-                  },
-                ],
-              }}
-              renderFooterExtras={(table) => {
-                // TODO: use the tables selected rows to only lock/unlock the selected people
-                return (
-                  <div className="ml-auto flex gap-2">
-                    <Button
-                      onClick={handleLockAll}
-                      variant="destructive"
-                      className="gap-2"
-                      disabled={lockAllMutation.isPending}
-                    >
-                      {lockAllMutation.isPending ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Lock className="h-4 w-4" />
-                      )}
-                      Lock All
-                    </Button>
-                    <Button
-                      onClick={handleUnlockAll}
-                      variant="outline"
-                      className="gap-2"
-                      disabled={unlockAllMutation.isPending}
-                    >
-                      {unlockAllMutation.isPending ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Unlock className="h-4 w-4" />
-                      )}
-                      Unlock All
-                    </Button>
-                  </div>
-                );
-              }}
-              renderToolbarActions={(table) => {
-                return (
-                  <UploadAllowedUsersForm
-                    termId={activeTermId}
-                    triggerVariant="default"
-                  />
-                );
-              }}
-            />
-          </CardContent>
-        </Card>
 
         {/* Add User Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
