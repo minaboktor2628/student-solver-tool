@@ -3,8 +3,8 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Mail, Trash2, Lock, Unlock, Settings2Icon } from "lucide-react";
-import { Role } from "@prisma/client";
+import { Edit, Trash2, Lock, Unlock, Settings2Icon } from "lucide-react";
+import { type Role } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,6 +26,7 @@ import {
 import { GlobalSuspense } from "@/components/global-suspense";
 import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
 import type { User as NextUser } from "next-auth";
+import { CopyButton } from "@/components/copy-button";
 
 export type User = NextUser & {
   locked: boolean; // Computed from staffPreferences.canEdit
@@ -54,17 +55,26 @@ export const createColumns = (
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => {
-      return <div className="font-medium">{row.getValue("name")}</div>;
+      return <div className="font-medium">{row.original.name}</div>;
     },
   },
   {
     accessorKey: "email",
     header: "Email",
     cell: ({ row }) => {
+      const email = row.original.email ?? "";
+      const name = row.original.name ?? "";
       return (
         <div className="flex items-center gap-2">
-          <Mail className="text-muted-foreground h-4 w-4" />
-          {row.getValue("email")}
+          <CopyButton value={email} title="Copy email" />
+          <Button
+            asChild
+            variant="link"
+            className="text-primary-foreground p-0"
+            title={`Send email to ${name}`}
+          >
+            <a href={`mailto:${email}`}>{email}</a>
+          </Button>
         </div>
       );
     },
@@ -73,7 +83,7 @@ export const createColumns = (
     accessorKey: "roles",
     header: "Role",
     cell: ({ row }) => {
-      const roles = row.getValue<Role[]>("roles");
+      const roles = row.original.roles ?? [];
       return (
         <div className="flex flex-wrap gap-1">
           {roles.map((role) => (
@@ -88,8 +98,8 @@ export const createColumns = (
         </div>
       );
     },
-    filterFn: (row, id, value: string) => {
-      const roles = row.getValue<Role[]>(id);
+    filterFn: (row, value: string) => {
+      const roles = row.original.roles ?? [];
       return roles.some((role) =>
         role.toLowerCase().includes(value.toLowerCase()),
       );
@@ -99,7 +109,7 @@ export const createColumns = (
     accessorKey: "locked",
     header: "Status",
     cell: ({ row }) => {
-      const locked = row.getValue<boolean>("locked");
+      const locked = row.original.locked;
       const hasPreference = row.original.hasPreference;
 
       // TODO: does it matter that they have no preferences?
