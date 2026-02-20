@@ -20,7 +20,7 @@ export default async function Home() {
     );
   } else if (isAssistant(session?.user)) {
     return <StaffHomePage userId={session?.user?.id} />;
-  } else if (isCoordinator(session) && !isProfessor(session)) {
+  } else if (isCoordinator(session?.user) && !isProfessor(session?.user)) {
     // rare case, for testing
     redirect("/dashboard");
   } else {
