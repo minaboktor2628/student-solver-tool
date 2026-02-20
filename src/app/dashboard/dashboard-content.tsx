@@ -177,6 +177,7 @@ export default function DashboardContent() {
   }));
 
   const publishTermMutation = api.term.publishTerm.useMutation();
+  const releaseAssignmentsMutation = api.term.releaseAssignments.useMutation();
 
   // Publish term
   const publishTerm = async (termId: string) => {
@@ -334,6 +335,42 @@ export default function DashboardContent() {
             </Button>
             <p className="text-muted-foreground mt-1 text-sm">
               Once published, staff and professors can submit preferences
+            </p>
+          </div>
+        )}
+
+        {selectedTerm && currentTerm?.status === "published" && (
+          <div className="mb-6">
+            <Button
+              onClick={async () => {
+                const ok = window.confirm(
+                  "Release assignments for this term? This will make assignments visible to staff and professors.",
+                );
+                if (!ok) return;
+                try {
+                  const res = await releaseAssignmentsMutation.mutateAsync({
+                    id: selectedTerm,
+                  });
+                  if (res?.success) {
+                    toast.success("Assignments released.");
+                    // refresh page to pick up published state
+                    window.location.reload();
+                  } else {
+                    toast.error("Failed to release assignments");
+                  }
+                } catch (err) {
+                  console.error(err);
+                  toast.error("Failed to release assignments");
+                }
+              }}
+              size="default"
+              disabled={releaseAssignmentsMutation.isPending}
+            >
+              <Calendar className="h-4 w-4" /> Release Assignments
+            </Button>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Releasing the assignments makes the solver results visible to
+              staff and professors.
             </p>
           </div>
         )}
