@@ -3,12 +3,33 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Mail, Trash2, Lock, Unlock } from "lucide-react";
-import { Role, type User as PrismaUser } from "@prisma/client";
+import { Edit, Trash2, Lock, Unlock, Settings2Icon } from "lucide-react";
+import { type Role } from "@prisma/client";
+import { MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { isAssistant, isProfessor } from "@/lib/utils";
+import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { GlobalSuspense } from "@/components/global-suspense";
+import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
+import type { User as NextUser } from "next-auth";
+import { CopyButton } from "@/components/copy-button";
 
-// Uses Prisma User fields + API computed fields (roles transformed, locked/hasPreference added)
-export type User = Pick<PrismaUser, "id" | "name" | "email" | "hours"> & {
-  roles: Role[]; // Array of Role enum values from UserRole relation
+export type User = NextUser & {
   locked: boolean; // Computed from staffPreferences.canEdit
   hasPreference: boolean; // Computed from staffPreferences existence
 };
@@ -19,34 +40,42 @@ const ROLE_COLORS: Record<Role, string> = {
   GLA: "bg-chart-2/20 text-chart-2 border-chart-2/30",
   PROFESSOR: "bg-chart-3/20 text-chart-3 border-chart-3/30",
   COORDINATOR: "bg-warning/20 text-warning border-warning/30",
-};
+} as const;
 
 const getRoleBadgeClass = (role: Role): string => {
-  const color = ROLE_COLORS[role];
-  return color ?? "bg-muted/20 text-muted-foreground border-muted/30";
+  return ROLE_COLORS[role];
 };
 
 export const createColumns = (
   onEdit: (user: User) => void,
   onDelete: (user: User) => void,
-  onToggleLock?: (user: User) => void,
-  activeTerm?: string | null,
+  onToggleLock: (user: User) => void,
+  activeTermId: string,
 ): ColumnDef<User>[] => [
   {
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => {
-      return <div className="font-medium">{row.getValue("name")}</div>;
+      return <div className="font-medium">{row.original.name}</div>;
     },
   },
   {
     accessorKey: "email",
     header: "Email",
     cell: ({ row }) => {
+      const email = row.original.email ?? "";
+      const name = row.original.name ?? "";
       return (
         <div className="flex items-center gap-2">
-          <Mail className="text-muted-foreground h-4 w-4" />
-          {row.getValue("email")}
+          <CopyButton value={email} title="Copy email" />
+          <Button
+            asChild
+            variant="link"
+            className="text-primary-foreground p-0"
+            title={`Send email to ${name}`}
+          >
+            <a href={`mailto:${email}`}>{email}</a>
+          </Button>
         </div>
       );
     },
@@ -55,7 +84,7 @@ export const createColumns = (
     accessorKey: "roles",
     header: "Role",
     cell: ({ row }) => {
-      const roles = row.getValue<Role[]>("roles");
+      const roles = row.original.roles ?? [];
       return (
         <div className="flex flex-wrap gap-1">
           {roles.map((role) => (
@@ -70,8 +99,8 @@ export const createColumns = (
         </div>
       );
     },
-    filterFn: (row, id, value: string) => {
-      const roles = row.getValue<Role[]>(id);
+    filterFn: (row, value: string) => {
+      const roles = row.original.roles ?? [];
       return roles.some((role) =>
         role.toLowerCase().includes(value.toLowerCase()),
       );
@@ -81,9 +110,10 @@ export const createColumns = (
     accessorKey: "locked",
     header: "Status",
     cell: ({ row }) => {
-      const locked = row.getValue<boolean>("locked");
+      const locked = row.original.locked;
       const hasPreference = row.original.hasPreference;
 
+      // TODO: does it matter that they have no preferences?
       if (!hasPreference) {
         return (
           <Badge variant="outline" className="text-xs">
@@ -96,13 +126,11 @@ export const createColumns = (
         <Badge variant={locked ? "destructive" : "success"} className="text-xs">
           {locked ? (
             <>
-              <Lock className="mr-1 h-3 w-3" />
-              Locked
+              <Lock className="mr-1 h-3 w-3" /> Locked
             </>
           ) : (
             <>
-              <Unlock className="mr-1 h-3 w-3" />
-              Unlocked
+              <Unlock className="mr-1 h-3 w-3" /> Unlocked
             </>
           )}
         </Badge>
@@ -111,47 +139,96 @@ export const createColumns = (
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Actions</div>,
+    header: () => <p className="text-right">Actions</p>,
     cell: ({ row }) => {
       const user = row.original;
-      const isCoordinator = user.roles.includes(Role.COORDINATOR);
-      const canToggleLock = onToggleLock && activeTerm;
 
       return (
-        <div className="flex justify-end gap-2">
-          {canToggleLock && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onToggleLock(user)}
-              title={user.locked ? "Unlock user" : "Lock user"}
-            >
-              {user.locked ? (
-                <Unlock className="h-4 w-4" />
-              ) : (
-                <Lock className="h-4 w-4" />
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              {isProfessor(user) && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Settings2Icon className="size-4" /> Edit prof preferences
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-6xl">
+                    <DialogHeader>
+                      <DialogTitle>Edit preferences as {user.name}</DialogTitle>
+                      {/* TODO: fix this bruh. i have spent too long trying to, so f it man*/}
+                      <DialogDescription>
+                        Due to a bug, you will have to search the comboboxes in
+                        this view and using your arrow and enter keys instead of
+                        clicking through the list.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <GlobalSuspense>
+                      <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
+                        <ProfessorPreferenceForm
+                          userId={user.id}
+                          termId={activeTermId}
+                        />
+                      </div>
+                    </GlobalSuspense>
+                  </DialogContent>
+                </Dialog>
               )}
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(user)}
-            disabled={isCoordinator}
-            title={isCoordinator ? "Cannot edit coordinator" : "Edit user"}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(user)}
-            disabled={isCoordinator}
-            title={isCoordinator ? "Cannot delete coordinator" : "Delete user"}
-            className="text-destructive hover:text-destructive/80"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+              {isAssistant(user) && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Settings2Icon className="size-4" /> Edit staff
+                      preferences
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-6xl">
+                    <DialogHeader>
+                      <DialogTitle>Edit preferences as {user.name}</DialogTitle>
+                    </DialogHeader>
+                    <GlobalSuspense>
+                      <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
+                        <MultiStepFormModal
+                          userId={user.id}
+                          termId={activeTermId}
+                          inline
+                        />
+                      </div>
+                    </GlobalSuspense>
+                  </DialogContent>
+                </Dialog>
+              )}
+              <DropdownMenuItem onClick={() => onToggleLock(user)}>
+                {user.locked ? (
+                  <>
+                    <Unlock className="h-4 w-4" /> Unlock preferences
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" /> Lock preferences
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(user)}>
+                <Edit className="h-4 w-4" /> Edit user
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => onDelete(user)}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },

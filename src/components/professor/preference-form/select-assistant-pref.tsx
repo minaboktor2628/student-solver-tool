@@ -77,7 +77,6 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
           items={availableAssistants}
           multiple
           value={selectedIds}
-          itemToStringLabel={(id) => byId.get(id)?.name ?? ""}
           onValueChange={(next) => {
             const ids = Array.isArray(next) ? next : next ? [next] : [];
             const staff = ids
@@ -96,7 +95,7 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
             </ComboboxValue>
             <ComboboxChipsInput placeholder="Select staff..." />
           </ComboboxChips>
-          <ComboboxContent>
+          <ComboboxContent className="min-w-[250px]">
             <ComboboxEmpty>No staff found.</ComboboxEmpty>
             <ComboboxList>
               {(assistant: User) => (

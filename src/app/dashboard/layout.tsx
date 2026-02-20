@@ -8,7 +8,7 @@ export default async function Layout({
 }: Readonly<{ children: ReactNode }>) {
   const session = await auth();
 
-  if (!isCoordinator(session)) {
+  if (!isCoordinator(session?.user)) {
     redirectToForbidden();
     return null;
   }
