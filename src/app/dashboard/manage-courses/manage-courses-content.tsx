@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/data-table";
 import { Combobox } from "@/components/ui/combobox";
 import {
   Dialog,
@@ -391,8 +391,7 @@ export default function ManageCoursesContent() {
             <DataTable
               columns={columns}
               data={courses}
-              searchKey="courseCode"
-              searchPlaceholder="Search by code..."
+              toolbarProps={{ searchColumnIds: ["courseTitle"] }}
             />
           </CardContent>
         </Card>

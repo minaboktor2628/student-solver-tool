@@ -22,7 +22,7 @@ import * as z from "zod";
 // shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/data-table";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +66,7 @@ import {
 } from "@/components/ui/card";
 import { createColumns, type User } from "./columns";
 import { UploadAllowedUsersForm } from "@/app/dashboard/manage-terms/upload-allowed-users-form";
+import { humanizeKey } from "@/lib/utils";
 
 interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
   name: string;
@@ -471,12 +472,25 @@ export default function ManageUsersContent() {
               </div>
             )}
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent>
             <DataTable
               columns={columns}
               data={users}
-              searchKey="name"
-              searchPlaceholder="Search by name..."
+              selectable
+              toolbarProps={{
+                searchPlaceholder: "Search by name...",
+                searchColumnIds: ["name"],
+                facetedFilters: [
+                  {
+                    columnId: "roles",
+                    title: "Roles",
+                    options: Object.values(Role).map((value) => ({
+                      value,
+                      label: humanizeKey(value),
+                    })),
+                  },
+                ],
+              }}
             />
           </CardContent>
         </Card>
