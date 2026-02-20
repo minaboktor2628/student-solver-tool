@@ -13,6 +13,7 @@ import {
   type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
+  type Table as TanstackTable,
   type VisibilityState,
 } from "@tanstack/react-table";
 
@@ -37,6 +38,12 @@ interface DataTableProps<TData, TValue> {
   toolbarProps?: Omit<DataTableToolbarProps<TData>, "table">;
   selectable?: boolean;
   onSelectionChange?: (rows: TData[]) => void;
+
+  /** Inject actions on the right side of the toolbar */
+  renderToolbarActions?: (table: TanstackTable<TData>) => React.ReactNode;
+
+  /** Extra footer content (to the right of pagination, for example) */
+  renderFooterExtras?: (table: TanstackTable<TData>) => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -45,6 +52,8 @@ export function DataTable<TData, TValue>({
   toolbarProps,
   selectable = false,
   onSelectionChange,
+  renderFooterExtras,
+  renderToolbarActions,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -93,8 +102,10 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="flex flex-col gap-4">
-      <DataTableToolbar table={table} {...toolbarProps} />
-      <div className="overflow-hidden rounded-md border">
+      <DataTableToolbar table={table} {...toolbarProps}>
+        {renderToolbarActions?.(table)}
+      </DataTableToolbar>
+      <div className="overflow-hidden rounded-md border p-2">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -145,6 +156,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       <DataTablePagination table={table} isSelectable={selectable} />
+      {renderFooterExtras?.(table)}
     </div>
   );
 }

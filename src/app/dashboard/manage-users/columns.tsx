@@ -48,6 +48,8 @@ const getRoleBadgeClass = (role: Role): string => {
   return ROLE_COLORS[role];
 };
 
+// TODO: add locked pref col, has pref cols
+
 export const createColumns = (
   onEdit: (user: User) => void,
   onDelete: (user: User) => void,
@@ -77,6 +79,7 @@ export const createColumns = (
     ),
     enableSorting: false,
     enableHiding: false,
+    meta: { export: false },
   },
   {
     accessorKey: "name",
@@ -164,6 +167,7 @@ export const createColumns = (
   },
   {
     id: "actions",
+    meta: { export: false },
     cell: ({ row }) => {
       const user = row.original;
 

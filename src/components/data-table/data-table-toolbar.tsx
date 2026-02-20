@@ -1,13 +1,23 @@
 "use client";
 
-import { type Table } from "@tanstack/react-table";
-import { X } from "lucide-react";
+import { type Row, type Table } from "@tanstack/react-table";
+import { DownloadIcon, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTableViewOptions } from "./data-table-view-options";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import type { ReactNode } from "react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { downloadTemplateCSV } from "@/lib/download-file";
 
 export type FacetOption = {
   label: string;
@@ -38,7 +48,11 @@ export interface DataTableToolbarProps<TData> {
   facetedFilters?: FacetedFilterConfig<keyof TData & string>[];
 
   /* optional action button */
-  actionButtonSlot?: ReactNode;
+  children?: ReactNode;
+
+  /* if true, will display a download csv button */
+  // on cols that you dont want to export, make sure you have this one them -> meta: { export: false },
+  exportButton?: boolean;
 }
 
 export function DataTableToolbar<TData>({
@@ -46,7 +60,8 @@ export function DataTableToolbar<TData>({
   searchColumnIds,
   searchPlaceholder = "Filter...",
   facetedFilters = [],
-  actionButtonSlot,
+  children,
+  exportButton = true,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
 
@@ -57,6 +72,42 @@ export function DataTableToolbar<TData>({
 
   const searchValue =
     (searchColumns[0]?.getFilterValue() as string | undefined) ?? "";
+
+  const buildCsvData = (
+    rows: Row<TData>[],
+  ): { headers: string[]; data: Record<string, unknown>[] } => {
+    const columnsToExclude = new Set(["select", "actions"]);
+
+    const visibleColumns = table
+      .getAllLeafColumns()
+      .filter((col) => col.getIsVisible() && !columnsToExclude.has(col.id))
+      .filter((col) => {
+        const shouldExport = (
+          col.columnDef.meta as { export?: boolean } | undefined
+        )?.export;
+        return col.getIsVisible() && shouldExport !== false;
+      });
+
+    const headersMeta = visibleColumns.map((col) => ({
+      id: col.id,
+      label:
+        typeof col.columnDef.header === "string"
+          ? col.columnDef.header
+          : col.id,
+    }));
+
+    const data = rows.map((row) =>
+      headersMeta.reduce<Record<string, unknown>>((acc, header) => {
+        acc[header.label] = row.getValue(header.id);
+        return acc;
+      }, {}),
+    );
+
+    return {
+      headers: headersMeta.map((h) => h.label),
+      data,
+    };
+  };
 
   return (
     <div className="flex items-center justify-between">
@@ -102,7 +153,45 @@ export function DataTableToolbar<TData>({
 
       <div className="flex items-center gap-2">
         <DataTableViewOptions table={table} />
-        {actionButtonSlot}
+        {exportButton && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" title="Download table">
+                <DownloadIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Download options (CSV)</DropdownMenuLabel>
+                <DropdownMenuItem
+                  disabled={table.getFilteredRowModel().rows.length === 0}
+                  onClick={() => {
+                    const { headers, data } = buildCsvData(
+                      table.getFilteredRowModel().rows,
+                    );
+
+                    downloadTemplateCSV(headers, data, "all-filtered-rows.csv");
+                  }}
+                >
+                  All filtered rows ({table.getFilteredRowModel().rows.length})
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={table.getSelectedRowModel().rows.length === 0}
+                  onClick={() => {
+                    const { headers, data } = buildCsvData(
+                      table.getSelectedRowModel().rows,
+                    );
+
+                    downloadTemplateCSV(headers, data, "selected-rows.csv");
+                  }}
+                >
+                  Only selected ({table.getSelectedRowModel().rows.length})
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        {children}
       </div>
     </div>
   );
