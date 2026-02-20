@@ -1,4 +1,5 @@
 "use client";
+// TODO: Clean up this component.
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
@@ -458,6 +459,7 @@ export default function ManageUsersContent() {
                 ],
               }}
               renderFooterExtras={(table) => {
+                // TODO: use the tables selected rows to only lock/unlock the selected people
                 return (
                   <div className="ml-auto flex gap-2">
                     <Button
