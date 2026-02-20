@@ -144,8 +144,8 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   const usedPrefer = Object.values(mapping).filter(
     (v) => v === "prefer",
   ).length;
-  const numStrongTokens = Math.max(0, originalNumStrongTokens - usedStrong);
-  const numPreferTokens = Math.max(0, originalNumPreferTokens - usedPrefer);
+  const numStrongTokens = Math.max(0, allowedStrongTokens - usedStrong);
+  const numPreferTokens = Math.max(0, allowedPreferTokens - usedPrefer);
 
   function handleRemoveToken(sectionId: string) {
     setMapping((prev) => {
@@ -192,7 +192,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
               )}
             </Draggable>
             <span className="text-muted-foreground text-sm">
-              {numPreferTokens}/{originalNumPreferTokens}
+              {numPreferTokens}/{allowedPreferTokens}
             </span>
           </div>
 
@@ -205,7 +205,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
               )}
             </Draggable>
             <span className="text-muted-foreground text-sm">
-              {numStrongTokens}/{originalNumStrongTokens}
+              {numStrongTokens}/{allowedStrongTokens}
             </span>
           </div>
           <div className="text-muted-foreground text-sm">

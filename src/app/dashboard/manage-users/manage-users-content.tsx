@@ -234,7 +234,7 @@ export default function ManageUsersContent() {
     setSelectedUser(user);
     // Find the first allowed role, or default to PLA
     const userRole =
-      user.roles.find((r) =>
+      user.roles?.find((r) =>
         ALLOWED_ROLES.includes(r as (typeof ALLOWED_ROLES)[number]),
       ) ?? Role.PLA;
     editForm.reset({
@@ -303,7 +303,7 @@ export default function ManageUsersContent() {
     handleEditUser,
     handleDeleteUser,
     handleToggleUserLock,
-    activeTerm,
+    activeTermId,
   );
 
   // Count users by role for stats
@@ -324,12 +324,6 @@ export default function ManageUsersContent() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="gap-2" asChild>
-              <Link href="/dashboard">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Link>
-            </Button>
             <div>
               <h1 className="text-foreground text-3xl font-bold">
                 Manage Users

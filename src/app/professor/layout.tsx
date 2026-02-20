@@ -8,7 +8,7 @@ export default async function Layout({
 }: Readonly<{ children: ReactNode }>) {
   const session = await auth();
 
-  if (!isProfessor(session)) {
+  if (!isProfessor(session?.user)) {
     redirectToForbidden();
     return null;
   }
