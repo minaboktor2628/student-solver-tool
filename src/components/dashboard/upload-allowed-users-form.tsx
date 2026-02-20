@@ -15,14 +15,7 @@ import { CSVDropzone } from "@/components/csv-dropzone";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState, type ReactNode, type FormEvent } from "react";
-
-const CSVRowSchema = z.object({
-  name: z.string(),
-  email: z.string().email(),
-  role: z.nativeEnum(Role),
-});
-
-type CSVRow = z.infer<typeof CSVRowSchema>;
+import { createUserInputSchema } from "@/types/form-inputs";
 
 export function UploadAllowedUsersForm({
   termId,
@@ -48,7 +41,7 @@ export function UploadAllowedUsersForm({
     },
   });
 
-  function handleSubmit(users: CSVRow[]) {
+  function handleSubmit(users: z.infer<typeof createUserInputSchema>[]) {
     uploadUsers.mutate({ users, termId });
   }
 
@@ -60,7 +53,7 @@ export function UploadAllowedUsersForm({
   function handleSingleSubmit(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
     try {
-      const user = CSVRowSchema.parse({ name, email, role });
+      const user = createUserInputSchema.parse({ name, email, role });
       uploadUsers.mutate({ users: [user], termId });
       setName("");
       setEmail("");
@@ -86,7 +79,7 @@ export function UploadAllowedUsersForm({
         <div className="space-y-4">
           <div>
             <CSVDropzone
-              schema={CSVRowSchema}
+              schema={createUserInputSchema}
               onSubmit={handleSubmit}
               disabled={uploadUsers.isPending}
               dedupeBy={(row) => row.email}
