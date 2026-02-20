@@ -23,16 +23,16 @@ export const isExcelType = (type: string) =>
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
   type === "application/vnd.ms-excel";
 
-export function isCoordinator(user?: User) {
-  return user?.roles?.some((r) => r === "COORDINATOR");
+export function isCoordinator(user?: User): boolean {
+  return user?.roles?.some((r) => r === "COORDINATOR") ?? false;
 }
 
-export function isAssistant(user?: User) {
-  return user?.roles?.some((r) => r === "TA" || r === "PLA");
+export function isAssistant(user?: User): boolean {
+  return user?.roles?.some((r) => r === "TA" || r === "PLA") ?? false;
 }
 
-export function isProfessor(user?: User) {
-  return user?.roles?.some((r) => r === "PROFESSOR");
+export function isProfessor(user?: User): boolean {
+  return user?.roles?.some((r) => r === "PROFESSOR") ?? false;
 }
 
 export function toFullCourseName(section: string, code: string, title: string) {

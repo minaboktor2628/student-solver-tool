@@ -19,6 +19,7 @@ import ProfessorPreferenceForm from "@/components/professor/preference-form/prof
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -157,12 +158,18 @@ export const createColumns = (
                 <Dialog>
                   <DialogTrigger asChild>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Settings2Icon className="size-4" /> Edit preferences
+                      <Settings2Icon className="size-4" /> Edit prof preferences
                     </DropdownMenuItem>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-6xl">
                     <DialogHeader>
                       <DialogTitle>Edit preferences as {user.name}</DialogTitle>
+                      {/* TODO: fix this bruh. i have spent too long trying to, so f it man*/}
+                      <DialogDescription>
+                        Due to a bug, you will have to search the comboboxes in
+                        this view and using your arrow and enter keys instead of
+                        clicking through the list.
+                      </DialogDescription>
                     </DialogHeader>
                     <GlobalSuspense>
                       <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
@@ -179,7 +186,8 @@ export const createColumns = (
                 <Dialog>
                   <DialogTrigger asChild>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Settings2Icon className="size-4" /> Edit preferences
+                      <Settings2Icon className="size-4" /> Edit staff
+                      preferences
                     </DropdownMenuItem>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-6xl">
