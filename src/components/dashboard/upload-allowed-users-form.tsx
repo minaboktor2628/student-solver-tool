@@ -39,7 +39,7 @@ export function UploadAllowedUsersForm({
       toast.error(error.message);
     },
     onSuccess: (newusers) => {
-      const message = `Success! Synced ${newusers} new users.`;
+      const message = `Success! Synced ${newusers} new user(s).`;
       toast.success(message);
       console.log(message);
     },

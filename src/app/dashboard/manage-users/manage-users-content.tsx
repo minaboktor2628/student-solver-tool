@@ -43,7 +43,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { createColumns } from "./columns";
-import { UploadAllowedUsersForm } from "@/app/dashboard/manage-terms/upload-allowed-users-form";
+import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-users-form";
 import { humanizeKey } from "@/lib/utils";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
 
