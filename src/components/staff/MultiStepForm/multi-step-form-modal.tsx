@@ -8,11 +8,13 @@ import FormEntryPreferences from "./form-entry-preferences";
 import FormEntryComments from "./form-entry-comments";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
+import type { Route } from "next";
 
 interface MultiStepFormModalProps {
   onClose?: () => void;
   /** If true, render inline (no fixed overlay) so the form can be used as a full page */
   inline?: boolean;
+  redirectOnComplete?: Route;
   /** Required: user ID of the authenticated user */
   userId: string;
   termId: string;
@@ -21,6 +23,7 @@ interface MultiStepFormModalProps {
 const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   onClose,
   inline = false,
+  redirectOnComplete,
   userId,
   termId,
 }) => {
@@ -46,14 +49,11 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   const handleBack = () => setStep((s) => Math.max(1, s - 1));
 
   const handleSubmit = () => {
-    router.push("/");
+    if (redirectOnComplete) router.push(redirectOnComplete);
     onClose?.();
   };
 
   const cantEditContainer = (
-    // <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
-    //   <h1>Preferences Form locked for {term.termLetter} Term {term.year}</h1>
-    // </div>
     <div className="mb-8">
       <h1 className="text-3xl font-bold">
         Preferences Form is closed for {term.termLetter} Term {term.year}
@@ -64,6 +64,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       </p>
     </div>
   );
+
   if (!canEdit?.canEditForm) {
     if (inline) return cantEditContainer;
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -72,6 +73,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
       </div>
     </div>;
   }
+
   const container = (
     <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
       <ProgressIndicator step={step} totalSteps={5} />
