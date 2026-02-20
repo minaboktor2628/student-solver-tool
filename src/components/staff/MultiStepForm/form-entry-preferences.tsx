@@ -222,7 +222,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
         </Button>
 
         {/* Section List */}
-        <div className="grid max-h-[calc(100vh-27rem)] grid-cols-1 gap-4 overflow-y-auto pr-4">
+        <div className="grid max-h-[calc(100vh-30rem)] grid-cols-1 gap-4 overflow-y-auto pr-4">
           {filteredCourses.map((course) => (
             <div
               key={course.code}

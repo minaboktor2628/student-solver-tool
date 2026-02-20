@@ -2,6 +2,7 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import StaffAssignment from "@/components/staff/staff-assignment-card";
 import { redirectToForbidden } from "@/lib/navigation";
 import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
 
@@ -18,7 +19,8 @@ export default async function PreferencesFormPage() {
 
   if (
     !hasPermission(session.user, "staffPreferenceForm", "viewHistory", {
-      id: userId,
+      userId,
+      isAllowedInActiveTerm: await isUserAllowedInActiveTerm(userId),
     })
   ) {
     redirectToForbidden();
