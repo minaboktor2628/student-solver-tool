@@ -208,7 +208,7 @@ export default function ManageUsersContent() {
     setSelectedUser(user);
     // Find the first allowed role, or default to PLA
     const userRole =
-      user.roles.find((r) =>
+      user.roles?.find((r) =>
         ALLOWED_ROLES.includes(r as (typeof ALLOWED_ROLES)[number]),
       ) ?? Role.PLA;
     editForm.reset({
@@ -269,7 +269,7 @@ export default function ManageUsersContent() {
     handleEditUser,
     handleDeleteUser,
     handleToggleUserLock,
-    activeTerm,
+    activeTermId,
   );
 
   // Count users by role for stats

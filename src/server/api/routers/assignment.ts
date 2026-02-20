@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import {
+  getSolverData,
+  solveAssignments,
+  solverStrategies,
+} from "@/lib/solver";
 
 export const assignmentRoute = createTRPCRouter({
   set: coordinatorProcedure
@@ -41,5 +46,49 @@ export const assignmentRoute = createTRPCRouter({
           select: { id: true, locked: true, sectionId: true, staffId: true },
         });
       });
+    }),
+
+  solve: coordinatorProcedure
+    .input(
+      z.object({
+        termId: z.string(),
+        solverStrategy: z.enum(solverStrategies),
+      }),
+    )
+    .mutation(async ({ input: { termId, solverStrategy }, ctx }) => {
+      const solverData = await getSolverData(ctx, termId);
+      const assignments = solveAssignments(solverStrategy, solverData);
+
+      console.log("Solver returned assignments:", assignments.size, "sections");
+
+      // Insert assignments
+      const assignmentRecords = [];
+      for (const [sectionId, staffIds] of assignments) {
+        for (const staffId of staffIds) {
+          assignmentRecords.push({ sectionId, staffId });
+        }
+      }
+
+      console.log("Creating", assignmentRecords.length, "assignment records");
+
+      if (assignmentRecords.length > 0) {
+        await Promise.all(
+          assignmentRecords.map((record) =>
+            ctx.db.sectionAssignment.upsert({
+              where: {
+                sectionId_staffId: {
+                  sectionId: record.sectionId,
+                  staffId: record.staffId,
+                },
+              },
+              create: {
+                sectionId: record.sectionId,
+                staffId: record.staffId,
+              },
+              update: {},
+            }),
+          ),
+        );
+      }
     }),
 });

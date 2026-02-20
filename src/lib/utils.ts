@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
-import type { Session } from "next-auth";
+import type { Session, User } from "next-auth";
 import { twMerge } from "tailwind-merge";
 import z from "zod";
 
@@ -23,16 +23,16 @@ export const isExcelType = (type: string) =>
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
   type === "application/vnd.ms-excel";
 
-export function isCoordinator(session: Session | null) {
-  return session?.user.roles.some((r) => r === "COORDINATOR");
+export function isCoordinator(user?: User): boolean {
+  return user?.roles?.some((r) => r === "COORDINATOR") ?? false;
 }
 
-export function isAssistant(session: Session | null) {
-  return session?.user.roles.some((r) => r === "TA" || r === "PLA");
+export function isAssistant(user?: User): boolean {
+  return user?.roles?.some((r) => r === "TA" || r === "PLA") ?? false;
 }
 
-export function isProfessor(session: Session | null) {
-  return session?.user.roles.some((r) => r === "PROFESSOR");
+export function isProfessor(user?: User): boolean {
+  return user?.roles?.some((r) => r === "PROFESSOR") ?? false;
 }
 
 export function toFullCourseName(section: string, code: string, title: string) {
