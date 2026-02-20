@@ -36,8 +36,6 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
       termId,
       isAvailableForTerm,
     });
-    if (isAvailableForTerm === true) onNext();
-    else onExit();
   }
 
   const { selectedTerm } = useTerm();
