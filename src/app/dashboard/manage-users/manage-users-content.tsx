@@ -1,17 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Role, type Term, type TermLetter } from "@prisma/client";
-import { api } from "@/trpc/react";
+import { useState } from "react";
+import { Role } from "@prisma/client";
+import { api, type RouterOutputs } from "@/trpc/react";
 import { toast } from "sonner";
-import {
-  RefreshCw,
-  Users,
-  Save,
-  Lock,
-  Unlock,
-  LockKeyhole,
-} from "lucide-react";
+import { RefreshCw, Save, Lock, Unlock } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -42,17 +35,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Card,
   CardContent,
@@ -60,7 +42,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { createColumns, type User } from "./columns";
+import { createColumns } from "./columns";
 import { UploadAllowedUsersForm } from "@/app/dashboard/manage-terms/upload-allowed-users-form";
 import { humanizeKey } from "@/lib/utils";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
@@ -88,6 +70,9 @@ const ROLE_OPTIONS: Array<{
   { value: Role.PROFESSOR, label: "Professor" },
 ];
 
+export type UserTableRow =
+  RouterOutputs["staff"]["getAllUsers"]["users"][number];
+
 export default function ManageUsersContent() {
   const { selectedTerm } = useTerm();
 
@@ -101,8 +86,7 @@ export default function ManageUsersContent() {
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserTableRow | null>(null);
 
   // Forms
   const addForm = useForm<UserFormValues>({
@@ -151,19 +135,6 @@ export default function ManageUsersContent() {
     },
   });
 
-  const deleteUserMutation = api.staff.deleteUser.useMutation({
-    onSuccess: async () => {
-      toast.success("User deleted successfully!");
-      setIsDeleteDialogOpen(false);
-      setSelectedUser(null);
-      await utils.staff.getAllUsers.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-      setIsDeleteDialogOpen(false);
-    },
-  });
-
   const lockAllMutation = api.staff.lockAllStaffPreferences.useMutation({
     onSuccess: async (result) => {
       toast.success(result.message);
@@ -199,7 +170,7 @@ export default function ManageUsersContent() {
     setIsAddDialogOpen(true);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: UserTableRow) => {
     setSelectedUser(user);
     // Find the first allowed role, or default to PLA
     const userRole =
@@ -212,11 +183,6 @@ export default function ManageUsersContent() {
       role: userRole as (typeof ALLOWED_ROLES)[number],
     });
     setIsEditDialogOpen(true);
-  };
-
-  const handleDeleteUser = (user: User) => {
-    setSelectedUser(user);
-    setIsDeleteDialogOpen(true);
   };
 
   const onSubmitAddUser = (values: UserFormValues) => {
@@ -238,11 +204,6 @@ export default function ManageUsersContent() {
     });
   };
 
-  const confirmDeleteUser = () => {
-    if (!selectedUser) return;
-    deleteUserMutation.mutate({ userId: selectedUser.id });
-  };
-
   const handleLockAll = () => {
     lockAllMutation.mutate({ termId: selectedTerm.id });
   };
@@ -251,14 +212,13 @@ export default function ManageUsersContent() {
     unlockAllMutation.mutate({ termId: selectedTerm.id });
   };
 
-  const handleToggleUserLock = (user: User) => {
+  const handleToggleUserLock = (user: UserTableRow) => {
     toggleUserLockMutation.mutate({ userId: user.id, termId: selectedTerm.id });
   };
 
   // Create table columns with handlers
   const columns = createColumns(
     handleEditUser,
-    handleDeleteUser,
     handleToggleUserLock,
     selectedTerm.id,
   );
@@ -533,38 +493,6 @@ export default function ManageUsersContent() {
           </Form>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete <strong>{selectedUser?.name}</strong>{" "}
-              ({selectedUser?.email}). This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteUser}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {deleteUserMutation.isPending ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete User"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,15 +27,11 @@ import {
 } from "@/components/ui/dialog";
 import { GlobalSuspense } from "@/components/global-suspense";
 import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
-import type { User as NextUser } from "next-auth";
 import { CopyButton } from "@/components/copy-button";
 import { DataTableColumnHeader } from "@/components/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
-
-export type User = NextUser & {
-  locked: boolean; // Computed from staffPreferences.canEdit
-  hasPreference: boolean; // Computed from staffPreferences existence
-};
+import { api } from "@/trpc/react";
+import type { UserTableRow } from "./manage-users-content";
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
@@ -51,11 +48,10 @@ const getRoleBadgeClass = (role: Role): string => {
 // TODO: add locked pref col, has pref cols
 
 export const createColumns = (
-  onEdit: (user: User) => void,
-  onDelete: (user: User) => void,
-  onToggleLock: (user: User) => void,
+  onEdit: (user: UserTableRow) => void,
+  onToggleLock: (user: UserTableRow) => void,
   activeTermId: string,
-): ColumnDef<User>[] => [
+): ColumnDef<UserTableRow>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -104,7 +100,7 @@ export const createColumns = (
           <Button
             asChild
             variant="link"
-            className="text-primary-foreground p-0"
+            className="text-foreground p-0"
             title={`Send email to ${name}`}
           >
             <a href={`mailto:${email}`}>{email}</a>
@@ -170,6 +166,21 @@ export const createColumns = (
     meta: { export: false },
     cell: ({ row }) => {
       const user = row.original;
+
+      const utils = api.useUtils();
+      const deleteUserMutation = api.staff.deleteUser.useMutation({
+        onSuccess: async () => {
+          toast.success("User deleted successfully!");
+          await utils.staff.getAllUsers.invalidate();
+        },
+        onError: (error) => {
+          toast.error(error.message);
+        },
+      });
+
+      function handleDelete() {
+        deleteUserMutation.mutate({ userId: user.id });
+      }
 
       return (
         <div className="flex justify-end">
@@ -249,10 +260,8 @@ export const createColumns = (
                 <Edit className="h-4 w-4" /> Edit user
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => onDelete(user)}
-              >
+              <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+                {/*TODO: add alert dialog*/}
                 <Trash2 className="h-4 w-4" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
