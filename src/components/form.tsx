@@ -16,18 +16,17 @@ import type { ReactNode } from "react";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectTrigger, SelectValue } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Button } from "./ui/button";
+import { Check, ChevronsUpDown } from "lucide-react";
 import {
-  Combobox as UiCombobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue,
-} from "./ui/combobox";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "./ui/command";
+import { CommandList } from "cmdk";
 
 type FormControlProps<
   TFieldValues extends FieldValues = FieldValues,
@@ -129,10 +128,27 @@ function FormBase<
 
 type Placeholder = { placeholder?: string };
 
-export const FormInput: FormControlFunc<Placeholder> = (props) => {
+export const FormInput: FormControlFunc<
+  Placeholder & { type?: React.InputHTMLAttributes<HTMLInputElement>["type"] }
+> = (props) => {
   return (
     <FormBase {...props}>
-      {(field) => <Input {...field} placeholder={props.placeholder} />}
+      {({ value, onChange, ...field }) => (
+        <Input
+          {...field}
+          placeholder={props.placeholder}
+          type={props.type}
+          value={value ?? ""}
+          onChange={(e) => {
+            if (props.type === "number") {
+              const raw = e.target.value;
+              onChange(raw === "" ? undefined : Number(raw));
+            } else {
+              onChange(e.target.value);
+            }
+          }}
+        />
+      )}
     </FormBase>
   );
 };
@@ -172,11 +188,13 @@ export type ComboboxOption = { value: string; label: string };
 export const FormCombobox: FormControlFunc<{
   options: ComboboxOption[];
   placeholder?: string;
+  searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
 }> = ({
   options,
   placeholder = "Select…",
+  searchPlaceholder = "Search…",
   emptyText = "No results.",
   disabled,
   ...props
@@ -184,108 +202,52 @@ export const FormCombobox: FormControlFunc<{
   return (
     <FormBase {...props}>
       {({ value, onChange, "aria-invalid": ariaInvalid, id }) => {
-        // react-hook-form field value is a string (your current setup)
-        const currentValue = (value ?? "") as string;
-
-        const items = options.map((o) => o.value);
+        const selected = options.find((o) => o.value === value);
 
         return (
-          <UiCombobox
-            items={items}
-            value={currentValue}
-            onValueChange={(val) => {
-              // Combobox gives us the selected string
-              onChange(val);
-            }}
-            disabled={disabled}
-          >
-            <ComboboxInput
-              id={id}
-              aria-invalid={ariaInvalid}
-              placeholder={placeholder}
-            />
-            <ComboboxContent>
-              <ComboboxEmpty>{emptyText}</ComboboxEmpty>
-              <ComboboxList>
-                {(item) => {
-                  const opt = options.find((o) => o.value === item);
-                  if (!opt) return null;
+          <Popover modal>
+            <PopoverTrigger asChild>
+              <Button
+                id={id}
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-invalid={ariaInvalid}
+                aria-expanded="false"
+                disabled={disabled}
+                className="justify-between"
+              >
+                {selected?.label ?? placeholder}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
 
-                  return (
-                    <ComboboxItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </ComboboxItem>
-                  );
-                }}
-              </ComboboxList>
-            </ComboboxContent>
-          </UiCombobox>
-        );
-      }}
-    </FormBase>
-  );
-};
-
-export const FormComboboxMulti: FormControlFunc<{
-  options: ComboboxOption[];
-  placeholder?: string;
-  emptyText?: string;
-  disabled?: boolean;
-}> = ({
-  options,
-  placeholder = "Add…",
-  emptyText = "No results.",
-  disabled,
-  ...props
-}) => {
-  return (
-    <FormBase {...props}>
-      {({ value, onChange, "aria-invalid": ariaInvalid, id }) => {
-        // RHF field should be string[]
-        const selectedValues = (value ?? []) as string[];
-
-        const items = options.map((o) => o.value);
-
-        return (
-          <UiCombobox
-            items={items}
-            multiple
-            value={selectedValues}
-            onValueChange={(vals) => {
-              // vals is string[]
-              onChange(vals);
-            }}
-            disabled={disabled}
-          >
-            {/* Chips area (the visible "input" part) */}
-            <ComboboxChips>
-              <ComboboxValue aria-invalid={ariaInvalid}>
-                {selectedValues.map((v) => {
-                  const opt = options.find((o) => o.value === v);
-                  if (!opt) return null;
-                  return <ComboboxChip key={v}>{opt.label}</ComboboxChip>;
-                })}
-              </ComboboxValue>
-              <ComboboxChipsInput placeholder={placeholder} />
-            </ComboboxChips>
-
-            {/* Dropdown list */}
-            <ComboboxContent>
-              <ComboboxEmpty>{emptyText}</ComboboxEmpty>
-              <ComboboxList>
-                {(item) => {
-                  const opt = options.find((o) => o.value === item);
-                  if (!opt) return null;
-
-                  return (
-                    <ComboboxItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </ComboboxItem>
-                  );
-                }}
-              </ComboboxList>
-            </ComboboxContent>
-          </UiCombobox>
+            <PopoverContent className="p-0" align="start">
+              <Command>
+                <CommandInput placeholder={searchPlaceholder} />
+                <CommandList className="max-h-60 overflow-y-auto">
+                  <CommandEmpty>{emptyText}</CommandEmpty>
+                  <CommandGroup>
+                    {options.map((opt) => (
+                      <CommandItem
+                        key={opt.value}
+                        value={opt.label}
+                        onSelect={() => onChange(opt.value)}
+                      >
+                        <Check
+                          className={[
+                            "mr-2 h-4 w-4",
+                            opt.value === value ? "opacity-100" : "opacity-0",
+                          ].join(" ")}
+                        />
+                        {opt.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         );
       }}
     </FormBase>
