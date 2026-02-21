@@ -10,65 +10,64 @@ import { api } from "@/trpc/react";
 import { Role } from "@prisma/client";
 import { toast } from "sonner";
 
-import z from "zod";
+import { z } from "zod";
 import { CSVDropzone } from "@/components/csv-dropzone";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState, type ReactNode, type FormEvent } from "react";
 import { createUserInputSchema } from "@/types/form-inputs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FieldGroup } from "../ui/field";
+import { FormCombobox, FormInput } from "../form";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useState, type ReactNode } from "react";
+import { PlusCircleIcon } from "lucide-react";
 
 export function UploadAllowedUsersForm({
   termId,
-  triggerVariant,
-  trigger,
+  children,
 }: {
   termId: string;
-  triggerVariant?: "destructive" | "outline" | "default";
-  trigger?: ReactNode;
+  children?: ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
   const utils = api.useUtils();
+  const form = useForm({
+    mode: "onChange",
+    resolver: zodResolver(createUserInputSchema),
+    defaultValues: { email: "", name: "", role: Role.PLA },
+  });
+
   const uploadUsers = api.term.syncUsersToTerm.useMutation({
     onError: (error) => {
       toast.error(error.message);
     },
     onSuccess: (newusers) => {
-      const message = `Success! Synced ${newusers} new user(s).`;
-      toast.success(message);
-      console.log(message);
+      toast.success(`Success! Synced ${newusers} new user(s).`);
+      form.reset();
+      setOpen(false);
     },
     onSettled: async () => {
-      await utils.term.getTermStats.invalidate();
+      await utils.term.invalidate();
+      await utils.staff.invalidate();
+      await utils.user.invalidate();
     },
   });
 
-  function handleSubmit(users: z.infer<typeof createUserInputSchema>[]) {
+  function onSubmitArray(users: z.infer<typeof createUserInputSchema>[]) {
     uploadUsers.mutate({ users, termId });
   }
 
-  // Single-user form state
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"" | Role>("");
-
-  function handleSingleSubmit(e?: FormEvent<HTMLFormElement>) {
-    e?.preventDefault();
-    try {
-      const user = createUserInputSchema.parse({ name, email, role });
-      uploadUsers.mutate({ users: [user], termId });
-      setName("");
-      setEmail("");
-      setRole("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Invalid input");
-    }
+  function onSubmitOne(user: z.infer<typeof createUserInputSchema>) {
+    onSubmitArray([user]);
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger ?? (
-          <Button variant={triggerVariant ?? "outline"}>
-            Upload / Add Users
+        {children ?? (
+          <Button>
+            <PlusCircleIcon /> Add Users
           </Button>
         )}
       </DialogTrigger>
@@ -76,11 +75,15 @@ export function UploadAllowedUsersForm({
         <DialogHeader>
           <DialogTitle>Allowed Users</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
+        <Tabs defaultValue="file">
+          <TabsList>
+            <TabsTrigger value="file">CSV upload</TabsTrigger>
+            <TabsTrigger value="single">Single user</TabsTrigger>
+          </TabsList>
+          <TabsContent value="file">
             <CSVDropzone
               schema={createUserInputSchema}
-              onSubmit={handleSubmit}
+              onSubmit={onSubmitArray}
               disabled={uploadUsers.isPending}
               dedupeBy={(row) => row.email}
               exampleRow={{
@@ -89,60 +92,54 @@ export function UploadAllowedUsersForm({
                 role: "PLA",
               }}
             />
-          </div>
-
-          <div className="flex justify-start">
-            <div className="w-80">
-              <div className="bg-background/50 space-y-2 rounded-md border p-4">
-                <div className="text-lg font-medium">Add Individual User</div>
-                <form onSubmit={handleSingleSubmit} className="space-y-2">
-                  <div>
-                    <label className="text-sm font-medium">Name</label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Last, First"
+          </TabsContent>
+          <TabsContent value="single">
+            <Card>
+              <CardHeader>
+                <CardTitle>Single user form</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  onSubmit={form.handleSubmit(onSubmitOne)}
+                  className="space-y-2"
+                >
+                  <FieldGroup>
+                    <FormInput
+                      control={form.control}
+                      name="name"
+                      label="Name"
+                      description='Must be in the format "last, first"'
+                      placeholder="Boktor, Mina"
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Email</label>
-                    <Input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                    <FormInput
+                      control={form.control}
+                      name="email"
+                      label="Email"
                       placeholder="mboktor@wpi.edu"
-                      type="email"
                     />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Role</label>
-                    <select
-                      value={role}
-                      onChange={(e) => setRole(e.target.value as Role)}
-                      className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-                    >
-                      <option value="">Select role</option>
-                      {Object.values(Role).map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex justify-end">
+                    <FormCombobox
+                      control={form.control}
+                      name="role"
+                      label="Role"
+                      options={Object.values(Role).map((value) => ({
+                        value,
+                        label: value,
+                      }))}
+                    />
                     <Button
                       type="submit"
-                      disabled={uploadUsers.isPending}
-                      variant="default"
+                      disabled={
+                        uploadUsers.isPending || !form.formState.isValid
+                      }
                     >
-                      Add User
+                      Submit
                     </Button>
-                  </div>
+                  </FieldGroup>
                 </form>
-              </div>
-            </div>
-          </div>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

@@ -84,19 +84,8 @@ export default function ManageUsersContent() {
   });
 
   // Dialog states
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserTableRow | null>(null);
-
-  // Forms
-  const addForm = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      role: Role.PLA,
-    },
-  });
 
   const editForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
@@ -109,18 +98,6 @@ export default function ManageUsersContent() {
 
   // tRPC utils and mutations
   const utils = api.useUtils();
-
-  const createUserMutation = api.staff.createUser.useMutation({
-    onSuccess: async () => {
-      toast.success("User added successfully!");
-      setIsAddDialogOpen(false);
-      addForm.reset();
-      await utils.staff.getAllUsers.invalidate();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
 
   const updateUserMutation = api.staff.updateUser.useMutation({
     onSuccess: async () => {
@@ -165,11 +142,6 @@ export default function ManageUsersContent() {
     },
   });
 
-  const handleAddUser = () => {
-    addForm.reset();
-    setIsAddDialogOpen(true);
-  };
-
   const handleEditUser = (user: UserTableRow) => {
     setSelectedUser(user);
     // Find the first allowed role, or default to PLA
@@ -183,14 +155,6 @@ export default function ManageUsersContent() {
       role: userRole as (typeof ALLOWED_ROLES)[number],
     });
     setIsEditDialogOpen(true);
-  };
-
-  const onSubmitAddUser = (values: UserFormValues) => {
-    createUserMutation.mutate({
-      name: values.name,
-      email: values.email,
-      role: values.role,
-    });
   };
 
   const onSubmitEditUser = (values: UserFormValues) => {
@@ -304,107 +268,11 @@ export default function ManageUsersContent() {
               );
             }}
             renderToolbarActions={(table) => {
-              return (
-                <UploadAllowedUsersForm
-                  termId={selectedTerm.id}
-                  triggerVariant="default"
-                />
-              );
+              return <UploadAllowedUsersForm termId={selectedTerm.id} />;
             }}
           />
         </CardContent>
       </Card>
-
-      {/* Add User Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>
-              Create a new user account. All fields are required.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...addForm}>
-            <form
-              onSubmit={addForm.handleSubmit(onSubmitAddUser)}
-              className="space-y-4"
-            >
-              <FormField
-                control={addForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Roman Anthony" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={addForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="e.g., ranthony@wpi.edu"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={addForm.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {ROLE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit" disabled={createUserMutation.isPending}>
-                  {createUserMutation.isPending ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Add User
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
