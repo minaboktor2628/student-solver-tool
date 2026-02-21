@@ -1,45 +1,16 @@
 "use client";
 
-import { toast } from "sonner";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Edit,
-  Trash2,
-  Lock,
-  Unlock,
-  Settings2Icon,
-  CheckIcon,
-  XIcon,
-} from "lucide-react";
-import { type Role } from "@prisma/client";
-import { MoreHorizontal } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { isAssistant, isProfessor } from "@/lib/utils";
-import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { GlobalSuspense } from "@/components/global-suspense";
-import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
+import { Lock, Unlock, CheckIcon, XIcon } from "lucide-react";
+import { Role } from "@prisma/client";
+
 import { CopyButton } from "@/components/copy-button";
 import { DataTableColumnHeader } from "@/components/data-table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { api } from "@/trpc/react";
 import type { UserTableRow } from "./manage-users-content";
+import { UserTableRowAction } from "./user-table-row-actions";
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
@@ -53,11 +24,7 @@ const getRoleBadgeClass = (role: Role): string => {
   return ROLE_COLORS[role];
 };
 
-// TODO: add locked pref col, has pref cols
-
 export const createColumns = (
-  onEdit: (user: UserTableRow) => void,
-  onToggleLock: (user: UserTableRow) => void,
   activeTermId: string,
 ): ColumnDef<UserTableRow>[] => [
   {
@@ -202,110 +169,8 @@ export const createColumns = (
   {
     id: "actions",
     meta: { export: false },
-    cell: ({ row }) => {
-      const user = row.original;
-
-      const utils = api.useUtils();
-      const deleteUserMutation = api.staff.deleteUser.useMutation({
-        onSuccess: async () => {
-          toast.success("User deleted successfully!");
-          await utils.staff.getAllUsers.invalidate();
-        },
-        onError: (error) => {
-          toast.error(error.message);
-        },
-      });
-
-      function handleDelete() {
-        deleteUserMutation.mutate({ userId: user.id });
-      }
-
-      return (
-        <div className="flex justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {isProfessor(user) && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Settings2Icon className="size-4" /> Edit prof preferences
-                    </DropdownMenuItem>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-6xl">
-                    <DialogHeader>
-                      <DialogTitle>Edit preferences as {user.name}</DialogTitle>
-                      {/* TODO: fix this bruh. i have spent too long trying to, so f it man*/}
-                      <DialogDescription>
-                        Due to a bug, you will have to search the comboboxes in
-                        this view and using your arrow and enter keys instead of
-                        clicking through the list.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <GlobalSuspense>
-                      <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
-                        <ProfessorPreferenceForm
-                          userId={user.id}
-                          termId={activeTermId}
-                        />
-                      </div>
-                    </GlobalSuspense>
-                  </DialogContent>
-                </Dialog>
-              )}
-              {isAssistant(user) && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Settings2Icon className="size-4" /> Edit staff
-                      preferences
-                    </DropdownMenuItem>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-6xl">
-                    <DialogHeader>
-                      <DialogTitle>Edit preferences as {user.name}</DialogTitle>
-                    </DialogHeader>
-                    <GlobalSuspense>
-                      <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
-                        <MultiStepFormModal
-                          userId={user.id}
-                          termId={activeTermId}
-                          inline
-                        />
-                      </div>
-                    </GlobalSuspense>
-                  </DialogContent>
-                </Dialog>
-              )}
-              <DropdownMenuItem onClick={() => onToggleLock(user)}>
-                {user.locked ? (
-                  <>
-                    <Unlock className="h-4 w-4" /> Unlock preferences
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4" /> Lock preferences
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(user)}>
-                <Edit className="h-4 w-4" /> Edit user
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={handleDelete}>
-                {/*TODO: add alert dialog*/}
-                <Trash2 className="h-4 w-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <UserTableRowAction termId={activeTermId} user={row.original} />
+    ),
   },
 ];
