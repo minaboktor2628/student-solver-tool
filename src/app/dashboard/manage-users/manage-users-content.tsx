@@ -54,13 +54,13 @@ export default function ManageUsersContent() {
     },
   });
 
-  const handleLockAll = () => {
-    lockAllMutation.mutate({ termId: selectedTerm.id });
-  };
+  function handleLockAll(userIds?: string[]) {
+    lockAllMutation.mutate({ termId: selectedTerm.id, userIds });
+  }
 
-  const handleUnlockAll = () => {
-    unlockAllMutation.mutate({ termId: selectedTerm.id });
-  };
+  function handleUnlockAll(userIds?: string[]) {
+    unlockAllMutation.mutate({ termId: selectedTerm.id, userIds });
+  }
 
   const columns = createColumns(selectedTerm.id);
 
@@ -134,12 +134,19 @@ export default function ManageUsersContent() {
                 },
               ],
             }}
-            renderFooterExtras={(table) => {
-              // TODO: use the tables selected rows to only lock/unlock the selected people
+            renderToolbarActions={(table) => {
+              const selectedIds = table
+                .getSelectedRowModel()
+                .rows.map((r) => r.original.id);
+
+              const effectiveUserIds =
+                selectedIds.length > 0 ? selectedIds : undefined;
+
               return (
                 <div className="ml-auto flex gap-2">
+                  <UploadAllowedUsersForm termId={selectedTerm.id} />
                   <Button
-                    onClick={handleLockAll}
+                    onClick={() => handleLockAll(effectiveUserIds)}
                     variant="destructive"
                     className="gap-2"
                     disabled={lockAllMutation.isPending}
@@ -149,10 +156,11 @@ export default function ManageUsersContent() {
                     ) : (
                       <Lock className="h-4 w-4" />
                     )}
-                    Lock All
+                    {selectedIds.length > 0 ? "Lock selected" : "Lock all"}
                   </Button>
+
                   <Button
-                    onClick={handleUnlockAll}
+                    onClick={() => handleUnlockAll(effectiveUserIds)}
                     variant="outline"
                     className="gap-2"
                     disabled={unlockAllMutation.isPending}
@@ -162,13 +170,10 @@ export default function ManageUsersContent() {
                     ) : (
                       <Unlock className="h-4 w-4" />
                     )}
-                    Unlock All
+                    {selectedIds.length > 0 ? "Unlock selected" : "Unlock all"}
                   </Button>
                 </div>
               );
-            }}
-            renderToolbarActions={(table) => {
-              return <UploadAllowedUsersForm termId={selectedTerm.id} />;
             }}
           />
         </CardContent>
