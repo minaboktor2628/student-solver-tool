@@ -188,7 +188,7 @@ export default function ManageUsersContent() {
   );
 
   return (
-    <div className="min-h-screen p-4">
+    <div className="p-4">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -222,7 +222,7 @@ export default function ManageUsersContent() {
             selectable
             toolbarProps={{
               searchPlaceholder: "Search by name...",
-              searchColumnIds: ["name"],
+              searchColumnIds: ["name", "email"],
               facetedFilters: [
                 {
                   columnId: "roles",
@@ -231,6 +231,22 @@ export default function ManageUsersContent() {
                     value,
                     label: humanizeKey(value),
                   })),
+                },
+                {
+                  columnId: "hasPreference",
+                  title: "Status",
+                  options: [
+                    { value: "false", label: "Not submitted" },
+                    { value: "true", label: "Submitted" },
+                  ],
+                },
+                {
+                  columnId: "locked",
+                  title: "Locked",
+                  options: [
+                    { value: "false", label: "Unlocked" },
+                    { value: "true", label: "Locked" },
+                  ],
                 },
               ],
             }}

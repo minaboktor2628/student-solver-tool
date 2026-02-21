@@ -4,7 +4,15 @@ import { toast } from "sonner";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Lock, Unlock, Settings2Icon } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  Lock,
+  Unlock,
+  Settings2Icon,
+  CheckIcon,
+  XIcon,
+} from "lucide-react";
 import { type Role } from "@prisma/client";
 import { MoreHorizontal } from "lucide-react";
 import {
@@ -131,20 +139,42 @@ export const createColumns = (
     filterFn: "arrIncludesSome",
   },
   {
-    accessorKey: "locked",
-    header: "Status",
+    accessorKey: "hasPreference",
+    header: "Preference form status",
+    filterFn: (row, columnId, filterValue) => {
+      const selected = filterValue as string[] | undefined;
+      if (!selected || selected.length === 0) return true;
+
+      const value = row.getValue<boolean>(columnId);
+      const valueAsString = value ? "true" : "false";
+      return selected.includes(valueAsString);
+    },
     cell: ({ row }) => {
-      const locked = row.original.locked;
       const hasPreference = row.original.hasPreference;
 
-      // TODO: does it matter that they have no preferences?
-      if (!hasPreference) {
-        return (
-          <Badge variant="outline" className="text-xs">
-            No Preference
-          </Badge>
-        );
-      }
+      return (
+        <Badge
+          variant={hasPreference ? "success" : "destructive"}
+          className="text-xs"
+        >
+          {hasPreference ? (
+            <>
+              <CheckIcon /> Submitted
+            </>
+          ) : (
+            <>
+              <XIcon /> Not submitted
+            </>
+          )}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "locked",
+    header: "Preference form access",
+    cell: ({ row }) => {
+      const locked = row.original.locked;
 
       return (
         <Badge variant={locked ? "destructive" : "success"} className="text-xs">
@@ -159,6 +189,14 @@ export const createColumns = (
           )}
         </Badge>
       );
+    },
+    filterFn: (row, columnId, filterValue) => {
+      const selected = filterValue as string[] | undefined;
+      if (!selected || selected.length === 0) return true;
+
+      const value = row.getValue<boolean>(columnId);
+      const valueAsString = value ? "true" : "false";
+      return selected.includes(valueAsString);
     },
   },
   {
