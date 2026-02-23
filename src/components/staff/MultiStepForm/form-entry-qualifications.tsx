@@ -14,6 +14,7 @@ import {
   DrawerDescription,
   DrawerClose,
 } from "@/components/ui/drawer";
+import type { S } from "node_modules/@prisma/studio-core/dist/adapter-C3ET9x9-";
 
 export type Section = {
   term: string;
@@ -32,6 +33,7 @@ interface FormEntryQualificationsProps {
   userId: string;
   termId: string;
   courses: Course[];
+  prevData: string[];
   onChange: (selectedSectionIds: string[]) => void;
   onNext: () => void;
   onBack: () => void;
@@ -42,6 +44,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   userId,
   termId,
   courses = [],
+  prevData,
   onChange,
   onNext,
   onBack,
@@ -66,7 +69,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   });
 
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
-    () => new Set([]),
+    new Set(prevData),
   );
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
     () => new Set([]),

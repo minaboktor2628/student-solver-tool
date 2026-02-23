@@ -8,6 +8,8 @@ import { toast } from "sonner";
 interface FormEntryCommentsProps {
   userId: string;
   termId: string;
+  prevData: string;
+  onChange: (comments: string) => void;
   onSubmit: () => void;
   onBack: () => void;
 }
@@ -15,16 +17,19 @@ interface FormEntryCommentsProps {
 const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
   userId,
   termId,
+  prevData,
+  onChange,
   onSubmit,
   onBack,
 }) => {
-  const [comments, setComments] = useState("");
+  const [comments, setComments] = useState(prevData);
   const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
       console.error("Failed to save comments:", error);
     },
     onSuccess: () => {
+      // onChange(comments); could save here if using local storage. otherwise no point
       toast.success("Form saved successfully");
       void utils.studentDashboard.invalidate();
       onSubmit();
@@ -39,6 +44,11 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
     });
   }
 
+  function handleBackClick() {
+    onChange(comments);
+    onBack();
+  }
+
   return (
     <div className="mx-auto max-w-4xl p-4">
       <h2 className="mb-4 text-xl font-semibold">Comments</h2>
@@ -50,7 +60,7 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
       />
       <div className="mt-4 flex justify-between">
         <Button
-          onClick={onBack}
+          onClick={handleBackClick}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >

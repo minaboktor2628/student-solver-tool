@@ -42,10 +42,10 @@ export const allowedPreferTokens = 5;
 interface CoursePreferencesProps {
   userId: string;
   termId: string;
-  /** array of courses with sections that the user qualified for */
   courses?: Course[];
-  /** array of selected section ids from qualifications step */
   selectedSectionIds: string[];
+  prevData: Record<string, TokenType | undefined>;
+  onChange: (selectedPrefs: Record<string, TokenType | undefined>) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -55,6 +55,8 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   termId,
   courses: coursesProp,
   selectedSectionIds,
+  prevData,
+  onChange,
   onNext,
   onBack,
 }) => {
@@ -64,6 +66,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       console.error("Failed to save preferences:", error);
     },
     onSuccess: () => {
+      onChange(mapping);
       toast.success("Form saved successfully");
       void utils.studentDashboard.invalidate();
       onNext();
@@ -83,9 +86,8 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   }, [coursesProp, selectedSectionIds]);
 
   // mapping holds at most one token per section
-  const [mapping, setMapping] = useState<Record<string, TokenType | undefined>>(
-    {},
-  );
+  const [mapping, setMapping] =
+    useState<Record<string, TokenType | undefined>>(prevData);
 
   // drag/drop handlers
   const [activeToken, setActiveToken] = useState<TokenType | null>(null);
@@ -133,6 +135,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       termId,
       sectionPreferences: mapping,
     });
+  }
+
+  function handleBackClick() {
+    onChange(mapping);
+    onBack();
   }
 
   const originalNumStrongTokens = allowedStrongTokens;
@@ -304,7 +311,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
 
         <div className="mt-4 flex justify-between">
           <Button
-            onClick={onBack}
+            onClick={handleBackClick}
             variant="outline"
             disabled={saveFormMutation.isPending}
           >
