@@ -1,4 +1,4 @@
-import { TermLetter } from "@prisma/client";
+import { Role, TermLetter } from "@prisma/client";
 import z from "zod";
 
 export const createTermInputSchema = z.object({
@@ -6,4 +6,10 @@ export const createTermInputSchema = z.object({
   year: z.coerce.number().int().nonnegative(),
   termStaffDueDate: z.coerce.date(),
   termProfessorDueDate: z.coerce.date(),
+});
+
+export const createUserInputSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  role: z.nativeEnum(Role),
 });

@@ -275,7 +275,7 @@ export const staffRoute = createTRPCRouter({
             email: user.email,
             hours: user.hours,
             roles: user.roles.map((r) => r.role),
-            locked: staffPref ? !user.canEditForm : false,
+            locked: !user.canEditForm,
             hasPreference: !!staffPref,
           };
         }),
@@ -413,16 +413,19 @@ export const staffRoute = createTRPCRouter({
     }),
 
   lockAllStaffPreferences: coordinatorProcedure
-    .input(z.object({ termId: z.string() }))
+    .input(
+      z.object({
+        termId: z.string(),
+        userIds: z.array(z.string()).optional(), // if user ids are passed in, lock all of those only.
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
-      const { termId } = input;
+      const { termId, userIds } = input;
 
-      // Lock all existing staff preferences
       const result = await ctx.db.user.updateMany({
         where: {
-          AllowedInTerms: {
-            some: { id: termId },
-          },
+          AllowedInTerms: { some: { id: termId } },
+          ...(userIds && userIds.length > 0 ? { id: { in: userIds } } : {}),
         },
         data: { canEditForm: false },
       });
@@ -435,16 +438,19 @@ export const staffRoute = createTRPCRouter({
     }),
 
   unlockAllStaffPreferences: coordinatorProcedure
-    .input(z.object({ termId: z.string() }))
+    .input(
+      z.object({
+        termId: z.string(),
+        userIds: z.array(z.string()).optional(), // if user ids are passed in, unlock all of those only.
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
-      const { termId } = input;
+      const { termId, userIds } = input;
 
-      // Unlock all existing staff preferences
       const result = await ctx.db.user.updateMany({
         where: {
-          AllowedInTerms: {
-            some: { id: termId },
-          },
+          AllowedInTerms: { some: { id: termId } },
+          ...(userIds && userIds.length > 0 ? { id: { in: userIds } } : {}),
         },
         data: { canEditForm: true },
       });
@@ -466,49 +472,34 @@ export const staffRoute = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { userId, termId } = input;
 
-      // Check if user has a staff preference for this term
-      const staffPref = await ctx.db.staffPreference.findUnique({
+      // Find the user, but only if they belong to this term
+      const user = await ctx.db.user.findFirst({
         where: {
-          userId_termId: {
-            userId,
-            termId,
-          },
+          id: userId,
+          AllowedInTerms: { some: { id: termId } },
         },
-        select: { id: true, user: true },
+        select: { id: true, canEditForm: true },
       });
 
-      if (staffPref) {
-        // Toggle existing preference
-        const updated = await ctx.db.user.update({
-          where: {
-            id: userId,
-            staffPreferences: { some: { termId: termId } },
-          },
-          data: { canEditForm: !staffPref.user.canEditForm },
-          select: { id: true, canEditForm: true },
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found for this term",
         });
-
-        return {
-          success: true,
-          canEdit: updated.canEditForm,
-          message: updated.canEditForm
-            ? "User unlocked - can now edit preferences"
-            : "User locked - cannot edit preferences",
-        };
-      } else {
-        // Create a locked preference for users without one
-        const created = await ctx.db.staffPreference.create({
-          data: {
-            userId,
-            termId,
-          },
-          select: { id: true },
-        });
-
-        return {
-          success: true,
-          message: "User locked - cannot submit preferences",
-        };
       }
+
+      const updated = await ctx.db.user.update({
+        where: { id: user.id },
+        data: { canEditForm: !user.canEditForm },
+        select: { id: true, canEditForm: true },
+      });
+
+      return {
+        success: true,
+        canEdit: updated.canEditForm,
+        message: updated.canEditForm
+          ? "User unlocked - can now edit preferences"
+          : "User locked - cannot edit preferences",
+      };
     }),
 });
