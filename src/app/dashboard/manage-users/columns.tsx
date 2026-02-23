@@ -34,6 +34,15 @@ export const createColumns = (
     cell: ({ row }) => {
       return <div className="font-medium">{row.original.name}</div>;
     },
+    filterFn: (row, _, filterValue) => {
+      const term = String(filterValue ?? "").toLowerCase();
+      if (!term) return true;
+
+      const name = (row.getValue<string>("name") ?? "").toLowerCase();
+      const email = (row.getValue<string>("email") ?? "").toLowerCase();
+
+      return name.includes(term) || email.includes(term);
+    },
   },
   {
     accessorKey: "email",

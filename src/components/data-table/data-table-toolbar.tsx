@@ -38,8 +38,8 @@ export type FacetedFilterConfig<TColumnId extends string = string> = {
 export interface DataTableToolbarProps<TData> {
   table: Table<TData>;
 
-  /** Column id used for the text search input (default: "title") */
-  searchColumnIds?: (keyof TData & string)[];
+  /** Column id used for the text search input */
+  searchColumnId?: keyof TData & string;
 
   /** Placeholder for the search input */
   searchPlaceholder?: string;
@@ -57,7 +57,7 @@ export interface DataTableToolbarProps<TData> {
 
 export function DataTableToolbar<TData>({
   table,
-  searchColumnIds,
+  searchColumnId,
   searchPlaceholder = "Filter...",
   facetedFilters = [],
   children,
@@ -65,13 +65,12 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
 
-  const searchColumns =
-    searchColumnIds
-      ?.map((id) => table.getColumn(id))
-      .filter((col): col is NonNullable<typeof col> => !!col) ?? [];
+  const searchColumn = searchColumnId
+    ? table.getColumn(searchColumnId)
+    : undefined;
 
   const searchValue =
-    (searchColumns[0]?.getFilterValue() as string | undefined) ?? "";
+    (searchColumn?.getFilterValue() as string | undefined) ?? "";
 
   const buildCsvData = (
     rows: Row<TData>[],
@@ -112,15 +111,13 @@ export function DataTableToolbar<TData>({
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center gap-2">
-        {searchColumns.length > 0 && (
+        {searchColumn && (
           <Input
             placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(event) => {
               const value = event.target.value;
-              searchColumns.forEach((column) => {
-                column.setFilterValue(value);
-              });
+              searchColumn.setFilterValue(value);
             }}
             className="h-8 w-[150px] lg:w-[250px]"
           />

@@ -55,10 +55,12 @@ export default function ManageUsersContent() {
   });
 
   function handleLockAll(userIds?: string[]) {
+    if (!selectedTerm) return;
     lockAllMutation.mutate({ termId: selectedTerm.id, userIds });
   }
 
   function handleUnlockAll(userIds?: string[]) {
+    if (!selectedTerm) return;
     unlockAllMutation.mutate({ termId: selectedTerm.id, userIds });
   }
 
@@ -106,7 +108,7 @@ export default function ManageUsersContent() {
             selectable
             toolbarProps={{
               searchPlaceholder: "Search by name...",
-              searchColumnIds: ["name", "email"],
+              searchColumnId: "name",
               facetedFilters: [
                 {
                   columnId: "roles",
