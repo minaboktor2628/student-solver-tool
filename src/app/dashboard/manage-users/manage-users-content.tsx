@@ -1,4 +1,5 @@
 "use client";
+// TODO: Clean up this component.
 
 import { Role } from "@prisma/client";
 import { api, type RouterOutputs } from "@/trpc/react";

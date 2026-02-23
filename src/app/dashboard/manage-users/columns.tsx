@@ -23,9 +23,36 @@ const getRoleBadgeClass = (role: Role): string => {
   return ROLE_COLORS[role];
 };
 
+// TODO: add locked pref col, has pref cols
+
 export const createColumns = (
   activeTermId: string,
 ): ColumnDef<UserTableRow>[] => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+        className="translate-y-[2px]"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        className="translate-y-[2px]"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+    meta: { export: false },
+  },
   {
     accessorKey: "name",
     header: ({ column }) => (
