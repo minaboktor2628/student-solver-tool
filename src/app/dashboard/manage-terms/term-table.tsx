@@ -70,8 +70,43 @@ export function TermTable() {
     },
   });
 
+  const releaseAssignmentsMutation = api.term.releaseAssignments.useMutation({
+    onSuccess: async (res) => {
+      if (res?.success) {
+        toast.success("Assignments released.");
+        // refresh to pick up published state
+        window.location.reload();
+      } else {
+        toast.error("Failed to release assignments");
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  const lockAllMutation = api.staff.lockAllStaffPreferences.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const unlockAllMutation = api.staff.unlockAllStaffPreferences.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   // Build columns for DataTable
-  type TermRow = (typeof termStats)[number];
+  type TermRow = (typeof termStats)[number] & { name: string };
 
   const createColumns = (
     onActivate: (id: string) => void,
@@ -79,14 +114,11 @@ export function TermTable() {
     onDelete: (id: string) => void,
   ): ColumnDef<TermRow>[] => [
     {
-      id: "name",
+      accessorKey: "name",
       header: "Term Name",
       cell: ({ row }) => {
-        const t = row.original;
         return (
-          <div className="font-medium">
-            {t.termLetter} {t.year}
-          </div>
+          <div className="font-medium">{row.getValue<string>("name")}</div>
         );
       },
     },
@@ -144,6 +176,39 @@ export function TermTable() {
                   year={term.year}
                   termLetter={term.termLetter}
                 />
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={async () => {
+                    const ok = window.confirm(
+                      "Release assignments for this term? This will make assignments visible to staff and professors.",
+                    );
+                    if (!ok) return;
+                    try {
+                      await releaseAssignmentsMutation.mutateAsync({
+                        id: term.id,
+                      });
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  }}
+                  disabled={releaseAssignmentsMutation.isPending}
+                >
+                  Release Assignments
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => lockAllMutation.mutate({ termId: term.id })}
+                  disabled={lockAllMutation.isPending}
+                >
+                  Lock all
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => unlockAllMutation.mutate({ termId: term.id })}
+                  disabled={unlockAllMutation.isPending}
+                >
+                  Unlock all
+                </DropdownMenuItem>
                 <ActivateDeactivateButton
                   active={term.active}
                   onActivate={() => onActivate(term.id)}
@@ -164,13 +229,18 @@ export function TermTable() {
     (id) => deactivateTerm.mutate({ id }),
     (id) => deleteTerm.mutate({ id }),
   );
+  // Name
+  const rows: TermRow[] = (termStats ?? []).map((t) => ({
+    ...(t as Omit<TermRow, "name">),
+    name: `${t.termLetter} ${t.year}`,
+  }));
 
   return (
     <Card>
       <CardContent>
         <DataTable
           columns={columns}
-          data={termStats ?? []}
+          data={rows}
           toolbarProps={{
             searchColumnId: "name",
             searchPlaceholder: "Filter terms...",

@@ -365,9 +365,7 @@ export default function ManageCoursesContent() {
             <DataTable
               columns={columns}
               data={courses}
-              toolbarProps={{
-                searchColumnId: "title" as unknown as keyof Course,
-              }}
+              toolbarProps={{ searchColumnId: "courseTitle" }}
             />
           </CardContent>
         </Card>
