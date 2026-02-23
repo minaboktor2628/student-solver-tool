@@ -114,8 +114,3 @@ export function zodTypeHumanReadableLabel(field: z.ZodTypeAny): string {
   if (f instanceof z.ZodLiteral) return `literal(${String(f._def.value)})`;
   return "unknown";
 }
-
-// capitalizes the first letter of a given string
-export function capitalizeFirstLetter(val: string) {
-  return val.charAt(0).toUpperCase() + val.slice(1);
-}

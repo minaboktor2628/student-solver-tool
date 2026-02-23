@@ -317,11 +317,7 @@ export default function DashboardContent() {
                     </SelectContent>
                   </Select>
 
-                  <Button asChild size="sm">
-                    <Link href="/dashboard/create-term">
-                      <Plus className="h-4 w-4" /> Create Term
-                    </Link>
-                  </Button>
+                  {/* Create Term button removed (route deprecated) */}
                 </div>
               </div>
             </div>
