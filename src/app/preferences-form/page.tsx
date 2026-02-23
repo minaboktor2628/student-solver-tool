@@ -1,4 +1,3 @@
-import { LoadingSpinner } from "@/components/loading-spinner";
 import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
 import { redirectToForbidden } from "@/lib/navigation";
 import { hasPermission } from "@/lib/permissions";
@@ -11,12 +10,23 @@ export const metadata = {
   description: "Form for TAs and PLAs to set their preferences",
 };
 
-export default async function PreferencesFormPage() {
+type PageProps = {
+  searchParams: Promise<{
+    userId?: string;
+    termId?: string;
+    [key: string]: string | string[] | undefined;
+  }>;
+};
+
+export default async function PreferencesFormPage(props: PageProps) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   const activeTerm = await api.term.getActive();
-  const userId = session?.user.id;
 
-  if (!userId) return <LoadingSpinner />;
+  if (!session) return redirectToForbidden();
+
+  const userId = searchParams?.userId ?? session?.user.id;
+  const termId = searchParams.termId ?? activeTerm?.id;
 
   if (
     !hasPermission(session.user, "staffPreferenceForm", "viewActiveTerm", {
@@ -27,7 +37,7 @@ export default async function PreferencesFormPage() {
     redirectToForbidden();
   }
 
-  if (!activeTerm) {
+  if (!termId) {
     throw new Error("No active term. Please contact admin.");
   }
 
@@ -36,7 +46,7 @@ export default async function PreferencesFormPage() {
       <h1 className="mb-4 text-2xl font-bold">Preferences Form</h1>
       <MultiStepFormModal
         userId={userId}
-        termId={activeTerm.id}
+        termId={termId}
         redirectOnComplete={"/"}
         inline
       />
