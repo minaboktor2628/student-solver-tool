@@ -7,7 +7,10 @@ import {
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { Role, TermLetter } from "@prisma/client";
-import { createTermInputSchema } from "@/types/form-inputs";
+import {
+  createTermInputSchema,
+  createUserInputSchema,
+} from "@/types/form-inputs";
 import { getDefaultHoursForRole } from "@/lib/constants";
 import { getTermSectionData, SectionItemSchema } from "@/lib/courselisting-api";
 
@@ -190,13 +193,7 @@ export const termRoute = createTRPCRouter({
     .input(
       z.object({
         termId: z.string(),
-        users: z.array(
-          z.object({
-            name: z.string(),
-            email: z.string().email(),
-            role: z.nativeEnum(Role),
-          }),
-        ),
+        users: z.array(createUserInputSchema),
       }),
     )
     .mutation(async ({ ctx, input: { users, termId } }) => {
