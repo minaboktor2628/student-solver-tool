@@ -4,11 +4,10 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock, CheckIcon, XIcon } from "lucide-react";
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 
 import { CopyButton } from "@/components/copy-button";
 import { DataTableColumnHeader } from "@/components/data-table";
-import { Checkbox } from "@/components/ui/checkbox";
 import type { UserTableRow } from "./manage-users-content";
 import { UserTableRowAction } from "./user-table-row-actions";
 
@@ -27,31 +26,6 @@ const getRoleBadgeClass = (role: Role): string => {
 export const createColumns = (
   activeTermId: string,
 ): ColumnDef<UserTableRow>[] => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-[2px]"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="translate-y-[2px]"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-    meta: { export: false },
-  },
   {
     accessorKey: "name",
     header: ({ column }) => (
