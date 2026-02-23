@@ -45,7 +45,9 @@ export interface DataTableToolbarProps<TData> {
   searchPlaceholder?: string;
 
   /** Faceted filter configuration (status, priority, etc.) */
-  facetedFilters?: FacetedFilterConfig<keyof TData & string>[];
+  facetedFilters?: FacetedFilterConfig<
+    (keyof TData & string) | (string & {})
+  >[];
 
   /* optional action button */
   children?: ReactNode;

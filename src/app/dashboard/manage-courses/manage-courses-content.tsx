@@ -16,6 +16,8 @@ import {
 import { createColumns } from "./columns";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
 import { SyncSectionsForm } from "@/components/dashboard/sync-sections-form";
+import { AcademicLevel } from "@prisma/client";
+import { humanizeKey } from "@/lib/utils";
 
 export default function ManageCoursesContent() {
   const { selectedTerm } = useTerm();
@@ -66,7 +68,29 @@ export default function ManageCoursesContent() {
           <DataTable
             columns={createColumns()}
             data={courses}
-            toolbarProps={{ searchColumnId: "courseTitle" }}
+            selectable
+            toolbarProps={{
+              searchPlaceholder: "Filter courses...",
+              searchColumnId: "courseTitle",
+              facetedFilters: [
+                {
+                  columnId: "hasProfessor",
+                  title: "Professor assignment",
+                  options: [
+                    { label: "Has professor", value: "assigned" },
+                    { label: "No professor", value: "unassigned" },
+                  ],
+                },
+                {
+                  columnId: "academicLevel",
+                  title: "Academic level",
+                  options: Object.values(AcademicLevel).map((value) => ({
+                    value,
+                    label: humanizeKey(value),
+                  })),
+                },
+              ],
+            }}
             renderToolbarActions={() => <SyncSectionsForm {...selectedTerm} />}
           />
         </CardContent>
