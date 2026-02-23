@@ -82,9 +82,6 @@ type TermData = Pick<
 type GetTermsResponse = RouterOutputs["term"]["getAllTerms"]["terms"][number];
 type GetDashboardResponse = RouterOutputs["dashboard"]["getDashboardData"];
 
-// Term invariants (termLetter, due dates) are enforced by the server/schema.
-// Keep client-side code compact and trust server data; remove unused helpers.
-
 export default function DashboardContent() {
   // Suspense-enabled queries
   const [{ terms: rawTerms }] = api.term.getAllTerms.useSuspenseQuery();
