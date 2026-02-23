@@ -41,15 +41,22 @@ import {
 } from "@/components/ui/card";
 import { GlobalSuspense } from "@/components/global-suspense";
 import { Input } from "@/components/ui/input";
-import { RefreshCwIcon, Trash2Icon, TriangleAlertIcon } from "lucide-react";
+import {
+  PlusIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SectionItemSchema, type SectionItem } from "@/lib/courselisting-api";
 import { CreateSectionForm } from "@/components/dashboard/add-section-form";
 import { CSVDropzone } from "@/components/csv-dropzone";
+import type { ReactNode } from "react";
 
 type SyncSectionsFormProps = {
   year: number;
   termLetter: TermLetter;
+  children?: ReactNode;
 };
 
 function getAddSectionsApi() {
@@ -78,13 +85,19 @@ function getAddSectionsApi() {
   return addSectionsApi;
 }
 
-export function SyncSectionsForm({ year, termLetter }: SyncSectionsFormProps) {
+export function SyncSectionsForm({
+  year,
+  termLetter,
+  children,
+}: SyncSectionsFormProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-          Sync Sections
-        </DropdownMenuItem>
+        {children ?? (
+          <Button>
+            <PlusIcon /> Add section(s)
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="w-[95vw] sm:max-w-6xl">
         <DialogHeader>
