@@ -119,6 +119,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    autoResetPageIndex: false, // when a row is edited and we refetch the data, this stop it from going back to the first page
   });
 
   // Whenever selection changes, compute selected data and notify parent
