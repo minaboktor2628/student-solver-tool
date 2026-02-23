@@ -31,7 +31,7 @@ export const createColumns = (
   onDelete: (course: Course) => void,
 ): ColumnDef<Course>[] => [
   {
-    id: "title",
+    id: "courseTitle",
     header: "Title",
     cell: ({ row }) => {
       const code = row.original.courseCode ?? "";
