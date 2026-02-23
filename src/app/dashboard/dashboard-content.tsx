@@ -313,8 +313,6 @@ export default function DashboardContent() {
                       ))}
                     </SelectContent>
                   </Select>
-
-                  {/* Create Term button removed (route deprecated) */}
                 </div>
               </div>
             </div>
