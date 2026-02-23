@@ -1,13 +1,7 @@
 "use client";
 import { api } from "@/trpc/react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { type ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/data-table";
 import { MoreHorizontalIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,77 +70,112 @@ export function TermTable() {
     },
   });
 
+  // Build columns for DataTable
+  type TermRow = (typeof termStats)[number];
+
+  const createColumns = (
+    onActivate: (id: string) => void,
+    onDeactivate: (id: string) => void,
+    onDelete: (id: string) => void,
+  ): ColumnDef<TermRow>[] => [
+    {
+      id: "name",
+      header: "Term Name",
+      cell: ({ row }) => {
+        const t = row.original;
+        return (
+          <div className="font-medium">
+            {t.termLetter} {t.year}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "active",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge variant={row.original.active ? "default" : "outline"}>
+          {row.original.active ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+    {
+      id: "sections",
+      header: "Number of Sections",
+      cell: ({ row }) => row.original._count.sections,
+    },
+    {
+      id: "allowedUsers",
+      header: "Allowed Users",
+      cell: ({ row }) => row.original._count.allowedUsers,
+    },
+    {
+      accessorKey: "termStaffDueDate",
+      header: "Staff Due Date",
+      cell: ({ row }) => row.original.termStaffDueDate.toLocaleDateString(),
+    },
+    {
+      accessorKey: "termProfessorDueDate",
+      header: "Professor Due Date",
+      cell: ({ row }) => row.original.termProfessorDueDate.toLocaleDateString(),
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => {
+        const term = row.original;
+        return (
+          <div className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8">
+                  <MoreHorizontalIcon />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <UploadAllowedUsersForm termId={term.id}>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    Upload users
+                  </DropdownMenuItem>
+                </UploadAllowedUsersForm>
+                <SyncSectionsForm
+                  year={term.year}
+                  termLetter={term.termLetter}
+                />
+                <ActivateDeactivateButton
+                  active={term.active}
+                  onActivate={() => onActivate(term.id)}
+                  onDeactivate={() => onDeactivate(term.id)}
+                />
+                <DropdownMenuSeparator />
+                <DeleteButton onClick={() => onDelete(term.id)} />
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const columns = createColumns(
+    (id) => activateTerm.mutate({ id }),
+    (id) => deactivateTerm.mutate({ id }),
+    (id) => deleteTerm.mutate({ id }),
+  );
+
   return (
     <Card>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Term Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Number of Sections</TableHead>
-              <TableHead>Allowed Users</TableHead>
-              <TableHead>Staff Due Date</TableHead>
-              <TableHead>Professor Due Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {termStats.map((term) => (
-              <TableRow key={term.id}>
-                <TableCell className="font-medium">
-                  {term.termLetter} {term.year}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={term.active ? "default" : "outline"}>
-                    {term.active ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell>{term._count.sections}</TableCell>
-                <TableCell>{term._count.allowedUsers}</TableCell>
-                <TableCell>
-                  {term.termStaffDueDate.toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  {term.termProfessorDueDate.toLocaleDateString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8">
-                        <MoreHorizontalIcon />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <UploadAllowedUsersForm termId={term.id}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          Upload users
-                        </DropdownMenuItem>
-                      </UploadAllowedUsersForm>
-                      <SyncSectionsForm
-                        year={term.year}
-                        termLetter={term.termLetter}
-                      />
-                      <ActivateDeactivateButton
-                        active={term.active}
-                        onActivate={() => activateTerm.mutate({ id: term.id })}
-                        onDeactivate={() =>
-                          deactivateTerm.mutate({ id: term.id })
-                        }
-                      />
-                      <DropdownMenuSeparator />
-                      <DeleteButton
-                        onClick={() => deleteTerm.mutate({ id: term.id })}
-                      />
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <DataTable
+          columns={columns}
+          data={termStats ?? []}
+          toolbarProps={{
+            searchColumnId: "name",
+            searchPlaceholder: "Filter terms...",
+          }}
+        />
       </CardContent>
     </Card>
   );

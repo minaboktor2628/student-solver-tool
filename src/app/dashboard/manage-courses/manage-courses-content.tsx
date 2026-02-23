@@ -17,10 +17,7 @@ import { BookOpen, RefreshCw, Users as UsersIcon } from "lucide-react";
 
 // shadcn components
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { DataTable } from "@/components/data-table";
-import { Combobox } from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -368,7 +365,9 @@ export default function ManageCoursesContent() {
             <DataTable
               columns={columns}
               data={courses}
-              toolbarProps={{ searchColumnId: "courseTitle" }}
+              toolbarProps={{
+                searchColumnId: "title" as unknown as keyof Course,
+              }}
             />
           </CardContent>
         </Card>
