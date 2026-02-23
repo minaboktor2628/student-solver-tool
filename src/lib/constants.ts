@@ -26,3 +26,5 @@ export function defaultMarginOfErrorShortAllocationHours() {
 export function defaultMarginOfErrorOverAllocationHours() {
   return 10;
 }
+
+export const unknownProfessorName = "TBD";

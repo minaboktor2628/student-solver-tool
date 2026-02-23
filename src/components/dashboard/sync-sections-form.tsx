@@ -49,7 +49,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SectionItemSchema, type SectionItem } from "@/lib/courselisting-api";
-import { CreateSectionForm } from "@/components/dashboard/add-section-form";
+import { SingleSectionForm } from "@/components/dashboard/single-section-form";
 import { CSVDropzone } from "@/components/csv-dropzone";
 import type { ReactNode } from "react";
 
@@ -178,7 +178,7 @@ function OneCourseForm({ year, termLetter }: SyncSectionsFormProps) {
     <div className="no-scrollbar -mx-4 max-h-[50vh] overflow-y-auto px-4">
       <Card>
         <CardContent>
-          <CreateSectionForm onSubmit={handleSubmit} professors={professors} />
+          <SingleSectionForm onSubmit={handleSubmit} professors={professors} />
         </CardContent>
       </Card>
     </div>
