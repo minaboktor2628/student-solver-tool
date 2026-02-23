@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { UploadAllowedUsersForm } from "../../../components/dashboard/upload-allowed-users-form";
+import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-users-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
