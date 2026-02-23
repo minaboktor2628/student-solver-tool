@@ -1,4 +1,5 @@
 "use client";
+// TODO: Clean up this component.
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
@@ -22,7 +23,7 @@ import * as z from "zod";
 // shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/data-table";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +67,7 @@ import {
 } from "@/components/ui/card";
 import { createColumns, type User } from "./columns";
 import { UploadAllowedUsersForm } from "@/app/dashboard/manage-terms/upload-allowed-users-form";
+import { humanizeKey } from "@/lib/utils";
 
 interface TermDisplay extends Pick<Term, "id" | "termLetter" | "year"> {
   name: string;
@@ -335,10 +337,6 @@ export default function ManageUsersContent() {
               </p>
             </div>
           </div>
-          <UploadAllowedUsersForm
-            termId={activeTermId}
-            triggerVariant="destructive"
-          />
         </div>
 
         {/* Stats Cards */}
@@ -427,36 +425,6 @@ export default function ManageUsersContent() {
                   Manage staff and professors in the system
                 </CardDescription>
               </div>
-              {activeTerm && (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleLockAll}
-                    variant="destructive"
-                    className="gap-2"
-                    disabled={lockAllMutation.isPending}
-                  >
-                    {lockAllMutation.isPending ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
-                    )}
-                    Lock All
-                  </Button>
-                  <Button
-                    onClick={handleUnlockAll}
-                    variant="outline"
-                    className="gap-2"
-                    disabled={unlockAllMutation.isPending}
-                  >
-                    {unlockAllMutation.isPending ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Unlock className="h-4 w-4" />
-                    )}
-                    Unlock All
-                  </Button>
-                </div>
-              )}
             </div>
             {activeTerm && (
               <div className="bg-muted/50 border-border mt-4 rounded-md border p-3">
@@ -471,12 +439,66 @@ export default function ManageUsersContent() {
               </div>
             )}
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent>
             <DataTable
               columns={columns}
               data={users}
-              searchKey="name"
-              searchPlaceholder="Search by name..."
+              selectable
+              toolbarProps={{
+                searchPlaceholder: "Search by name...",
+                searchColumnIds: ["name"],
+                facetedFilters: [
+                  {
+                    columnId: "roles",
+                    title: "Roles",
+                    options: Object.values(Role).map((value) => ({
+                      value,
+                      label: humanizeKey(value),
+                    })),
+                  },
+                ],
+              }}
+              renderFooterExtras={(table) => {
+                // TODO: use the tables selected rows to only lock/unlock the selected people
+                return (
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      onClick={handleLockAll}
+                      variant="destructive"
+                      className="gap-2"
+                      disabled={lockAllMutation.isPending}
+                    >
+                      {lockAllMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                      Lock All
+                    </Button>
+                    <Button
+                      onClick={handleUnlockAll}
+                      variant="outline"
+                      className="gap-2"
+                      disabled={unlockAllMutation.isPending}
+                    >
+                      {unlockAllMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Unlock className="h-4 w-4" />
+                      )}
+                      Unlock All
+                    </Button>
+                  </div>
+                );
+              }}
+              renderToolbarActions={(table) => {
+                return (
+                  <UploadAllowedUsersForm
+                    termId={activeTermId}
+                    triggerVariant="default"
+                  />
+                );
+              }}
             />
           </CardContent>
         </Card>

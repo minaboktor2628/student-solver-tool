@@ -28,6 +28,8 @@ import { GlobalSuspense } from "@/components/global-suspense";
 import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
 import type { User as NextUser } from "next-auth";
 import { CopyButton } from "@/components/copy-button";
+import { DataTableColumnHeader } from "@/components/data-table";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type User = NextUser & {
   locked: boolean; // Computed from staffPreferences.canEdit
@@ -46,6 +48,8 @@ const getRoleBadgeClass = (role: Role): string => {
   return ROLE_COLORS[role];
 };
 
+// TODO: add locked pref col, has pref cols
+
 export const createColumns = (
   onEdit: (user: User) => void,
   onDelete: (user: User) => void,
@@ -53,15 +57,44 @@ export const createColumns = (
   activeTermId: string,
 ): ColumnDef<User>[] => [
   {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+        className="translate-y-[2px]"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        className="translate-y-[2px]"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+    meta: { export: false },
+  },
+  {
     accessorKey: "name",
-    header: "Name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
+    ),
     cell: ({ row }) => {
       return <div className="font-medium">{row.original.name}</div>;
     },
   },
   {
     accessorKey: "email",
-    header: "Email",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Email" />
+    ),
     cell: ({ row }) => {
       const email = row.original.email ?? "";
       const name = row.original.name ?? "";
@@ -99,12 +132,7 @@ export const createColumns = (
         </div>
       );
     },
-    filterFn: (row, value: string) => {
-      const roles = row.original.roles ?? [];
-      return roles.some((role) =>
-        role.toLowerCase().includes(value.toLowerCase()),
-      );
-    },
+    filterFn: "arrIncludesSome",
   },
   {
     accessorKey: "locked",
@@ -139,7 +167,7 @@ export const createColumns = (
   },
   {
     id: "actions",
-    header: () => <p className="text-right">Actions</p>,
+    meta: { export: false },
     cell: ({ row }) => {
       const user = row.original;
 
