@@ -6,7 +6,6 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Mail,
   AlertCircle,
   Plus,
   Calendar,
@@ -29,6 +28,20 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AssignmentTable } from "@/components/dashboard/assignment-table";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
+import { CopyButton } from "@/components/copy-button";
+
+// Helper to format deadline info
+const formatDeadline = (date: Date) => {
+  const formatted = date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const daysRemaining = Math.ceil(
+    (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
+  return { formatted, daysRemaining };
+};
 
 export default function DashboardContent() {
   const { selectedTerm } = useTerm();
@@ -65,46 +78,8 @@ export default function DashboardContent() {
   const hasCompletedSubmissions =
     staff.submittedCount > 0 || professors.submittedCount > 0;
 
-  // Helper to format deadline info
-  const formatDeadline = (date: Date) => {
-    const formatted = date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-    const daysRemaining = Math.ceil(
-      (date.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-    );
-    return { formatted, daysRemaining };
-  };
-
   const staffDeadline = formatDeadline(selectedTerm.termStaffDueDate);
   const professorDeadline = formatDeadline(selectedTerm.termProfessorDueDate);
-
-  function copyEmailsToClipboard(
-    people: Array<{ email?: string | null }>,
-  ): void {
-    const emails = people
-      .map((p) => p.email?.trim())
-      .filter((e): e is string => !!e);
-
-    if (emails.length === 0) {
-      toast.error("No emails to copy");
-      return;
-    }
-
-    const text = emails.join(", ");
-    void navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        toast.success(
-          `Copied ${emails.length} email${emails.length > 1 ? "s" : ""} to clipboard`,
-        );
-      })
-      .catch(() => {
-        toast.error("Failed to copy emails");
-      });
-  }
 
   return (
     <div className="bg-background min-h-screen">
@@ -297,13 +272,13 @@ export default function DashboardContent() {
                     </CardDescription>
                   </div>
                   {staff.pending.length > 0 && (
-                    <Button
-                      onClick={() => copyEmailsToClipboard(staff.pending)}
+                    <CopyButton
+                      value={staff.pending.map((s) => s.email).join(", ")}
                       size="sm"
                       variant="outline"
                     >
-                      <Mail className="h-4 w-4" /> Copy Emails
-                    </Button>
+                      Copy Emails
+                    </CopyButton>
                   )}
                 </div>
                 {staff.pending.length > 0 && (
@@ -410,13 +385,13 @@ export default function DashboardContent() {
                     </CardDescription>
                   </div>
                   {professors.pending.length > 0 && (
-                    <Button
-                      onClick={() => copyEmailsToClipboard(professors.pending)}
+                    <CopyButton
+                      value={professors.pending.map((p) => p.email).join(", ")}
                       size="sm"
                       variant="outline"
                     >
-                      <Mail className="h-4 w-4" /> Copy Emails
-                    </Button>
+                      Copy Emails
+                    </CopyButton>
                   )}
                 </div>
                 {professors.pending.length > 0 && (
