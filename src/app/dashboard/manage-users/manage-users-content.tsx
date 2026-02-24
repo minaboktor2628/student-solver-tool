@@ -22,6 +22,7 @@ import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-us
 import { humanizeKey } from "@/lib/utils";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
 import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
+import { RefetchButton } from "@/components/refetch-button";
 
 export type UserTableRow =
   RouterOutputs["staff"]["getAllUsers"]["users"][number];
@@ -90,17 +91,7 @@ export default function ManageUsersContent() {
             preference forms for individuals here.
           </CardDescription>
           <CardAction>
-            <Button
-              onClick={() => usersApi.refetch()}
-              disabled={usersApi.isRefetching}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCwIcon
-                className={usersApi.isRefetching ? "animate-spin" : ""}
-              />{" "}
-              Re-fetch
-            </Button>
+            <RefetchButton query={usersApi} />
           </CardAction>
         </CardHeader>
         <CardContent>
