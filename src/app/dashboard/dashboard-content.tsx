@@ -138,7 +138,7 @@ export default function DashboardContent() {
               <div className="mb-2 flex items-center justify-between">
                 <CheckCircle className="text-success h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
-                  {professors.submissionRate}/{professors.totalCount}
+                  {professors.submittedCount}/{professors.totalCount}
                 </span>
               </div>
               <p className="text-muted-foreground text-sm font-medium">

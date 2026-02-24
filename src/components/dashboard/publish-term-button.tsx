@@ -37,7 +37,7 @@ export function PublishTermButton({
 
   return (
     <Tooltip>
-      <TooltipTrigger>
+      <TooltipTrigger asChild>
         <Confim action={handlePublish}>
           {children ?? (
             <Button>
