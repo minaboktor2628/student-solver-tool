@@ -53,9 +53,11 @@ const StaffDashboardFormSumary: React.FC<StaffDashboardFormSummaryProps> = ({
         {isAvailableForTerm && timesAvailable.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold">Times Available</h3>
-            <BaseScheduleSelector
-              selection={timesAvailable.map((d) => slotToDate(d))}
-            />
+            <div className="pointer-events-none">
+              <BaseScheduleSelector
+                selection={timesAvailable.map((d) => slotToDate(d))}
+              />
+            </div>
           </div>
         )}
 
