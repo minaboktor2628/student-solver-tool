@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-users-form";
-import { SyncSectionsForm } from "./sync-sections-form";
+import { SyncSectionsForm } from "@/components/dashboard/sync-sections-form";
 import {
   AlertDialog,
   AlertDialogAction,
