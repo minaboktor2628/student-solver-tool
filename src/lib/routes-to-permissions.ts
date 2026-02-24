@@ -90,6 +90,12 @@ export const ROUTES: NavItem[] = [
     allowed: ["PLA", "TA"],
     icon: History,
   },
+  {
+    label: "History",
+    href: "/prof-assignment-history",
+    allowed: ["PROFESSOR"],
+    icon: History,
+  },
 ];
 
 function matchesRoute(path: string, node: NavItem) {
