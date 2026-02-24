@@ -19,7 +19,7 @@ export function NoTermsAlert() {
         </AlertDescription>
         <AlertAction>
           <Button asChild>
-            <Link href="/manage-terms">Create term</Link>
+            <Link href="/dashboard/manage-terms">Create term</Link>
           </Button>
         </AlertAction>
       </Alert>
