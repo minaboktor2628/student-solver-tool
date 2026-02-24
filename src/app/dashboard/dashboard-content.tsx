@@ -102,7 +102,7 @@ export default function DashboardContent() {
             </Label>
             <div className="flex items-center gap-2">
               <TermCombobox />
-              <PublishTermButton />
+              <PublishTermButton termId={selectedTerm.id} />
             </div>
           </div>
         </div>
