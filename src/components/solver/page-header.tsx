@@ -44,6 +44,7 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
         utils.staff.getStaffForSection.invalidate(),
+        utils.dashboard.getAssignments.invalidate(),
       ]);
     },
   });

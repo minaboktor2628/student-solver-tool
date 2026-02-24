@@ -1,18 +1,36 @@
 import { auth } from "@/server/auth";
 import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
-import { LoadingSpinner } from "@/components/loading-spinner";
 import { hasPermission } from "@/lib/permissions";
 import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { redirectToForbidden } from "@/lib/navigation";
 import { api } from "@/trpc/server";
+import { InfoIcon } from "lucide-react";
+import {
+  Banner,
+  BannerClose,
+  BannerDescription,
+  BannerTitle,
+} from "@/components/banner";
 
-export default async function ProfessorPreferencesPage() {
+type PageProps = {
+  searchParams: Promise<{
+    userId?: string;
+    termId?: string;
+    [key: string]: string | string[] | undefined;
+  }>;
+};
+
+export default async function ProfessorPreferencesPage(props: PageProps) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   const activeTerm = await api.term.getActive();
-  const userId = session?.user.id;
 
-  if (!userId) return <LoadingSpinner />;
-  if (!activeTerm) throw new Error("No active term in the database.");
+  if (!session) return redirectToForbidden();
+
+  const userId = searchParams?.userId ?? session?.user.id;
+  const termId = searchParams?.termId ?? activeTerm?.id;
+
+  if (!termId) throw new Error("No active term. Please contact admin.");
 
   if (
     !hasPermission(session.user, "professorPreferenceForm", "viewActiveTerm", {
@@ -23,7 +41,21 @@ export default async function ProfessorPreferencesPage() {
     redirectToForbidden();
   }
 
+  const isFillingOnBehalf = session.user.id !== userId;
+
   return (
-    <ProfessorPreferenceForm userId={session.user.id} termId={activeTerm.id} />
+    <div className="flex flex-col space-y-4 px-4">
+      {isFillingOnBehalf && (
+        <Banner variant="amber">
+          <InfoIcon />
+          <BannerTitle>Heads up!</BannerTitle>
+          <BannerDescription>
+            You are modifying these preferences on behalf of this professor.
+          </BannerDescription>
+          <BannerClose />
+        </Banner>
+      )}
+      <ProfessorPreferenceForm userId={userId} termId={termId} />
+    </div>
   );
 }
