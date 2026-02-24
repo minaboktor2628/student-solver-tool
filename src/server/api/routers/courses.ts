@@ -3,6 +3,8 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
 import { TermLetter, AcademicLevel } from "@prisma/client";
+import { SectionItemSchema } from "@/lib/courselisting-api";
+import { unknownProfessorName } from "@/lib/constants";
 
 export const courseRoute = createTRPCRouter({
   getAllCoursesForTerm: coordinatorProcedure
@@ -188,7 +190,8 @@ export const courseRoute = createTRPCRouter({
           courseSection: course.courseSection,
           meetingPattern: course.meetingPattern,
           description: course.description,
-          professorName: course.professor?.name ?? "Unknown Professor",
+          professorName: course.professor?.name ?? unknownProfessorName,
+          professorId: course.professorId,
           professorEmail: course.professor?.email ?? "",
           enrollment: course.enrollment,
           capacity: course.capacity,
@@ -197,51 +200,7 @@ export const courseRoute = createTRPCRouter({
             (sum, assignment) => sum + (assignment.staff?.hours ?? 0),
             0,
           ),
-          term: course.term
-            ? `${course.term.termLetter} ${course.term.year}`
-            : "Unknown Term",
           academicLevel: course.academicLevel,
-        })),
-      };
-    }),
-
-  getCoursesForTermCreation: coordinatorProcedure
-    .input(
-      z.object({
-        termLetter: z.nativeEnum(TermLetter),
-        year: z.number(),
-      }),
-    )
-    .query(async ({ input: { termLetter, year }, ctx }) => {
-      // Fetch sections for this term (term is required in the schema)
-      const sections = await ctx.db.section.findMany({
-        where: {
-          term: {
-            termLetter,
-            year,
-          },
-        },
-        include: {
-          professor: true,
-          term: true,
-        },
-      });
-
-      return {
-        success: true,
-        courses: sections.map((course) => ({
-          id: course.id,
-          courseCode: course.courseCode,
-          courseTitle: course.courseTitle,
-          professorName: course.professor?.name ?? "Unknown Professor",
-          enrollment: course.enrollment,
-          capacity: course.capacity,
-          requiredHours: course.requiredHours,
-          description: course.description,
-          academicLevel: course.academicLevel,
-          courseSection: course.courseSection,
-          meetingPattern: course.meetingPattern,
-          termId: course.termId,
         })),
       };
     }),
@@ -275,7 +234,7 @@ export const courseRoute = createTRPCRouter({
           id: course.id,
           courseCode: course.courseCode,
           courseTitle: course.courseTitle,
-          professorName: course.professor?.name ?? "Unknown Professor",
+          professorName: course.professor?.name ?? unknownProfessorName,
           professorId: course.professorId,
           enrollment: course.enrollment,
           capacity: course.capacity,
@@ -415,25 +374,23 @@ export const courseRoute = createTRPCRouter({
     .input(
       z.object({
         id: z.string(),
-        data: z.object({
-          courseCode: z.string().optional(),
-          courseTitle: z.string().optional(),
-          description: z.string().optional(),
-          enrollment: z.number().optional(),
-          capacity: z.number().optional(),
-          requiredHours: z.number().optional(),
-          courseSection: z.string().optional(),
-          meetingPattern: z.string().optional(),
-          academicLevel: z.nativeEnum(AcademicLevel).optional(),
-          professorId: z.string().optional(),
-        }),
+        data: SectionItemSchema,
       }),
     )
     .mutation(async ({ input: { id, data }, ctx }) => {
       const updated = await ctx.db.section.update({
         where: { id },
         data: {
-          ...data,
+          professorId: data.professorId,
+          academicLevel: data.academicLevel,
+          capacity: data.capacity,
+          courseCode: data.courseCode,
+          courseTitle: data.courseTitle,
+          meetingPattern: data.meetingPattern,
+          courseSection: data.courseSection,
+          enrollment: data.enrollment,
+          requiredHours: data.requiredHours,
+          description: data.description,
         },
       });
 
