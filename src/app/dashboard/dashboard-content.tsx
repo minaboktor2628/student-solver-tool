@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   Users,
   CheckCircle,
@@ -9,18 +8,13 @@ import {
   Clock,
   Mail,
   AlertCircle,
-  RefreshCw,
   Plus,
   Calendar,
 } from "lucide-react";
 import { api } from "@/trpc/react";
-import type { Section, User, Term, TermLetter } from "@prisma/client";
 import { Role } from "@prisma/client";
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "@/server/api/root";
 import { toast } from "sonner";
 
-type RouterOutputs = inferRouterOutputs<AppRouter>;
 import {
   Card,
   CardContent,
@@ -33,161 +27,23 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AssignmentTable } from "@/components/dashboard/assignment-table";
-
-type Course = Pick<
-  Section,
-  | "id"
-  | "courseCode"
-  | "courseTitle"
-  | "enrollment"
-  | "capacity"
-  | "requiredHours"
-  | "description"
-> & {
-  assignedStaff: number;
-  professorName: string;
-  term: string;
-  isGradSemesterCourse?: boolean;
-  isDisplayOnly?: boolean;
-  spansTerms?: string | null;
-};
-
-type StaffMember = Pick<User, "id" | "name" | "email" | "hours"> & {
-  role: Role; // Role enum from Prisma
-  submitted: boolean;
-};
-
-type Professor = Pick<User, "id" | "name" | "email"> & {
-  submitted: boolean;
-  courseCount: number;
-};
-
-type TermData = Pick<
-  Term,
-  "id" | "termLetter" | "year" | "termStaffDueDate" | "termProfessorDueDate"
-> & {
-  name: string;
-  staffDueDate: string;
-  professorDueDate: string;
-  status: "draft" | "published";
-};
-
-type GetTermsResponse = RouterOutputs["term"]["getAllTerms"]["terms"][number];
-type GetDashboardResponse = RouterOutputs["dashboard"]["getDashboardData"];
-
-const LOCAL_TERMS_KEY = "sata:terms";
-
-const parseStoredTerms = (raw: string | null): string[] | null => {
-  if (!raw) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    const terms = parsed.filter(
-      (item): item is string => typeof item === "string",
-    );
-    return terms.length > 0 ? terms : null;
-  } catch {
-    return null;
-  }
-};
+import { TermCombobox, useTerm } from "@/components/term-combobox";
 
 export default function DashboardContent() {
-  // Suspense-enabled queries
-  const [{ terms: rawTerms }] = api.term.getAllTerms.useSuspenseQuery();
+  const { selectedTerm } = useTerm();
 
-  // Format terms
-  const terms: TermData[] = (rawTerms ?? []).map((term: GetTermsResponse) => {
-    const status: TermData["status"] = term.active ? "published" : "draft";
-    return {
-      id: term.id ?? "",
-      name: term.name ?? "",
-      termLetter: term.termLetter ?? "A",
-      year: term.year ?? new Date().getFullYear(),
-      termStaffDueDate: new Date(term.staffDueDate ?? ""),
-      termProfessorDueDate: new Date(term.professorDueDate ?? ""),
-      staffDueDate: term.staffDueDate ?? "",
-      professorDueDate: term.professorDueDate ?? "",
-      status,
-    };
-  });
+  if (!selectedTerm) throw new Error("No selected term");
 
-  // State
-  const [selectedTerm, setSelectedTerm] = useState<string>(() => {
-    const activeTerm = terms.find((t) => t.status === "published");
-    return activeTerm?.id ?? terms[0]?.id ?? "";
-  });
   const [showAllStaff, setShowAllStaff] = useState(false);
   const [showAllProfessors, setShowAllProfessors] = useState(false);
   const INITIAL_DISPLAY_COUNT = 8;
 
   // Dashboard data query
-  const [
-    {
-      courses: dashboardCourses,
-      staff: dashboardStaff,
-      professors: dashboardProfessors,
-    },
-  ] = api.dashboard.getDashboardData.useSuspenseQuery({ termId: selectedTerm });
-
-  // Transform courses with graduate course handling
-  const transformedCourses = (dashboardCourses ?? []).map(
-    (course: GetDashboardResponse["courses"][number]) => {
-      const isGradCourse = course.academicLevel === "GRADUATE";
-      let termDisplay =
-        terms.find((t) => t.id === selectedTerm)?.name ?? "Unknown Term";
-      let spansTerms = null;
-      if (isGradCourse) {
-        const currentTermLetter =
-          terms.find((t) => t.id === selectedTerm)?.termLetter ?? "";
-        if (currentTermLetter === "A" || currentTermLetter === "B") {
-          spansTerms = "A+B";
-          termDisplay = `A+B Terms ${terms.find((t) => t.id === selectedTerm)?.year ?? ""}`;
-        } else if (currentTermLetter === "C" || currentTermLetter === "D") {
-          spansTerms = "C+D";
-          termDisplay = `C+D Terms ${terms.find((t) => t.id === selectedTerm)?.year ?? ""}`;
-        }
-      }
-      return {
-        id: course.id ?? "",
-        courseCode: course.courseCode ?? "",
-        courseTitle: course.courseTitle ?? "",
-        enrollment: course.enrollment ?? 0,
-        capacity: course.capacity ?? 0,
-        requiredHours: course.requiredHours ?? 0,
-        assignedStaff: course.assignedHours ?? 0,
-        professorName: course.professorName ?? "",
-        term: termDisplay,
-        description: course.description,
-        isGradSemesterCourse: isGradCourse,
-        spansTerms: spansTerms,
-      };
-    },
-  );
-
-  // Staff and professors
-  const staff = (dashboardStaff ?? []).map((s) => ({
-    id: s.id,
-    name: s.name ?? "",
-    email: s.email ?? "",
-    hours: 0,
-    role: s.roles?.[0] ?? Role.PLA,
-    submitted: s.hasPreferences,
-  }));
-  const professors = (dashboardProfessors ?? []).map((p) => ({
-    id: p.id,
-    name: p.name ?? "",
-    email: p.email ?? "",
-    courseCount: p.courseCount ?? 0,
-    submitted: p.hasPreferences ?? false,
-  }));
+  const [{ courses, staff, professors }] =
+    api.dashboard.getDashboardData.useSuspenseQuery({
+      termId: selectedTerm.id,
+    });
 
   const publishTermMutation = api.term.publishTerm.useMutation();
 
@@ -208,10 +64,10 @@ export default function DashboardContent() {
   };
 
   // Calculated stats (pre-computed to avoid logic in markup)
-  const submittedStaff = staff.filter((s) => s.submitted);
-  const submittedProfessors = professors.filter((p) => p.submitted);
-  const pendingStaff = staff.filter((s) => !s.submitted);
-  const pendingProfessors = professors.filter((p) => !p.submitted);
+  const submittedStaff = staff.filter((s) => s.hasPreferences);
+  const submittedProfessors = professors.filter((p) => p.hasPreferences);
+  const pendingStaff = staff.filter((s) => !s.hasPreferences);
+  const pendingProfessors = professors.filter((p) => !p.hasPreferences);
   const submittedStaffCount = submittedStaff.length;
   const submittedProfessorsCount = submittedProfessors.length;
   const pendingProfessorsCourseCount = pendingProfessors.reduce(
@@ -230,24 +86,19 @@ export default function DashboardContent() {
     professors.length > 0
       ? Math.round((submittedProfessorsCount / professors.length) * 100)
       : 0;
-  const totalAvailableHours = staff.reduce((sum, s) => sum + (s.hours ?? 0), 0);
-  const staffingGap = transformedCourses
-    .filter((c: Course) => !c.isDisplayOnly)
-    .reduce(
-      (sum: number, c: Course) =>
-        sum + Math.max(0, c.requiredHours - c.assignedStaff),
-      0,
-    );
+  const totalAvailableHours = staff.reduce(
+    (sum, s) => sum + (s?.hours ?? 0),
+    0,
+  );
+  const staffingGap = courses.reduce(
+    (sum, c) => sum + Math.max(0, c.requiredHours - c.assignedHours),
+    0,
+  );
   const hasCompletedSubmissions =
     submittedStaffCount > 0 || submittedProfessorsCount > 0;
 
-  // Extract selected term data to avoid repeated lookups in markup
-  const currentTerm = terms.find((t) => t.id === selectedTerm);
-
   // Helper to format deadline info
-  const formatDeadline = (dueDate: Date | undefined) => {
-    if (!dueDate) return { formatted: "Not set", daysRemaining: null };
-    const date = new Date(dueDate);
+  const formatDeadline = (date: Date) => {
     const formatted = date.toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
@@ -259,8 +110,8 @@ export default function DashboardContent() {
     return { formatted, daysRemaining };
   };
 
-  const staffDeadline = formatDeadline(currentTerm?.termStaffDueDate);
-  const professorDeadline = formatDeadline(currentTerm?.termProfessorDueDate);
+  const staffDeadline = formatDeadline(selectedTerm.termStaffDueDate);
+  const professorDeadline = formatDeadline(selectedTerm.termProfessorDueDate);
 
   function copyEmailsToClipboard(
     people: Array<{ email?: string | null }>,
@@ -287,8 +138,7 @@ export default function DashboardContent() {
       });
   }
 
-  // FIX: make this do something
-  const isSelectedTermPublished = true;
+  const isSelectedTermPublished = selectedTerm.published;
 
   return (
     <div className="bg-background min-h-screen">
@@ -303,9 +153,7 @@ export default function DashboardContent() {
                 STS Coordinator Dashboard
               </h1>
               <p className="text-muted-foreground text-lg">
-                {selectedTerm
-                  ? `${currentTerm?.name ?? selectedTerm} • Submission Tracking & Status`
-                  : "Select a term"}
+                {selectedTerm.label} • Submission Tracking & Status
               </p>
             </div>
 
@@ -315,37 +163,16 @@ export default function DashboardContent() {
                   Term
                 </Label>
                 <div className="flex items-center gap-2">
-                  <Select
-                    value={selectedTerm}
-                    onValueChange={(value) => setSelectedTerm(value)}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder={"Select term"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {terms.map((term) => (
-                        <SelectItem key={term.id} value={term.id}>
-                          {term.name ?? ""}{" "}
-                          {term.status === "draft" && "(Draft)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Button asChild size="sm">
-                    <Link href="/dashboard/create-term">
-                      <Plus className="h-4 w-4" /> Create Term
-                    </Link>
-                  </Button>
+                  <TermCombobox />
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {selectedTerm && currentTerm?.status === "draft" && (
+        {!selectedTerm.published && (
           <div className="mb-6">
-            <Button onClick={() => publishTerm(selectedTerm)} size="default">
+            <Button onClick={() => publishTerm(selectedTerm.id)} size="default">
               <Calendar className="h-4 w-4" /> Publish Term
             </Button>
             <p className="text-muted-foreground mt-1 text-sm">
@@ -364,14 +191,14 @@ export default function DashboardContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AssignmentTable termId={selectedTerm} />
+              <AssignmentTable termId={selectedTerm.id} />
             </CardContent>
           </Card>
         )}
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <CardContent className="pt-6">
+            <CardContent>
               <div className="mb-2 flex items-center justify-between">
                 <Users className="text-primary h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
@@ -388,7 +215,7 @@ export default function DashboardContent() {
           </Card>
 
           <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <CardContent className="pt-6">
+            <CardContent>
               <div className="mb-2 flex items-center justify-between">
                 <CheckCircle className="text-success h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
@@ -405,7 +232,7 @@ export default function DashboardContent() {
           </Card>
 
           <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <CardContent className="pt-6">
+            <CardContent>
               <div className="mb-2 flex items-center justify-between">
                 <Clock className="text-primary h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
@@ -422,7 +249,7 @@ export default function DashboardContent() {
           </Card>
 
           <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
-            <CardContent className="pt-6">
+            <CardContent>
               <div className="mb-2 flex items-center justify-between">
                 <AlertCircle className="text-warning h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
@@ -443,7 +270,7 @@ export default function DashboardContent() {
           {selectedTerm && (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Card>
-                <CardContent className="pt-6">
+                <CardContent>
                   <div className="flex items-start gap-4">
                     <div className="bg-primary/10 rounded-full p-3">
                       <Clock className="text-primary h-6 w-6" />
@@ -466,7 +293,7 @@ export default function DashboardContent() {
               </Card>
 
               <Card>
-                <CardContent className="pt-6">
+                <CardContent>
                   <div className="flex items-start gap-4">
                     <div className="bg-primary/10 rounded-full p-3">
                       <Clock className="text-primary h-6 w-6" />
@@ -516,8 +343,8 @@ export default function DashboardContent() {
                 {pendingStaff.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {([Role.PLA, Role.TA] as const).map((role) => {
-                      const roleCount = pendingStaff.filter(
-                        (s) => s.role === role,
+                      const roleCount = pendingStaff.filter((s) =>
+                        s.roles.includes(role),
                       ).length;
                       if (roleCount === 0) return null;
                       return (
@@ -563,7 +390,7 @@ export default function DashboardContent() {
                               </p>
                               <div className="mt-2">
                                 <Badge variant="outline" className="text-xs">
-                                  {person.role}
+                                  {person.roles.join(", ")}
                                 </Badge>
                               </div>
                             </div>
@@ -734,7 +561,7 @@ export default function DashboardContent() {
                     <div className="space-y-2">
                       {([Role.PLA, Role.TA] as const).map((role) => {
                         const roleStaff = staff.filter(
-                          (s) => s.role === role && s.submitted,
+                          (s) => s.roles.includes(role) && s.hasPreferences,
                         );
                         if (roleStaff.length === 0) return null;
                         return (

@@ -19,11 +19,13 @@ export const termRoute = createTRPCRouter({
     const all = await ctx.db.term.findMany({
       orderBy: [{ year: "desc" }, { termLetter: "desc" }],
       select: {
+        id: true,
         active: true,
         year: true,
         termLetter: true,
-        id: true,
         published: true,
+        termProfessorDueDate: true,
+        termStaffDueDate: true,
       },
     });
 
@@ -44,11 +46,13 @@ export const termRoute = createTRPCRouter({
     return ctx.db.term.findFirst({
       where: { active: true },
       select: {
+        id: true,
         active: true,
         year: true,
         termLetter: true,
-        id: true,
         published: true,
+        termProfessorDueDate: true,
+        termStaffDueDate: true,
       },
     });
   }),

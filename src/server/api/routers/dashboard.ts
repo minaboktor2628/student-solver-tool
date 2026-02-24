@@ -240,6 +240,7 @@ export const dashboardRoute = createTRPCRouter({
           id: user.id,
           name: user.name,
           email: user.email,
+          hours: user.hours,
           roles: user.roles.map((r) => r.role),
           hasPreferences: user.staffPreferences.length > 0,
         })),
