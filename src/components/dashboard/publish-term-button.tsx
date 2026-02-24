@@ -38,7 +38,7 @@ export function PublishTermButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Confim action={handlePublish}>
+        <Confirm action={handlePublish}>
           {children ?? (
             <Button>
               <Calendar className="h-4 w-4" /> Publish Term
