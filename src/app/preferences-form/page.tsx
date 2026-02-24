@@ -4,6 +4,13 @@ import { hasPermission } from "@/lib/permissions";
 import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
+import { InfoIcon } from "lucide-react";
+import {
+  Banner,
+  BannerClose,
+  BannerDescription,
+  BannerTitle,
+} from "@/components/banner";
 
 export const metadata = {
   title: "Preferences Form",
@@ -41,8 +48,20 @@ export default async function PreferencesFormPage(props: PageProps) {
     throw new Error("No active term. Please contact admin.");
   }
 
+  const isFillingOnBehalf = session.user.id !== userId;
+
   return (
-    <div className="p-6">
+    <div className="flex flex-col space-y-4 px-4">
+      {isFillingOnBehalf && (
+        <Banner variant="amber">
+          <InfoIcon />
+          <BannerTitle>Heads up!</BannerTitle>
+          <BannerDescription>
+            You are modifying these preferences on behalf of this staff.
+          </BannerDescription>
+          <BannerClose />
+        </Banner>
+      )}
       <h1 className="mb-4 text-2xl font-bold">Preferences Form</h1>
       <MultiStepFormModal
         userId={userId}

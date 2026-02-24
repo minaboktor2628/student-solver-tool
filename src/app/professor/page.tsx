@@ -4,6 +4,13 @@ import { hasPermission } from "@/lib/permissions";
 import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { redirectToForbidden } from "@/lib/navigation";
 import { api } from "@/trpc/server";
+import { InfoIcon } from "lucide-react";
+import {
+  Banner,
+  BannerClose,
+  BannerDescription,
+  BannerTitle,
+} from "@/components/banner";
 
 type PageProps = {
   searchParams: Promise<{
@@ -34,5 +41,21 @@ export default async function ProfessorPreferencesPage(props: PageProps) {
     redirectToForbidden();
   }
 
-  return <ProfessorPreferenceForm userId={userId} termId={termId} />;
+  const isFillingOnBehalf = session.user.id !== userId;
+
+  return (
+    <div className="flex flex-col space-y-4 px-4">
+      {isFillingOnBehalf && (
+        <Banner variant="amber">
+          <InfoIcon />
+          <BannerTitle>Heads up!</BannerTitle>
+          <BannerDescription>
+            You are modifying these preferences on behalf of this professor.
+          </BannerDescription>
+          <BannerClose />
+        </Banner>
+      )}
+      <ProfessorPreferenceForm userId={userId} termId={termId} />
+    </div>
+  );
 }

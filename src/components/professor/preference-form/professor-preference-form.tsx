@@ -137,7 +137,7 @@ export default function ProfessorPreferenceForm({
   }
 
   return (
-    <div className="flex flex-col space-y-4 p-4">
+    <div className="flex flex-col space-y-4">
       <div className="flex flex-row content-center justify-between">
         <h1 className="text-foreground text-3xl font-bold">Preference Form</h1>
         <p className="text-muted-foreground">{sections.length} section(s)</p>
