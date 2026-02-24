@@ -46,12 +46,18 @@ export function downloadFile({ filename, data }: DownloadFileOptions) {
   setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
-export function downloadTemplateCSV(
-  headers: string[],
-  example?: Record<string, unknown>,
+export function downloadTemplateCSV<T extends Record<string, unknown>>(
+  headers: (keyof T & string)[] | string[],
+  rows?: T | T[],
   filename = "template.csv",
 ) {
-  const csv = toDelimitedText(headers, example ? [example] : [], {
+  const normalizedRows: T[] =
+    rows == null ? [] : Array.isArray(rows) ? rows : [rows];
+
+  // If toDelimitedText expects string[] for headers, this cast is fine
+  const headerStrings = headers as string[];
+
+  const csv = toDelimitedText(headerStrings, normalizedRows, {
     delimiter: ",",
     includeBOM: true,
   });
