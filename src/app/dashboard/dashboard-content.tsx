@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AssignmentTable } from "@/components/dashboard/assignment-table";
 
 type Course = Pick<
   Section,
@@ -286,6 +287,9 @@ export default function DashboardContent() {
       });
   }
 
+  // FIX: make this do something
+  const isSelectedTermPublished = true;
+
   return (
     <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -348,6 +352,21 @@ export default function DashboardContent() {
               Once published, staff and professors can submit preferences
             </p>
           </div>
+        )}
+
+        {isSelectedTermPublished && (
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>The selected term is published.</CardTitle>
+              <CardDescription>
+                Here are all the assignments for this term. You can export this
+                using the download button.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AssignmentTable termId={selectedTerm} />
+            </CardContent>
+          </Card>
         )}
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
