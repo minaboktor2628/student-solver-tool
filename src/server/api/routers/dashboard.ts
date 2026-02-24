@@ -154,7 +154,10 @@ export const dashboardRoute = createTRPCRouter({
         },
         include: {
           roles: true,
-          staffPreferences: { where: { termId } },
+          staffPreferences: {
+            where: { termId },
+            include: { timesAvailable: true },
+          },
         },
       });
 
@@ -165,6 +168,7 @@ export const dashboardRoute = createTRPCRouter({
         email: user.email,
         hours: user.hours ?? 0,
         roles: user.roles.map((r) => r.role),
+        staffPreferences: user.staffPreferences,
         hasPreferences: user.staffPreferences.length > 0,
       }));
 
@@ -178,10 +182,15 @@ export const dashboardRoute = createTRPCRouter({
           ? Math.round((staffSubmittedCount / staffTotalCount) * 100)
           : 0;
 
-      const totalAvailableHours = staff.reduce(
-        (sum, s) => sum + (s.hours ?? 0),
-        0,
-      );
+      // Compute total available hours using role-based increments per submission.
+      // TA submissions add 20, PLA submissions add 10. If a user has both roles,
+      // prefer TA (20) over PLA.
+      const totalAvailableHours = submittedStaff.reduce((sum, s) => {
+        const roles = s.roles || [];
+        if (roles.includes("TA")) return sum + 20;
+        if (roles.includes("PLA")) return sum + 10;
+        return sum;
+      }, 0);
 
       const roleStats: Record<
         "TA" | "PLA",
