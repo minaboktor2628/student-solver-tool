@@ -273,9 +273,10 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                 </div>
               </div>
               {!isMobile && expandedDescriptions.has(course.code) && (
-                <div className="bg-secondary border-t px-4 py-3 text-sm">
-                  {course.description}
-                </div>
+                <div
+                  className="bg-secondary border-t px-4 py-3 text-sm"
+                  dangerouslySetInnerHTML={{ __html: course.description }}
+                />
               )}
 
               <div className="border-t p-3">
