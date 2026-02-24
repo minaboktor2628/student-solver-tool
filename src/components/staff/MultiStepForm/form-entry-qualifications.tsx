@@ -14,7 +14,6 @@ import {
   DrawerDescription,
   DrawerClose,
 } from "@/components/ui/drawer";
-import type { S } from "node_modules/@prisma/studio-core/dist/adapter-C3ET9x9-";
 
 export type Section = {
   term: string;
@@ -63,8 +62,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         variables.qualifiedSectionIds.length === 0
       ) {
         onSubmit();
-      }
-      onNext();
+      } else onNext();
     },
   });
 
@@ -150,7 +148,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
 
   return (
     <div className="space-y-4">
-      <h2 className="mb-4 text-xl font-semibold">
+      <h2 className="mb-2 text-base font-semibold sm:text-lg md:text-xl">
         Select courses and sections you are qualified to work for
       </h2>
 
@@ -181,11 +179,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                         toggleDescription(course.code);
                       }
                     }}
-                    className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
+                    className="hover:bg-secondary inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border text-base sm:h-5 sm:w-5 sm:text-xs"
                   >
                     i
                   </button>
-                  <div className="text-lg font-medium">
+                  <div className="text-base font-medium sm:text-lg">
                     {course.code} - {course.title}
                   </div>
                 </div>

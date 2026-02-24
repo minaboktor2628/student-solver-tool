@@ -4,6 +4,7 @@ import { api } from "@/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Field, FieldDescription } from "@/components/ui/field";
 
 interface FormEntryCommentsProps {
   userId: string;
@@ -49,15 +50,23 @@ const FormEntryComments: React.FC<FormEntryCommentsProps> = ({
     onBack();
   }
 
+  const maxChars = 300;
+
   return (
     <div className="mx-auto max-w-4xl p-4">
-      <h2 className="mb-4 text-xl font-semibold">Comments</h2>
-      <Textarea
-        value={comments}
-        onChange={(e) => setComments(e.target.value)}
-        placeholder="Please leave any additional comments here..."
-        rows={4}
-      />
+      <h2 className="mb-2 text-base font-semibold sm:text-lg md:text-xl">
+        Comments
+      </h2>
+      <Field>
+        <FieldDescription>Max {maxChars} characters</FieldDescription>
+        <Textarea
+          value={comments}
+          onChange={(e) => setComments(e.target.value)}
+          placeholder="Please leave any additional comments here..."
+          rows={4}
+          maxLength={maxChars}
+        />
+      </Field>
       <div className="mt-4 flex justify-between">
         <Button
           onClick={handleBackClick}

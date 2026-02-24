@@ -8,11 +8,7 @@ import FormEntryPreferences from "./form-entry-preferences";
 import FormEntryComments from "./form-entry-comments";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
-import type {
-  StaffPreference,
-  StaffPreferenceQualifiedSection,
-  StaffPreferencePreferredSection,
-} from "@prisma/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MultiStepFormModalProps {
   onClose?: () => void;
@@ -32,6 +28,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   // Data collected from each step, initialized from database
   const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [{ term }] = api.studentDashboard.getTermInfo.useSuspenseQuery({
     termId,
@@ -48,7 +45,6 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   const [step, setStep] = useState(1);
 
   const [currentTimes, setCurrentTimes] = useState<Date[]>([]);
-  const [currentQuals, setCurrentQuals] = useState([]);
   const [currentPrefs, setCurrentPrefs] = useState({});
   const [currentComments, setCurrentComments] = useState("");
 
@@ -84,7 +80,7 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   }
   const container = (
     <div className="h-auto w-full overflow-y-auto rounded-2xl p-6">
-      <ProgressIndicator step={step} totalSteps={5} />
+      {!isMobile && <ProgressIndicator step={step} totalSteps={5} />}
       {step === 1 && (
         // doesnt need initial data, can always start form with available/not
         <FormEntryAvailability

@@ -2,11 +2,7 @@
 
 import React, { useState } from "react";
 import { api } from "@/trpc/react";
-import {
-  BaseScheduleSelector,
-  dayLetterFromDate,
-  dateToSlot,
-} from "@/lib/schedule-selector";
+import { BaseScheduleSelector, dateToSlot } from "@/lib/schedule-selector";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
