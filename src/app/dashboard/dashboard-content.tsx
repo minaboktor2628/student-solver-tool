@@ -132,7 +132,7 @@ export default function DashboardContent() {
         </Card>
       )}
 
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="transition-all duration-200 hover:-translate-y-1 hover:shadow-lg">
           <CardContent>
             <div className="mb-2 flex items-center justify-between">
@@ -201,7 +201,7 @@ export default function DashboardContent() {
       </div>
 
       {/* Main Pending Submissions Section */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Deadline Alerts */}
         {selectedTerm && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -254,7 +254,7 @@ export default function DashboardContent() {
         )}
 
         {/* Pending Submissions */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Pending Staff */}
           <Card>
             <CardHeader>
