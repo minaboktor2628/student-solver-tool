@@ -39,8 +39,7 @@ export default function DashboardContent() {
   const [showAllProfessors, setShowAllProfessors] = useState(false);
   const INITIAL_DISPLAY_COUNT = 8;
 
-  // Dashboard data query
-  const [{ courses, staff, professors }] =
+  const [{ staff, professors, staffingGap }] =
     api.dashboard.getDashboardData.useSuspenseQuery({
       termId: selectedTerm.id,
     });
@@ -63,39 +62,8 @@ export default function DashboardContent() {
     }
   };
 
-  // Calculated stats (pre-computed to avoid logic in markup)
-  const submittedStaff = staff.filter((s) => s.hasPreferences);
-  const submittedProfessors = professors.filter((p) => p.hasPreferences);
-  const pendingStaff = staff.filter((s) => !s.hasPreferences);
-  const pendingProfessors = professors.filter((p) => !p.hasPreferences);
-  const submittedStaffCount = submittedStaff.length;
-  const submittedProfessorsCount = submittedProfessors.length;
-  const pendingProfessorsCourseCount = pendingProfessors.reduce(
-    (sum, p) => sum + p.courseCount,
-    0,
-  );
-  const submittedProfessorsCourseCount = submittedProfessors.reduce(
-    (sum, p) => sum + p.courseCount,
-    0,
-  );
-  const staffSubmissionRate =
-    staff.length > 0
-      ? Math.round((submittedStaffCount / staff.length) * 100)
-      : 0;
-  const profSubmissionRate =
-    professors.length > 0
-      ? Math.round((submittedProfessorsCount / professors.length) * 100)
-      : 0;
-  const totalAvailableHours = staff.reduce(
-    (sum, s) => sum + (s?.hours ?? 0),
-    0,
-  );
-  const staffingGap = courses.reduce(
-    (sum, c) => sum + Math.max(0, c.requiredHours - c.assignedHours),
-    0,
-  );
   const hasCompletedSubmissions =
-    submittedStaffCount > 0 || submittedProfessorsCount > 0;
+    staff.submittedCount > 0 || professors.submittedCount > 0;
 
   // Helper to format deadline info
   const formatDeadline = (date: Date) => {
@@ -138,8 +106,6 @@ export default function DashboardContent() {
       });
   }
 
-  const isSelectedTermPublished = selectedTerm.published;
-
   return (
     <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -181,7 +147,7 @@ export default function DashboardContent() {
           </div>
         )}
 
-        {isSelectedTermPublished && (
+        {selectedTerm.published && (
           <Card className="mb-4">
             <CardHeader>
               <CardTitle>The selected term is published.</CardTitle>
@@ -202,14 +168,14 @@ export default function DashboardContent() {
               <div className="mb-2 flex items-center justify-between">
                 <Users className="text-primary h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
-                  {submittedStaffCount}/{staff.length}
+                  {staff.submittedCount}/{staff.totalCount}
                 </span>
               </div>
               <p className="text-muted-foreground text-sm font-medium">
                 Staff Submissions
               </p>
               <div className="mt-3">
-                <Progress value={staffSubmissionRate} className="h-2" />
+                <Progress value={staff.submissionRate} className="h-2" />
               </div>
             </CardContent>
           </Card>
@@ -219,14 +185,14 @@ export default function DashboardContent() {
               <div className="mb-2 flex items-center justify-between">
                 <CheckCircle className="text-success h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
-                  {submittedProfessorsCount}/{professors.length}
+                  {professors.submissionRate}/{professors.totalCount}
                 </span>
               </div>
               <p className="text-muted-foreground text-sm font-medium">
                 Professor Submissions
               </p>
               <div className="mt-3">
-                <Progress value={profSubmissionRate} className="h-2" />
+                <Progress value={professors.submissionRate} className="h-2" />
               </div>
             </CardContent>
           </Card>
@@ -236,7 +202,7 @@ export default function DashboardContent() {
               <div className="mb-2 flex items-center justify-between">
                 <Clock className="text-primary h-8 w-8" />
                 <span className="text-foreground text-2xl font-bold">
-                  {totalAvailableHours}h
+                  {staff.totalAvailableHours}h
                 </span>
               </div>
               <p className="text-muted-foreground text-sm font-medium">
@@ -326,13 +292,13 @@ export default function DashboardContent() {
                   <div>
                     <CardTitle>Pending Staff Submissions</CardTitle>
                     <CardDescription className="mt-1">
-                      {pendingStaff.length} of {staff.length} awaiting
+                      {staff.pending.length} of {staff.totalCount} awaiting
                       submission
                     </CardDescription>
                   </div>
-                  {pendingStaff.length > 0 && (
+                  {staff.pending.length > 0 && (
                     <Button
-                      onClick={() => copyEmailsToClipboard(pendingStaff)}
+                      onClick={() => copyEmailsToClipboard(staff.pending)}
                       size="sm"
                       variant="outline"
                     >
@@ -340,10 +306,10 @@ export default function DashboardContent() {
                     </Button>
                   )}
                 </div>
-                {pendingStaff.length > 0 && (
+                {staff.pending.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {([Role.PLA, Role.TA] as const).map((role) => {
-                      const roleCount = pendingStaff.filter((s) =>
+                      const roleCount = staff.pending.filter((s) =>
                         s.roles.includes(role),
                       ).length;
                       if (roleCount === 0) return null;
@@ -358,20 +324,20 @@ export default function DashboardContent() {
               </CardHeader>
               <Separator />
               <CardContent>
-                {pendingStaff.length === 0 ? (
+                {staff.pending.length === 0 ? (
                   <div className="py-12 text-center">
                     <CheckCircle className="text-success mx-auto mb-3 h-12 w-12" />
                     <p className="text-foreground mb-1 font-medium">
                       All staff have submitted!
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      {staff.length} submissions received
+                      {staff.totalCount} submissions received
                     </p>
                   </div>
                 ) : (
                   <>
                     <div className="space-y-2">
-                      {pendingStaff
+                      {staff.pending
                         .slice(
                           0,
                           showAllStaff ? undefined : INITIAL_DISPLAY_COUNT,
@@ -403,7 +369,7 @@ export default function DashboardContent() {
                           </div>
                         ))}
                     </div>
-                    {pendingStaff.length > INITIAL_DISPLAY_COUNT && (
+                    {staff.pending.length > INITIAL_DISPLAY_COUNT && (
                       <div className="mt-4 text-center">
                         <Button
                           variant="ghost"
@@ -418,7 +384,8 @@ export default function DashboardContent() {
                             </>
                           ) : (
                             <>
-                              Show {pendingStaff.length - INITIAL_DISPLAY_COUNT}{" "}
+                              Show{" "}
+                              {staff.pending.length - INITIAL_DISPLAY_COUNT}{" "}
                               More
                               <Plus className="ml-2 h-4 w-4" />
                             </>
@@ -438,13 +405,13 @@ export default function DashboardContent() {
                   <div>
                     <CardTitle>Pending Professor Submissions</CardTitle>
                     <CardDescription className="mt-1">
-                      {pendingProfessors.length} of {professors.length} awaiting
-                      submission
+                      {professors.pending.length} of {professors.totalCount}{" "}
+                      awaiting submission
                     </CardDescription>
                   </div>
-                  {pendingProfessors.length > 0 && (
+                  {professors.pending.length > 0 && (
                     <Button
-                      onClick={() => copyEmailsToClipboard(pendingProfessors)}
+                      onClick={() => copyEmailsToClipboard(professors.pending)}
                       size="sm"
                       variant="outline"
                     >
@@ -452,29 +419,29 @@ export default function DashboardContent() {
                     </Button>
                   )}
                 </div>
-                {pendingProfessors.length > 0 && (
+                {professors.pending.length > 0 && (
                   <p className="text-muted-foreground mt-4 text-xs">
-                    {pendingProfessorsCourseCount} courses affected by pending
+                    {professors.pendingCourseCount} courses affected by pending
                     submissions
                   </p>
                 )}
               </CardHeader>
               <Separator />
               <CardContent>
-                {pendingProfessors.length === 0 ? (
+                {professors.pending.length === 0 ? (
                   <div className="py-12 text-center">
                     <CheckCircle className="text-success mx-auto mb-3 h-12 w-12" />
                     <p className="text-foreground mb-1 font-medium">
                       All professors have submitted!
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      {professors.length} submissions received
+                      {professors.totalCount} submissions received
                     </p>
                   </div>
                 ) : (
                   <>
                     <div className="space-y-2">
-                      {pendingProfessors
+                      {professors.pending
                         .slice(
                           0,
                           showAllProfessors ? undefined : INITIAL_DISPLAY_COUNT,
@@ -509,7 +476,7 @@ export default function DashboardContent() {
                           </div>
                         ))}
                     </div>
-                    {pendingProfessors.length > INITIAL_DISPLAY_COUNT && (
+                    {professors.pending.length > INITIAL_DISPLAY_COUNT && (
                       <div className="mt-4 text-center">
                         <Button
                           variant="ghost"
@@ -527,7 +494,8 @@ export default function DashboardContent() {
                           ) : (
                             <>
                               Show{" "}
-                              {pendingProfessors.length - INITIAL_DISPLAY_COUNT}{" "}
+                              {professors.pending.length -
+                                INITIAL_DISPLAY_COUNT}{" "}
                               More
                               <Plus className="ml-2 h-4 w-4" />
                             </>
@@ -555,15 +523,13 @@ export default function DashboardContent() {
                     <div className="mb-3 flex items-center gap-2">
                       <CheckCircle className="text-success h-5 w-5" />
                       <h3 className="text-foreground font-medium">
-                        Staff ({submittedStaffCount})
+                        Staff ({staff.submittedCount})
                       </h3>
                     </div>
                     <div className="space-y-2">
                       {([Role.PLA, Role.TA] as const).map((role) => {
-                        const roleStaff = staff.filter(
-                          (s) => s.roles.includes(role) && s.hasPreferences,
-                        );
-                        if (roleStaff.length === 0) return null;
+                        const roleStat = staff.roleStats[role];
+                        if (!roleStat || roleStat.submitted === 0) return null;
                         return (
                           <div
                             key={role}
@@ -573,7 +539,7 @@ export default function DashboardContent() {
                               {role}
                             </span>
                             <span className="text-muted-foreground text-sm">
-                              {roleStaff.length} submitted
+                              {roleStat.submitted} submitted
                             </span>
                           </div>
                         );
@@ -586,7 +552,7 @@ export default function DashboardContent() {
                     <div className="mb-3 flex items-center gap-2">
                       <CheckCircle className="text-success h-5 w-5" />
                       <h3 className="text-foreground font-medium">
-                        Professors ({submittedProfessorsCount})
+                        Professors ({professors.submittedCount})
                       </h3>
                     </div>
                     <div className="border-success bg-success/5 border-l-2 px-3 py-2">
@@ -595,11 +561,11 @@ export default function DashboardContent() {
                           Total Submissions
                         </span>
                         <span className="text-muted-foreground text-sm">
-                          {submittedProfessorsCount} / {professors.length}
+                          {professors.submittedCount} / {professors.totalCount}
                         </span>
                       </div>
                       <p className="text-muted-foreground mt-1 text-xs">
-                        Covering {submittedProfessorsCourseCount} courses
+                        Covering {professors.submittedCourseCount} courses
                       </p>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { Role } from "@prisma/client";
 
 export const dashboardRoute = createTRPCRouter({
   getAssignments: coordinatorProcedure
@@ -124,128 +125,162 @@ export const dashboardRoute = createTRPCRouter({
         });
       }
 
-      // Fetch courses for the term
+      // Fetch sections for staffingGap calculation
       const sections = await ctx.db.section.findMany({
         where: { termId },
         include: {
-          professor: true,
           assignments: {
             include: {
-              staff: {
-                include: {
-                  roles: true,
-                },
-              },
+              staff: true, // need staff.hours
             },
           },
-          _count: {
-            select: {
-              assignments: true,
-            },
-          },
-        },
-        orderBy: {
-          courseCode: "asc",
         },
       });
+
+      // Compute staffingGap
+      const staffingGap = sections.reduce((sum, section) => {
+        const assignedHours = section.assignments.reduce(
+          (acc, assignment) => acc + (assignment.staff?.hours ?? 0),
+          0,
+        );
+        const required = section.requiredHours ?? 0;
+        return sum + Math.max(0, required - assignedHours);
+      }, 0);
 
       // Fetch all staff with their preferences for this term
       const staffUsers = await ctx.db.user.findMany({
         where: {
-          roles: {
-            some: {
-              role: {
-                in: ["PLA", "TA"],
-              },
-            },
-          },
+          roles: { some: { role: { in: ["PLA", "TA"] } } },
         },
         include: {
           roles: true,
-          staffPreferences: {
-            where: {
-              termId,
-            },
-          },
+          staffPreferences: { where: { termId } },
         },
       });
 
-      // Fetch all professors
+      // Transform staff users into a flat shape
+      const staff = staffUsers.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        hours: user.hours ?? 0,
+        roles: user.roles.map((r) => r.role),
+        hasPreferences: user.staffPreferences.length > 0,
+      }));
+
+      const submittedStaff = staff.filter((s) => s.hasPreferences);
+      const pendingStaff = staff.filter((s) => !s.hasPreferences);
+
+      const staffTotalCount = staff.length;
+      const staffSubmittedCount = submittedStaff.length;
+      const staffSubmissionRate =
+        staffTotalCount > 0
+          ? Math.round((staffSubmittedCount / staffTotalCount) * 100)
+          : 0;
+
+      const totalAvailableHours = staff.reduce(
+        (sum, s) => sum + (s.hours ?? 0),
+        0,
+      );
+
+      const roleStats: Record<
+        "TA" | "PLA",
+        { pending: number; submitted: number }
+      > = {
+        [Role.PLA]: { pending: 0, submitted: 0 },
+        [Role.TA]: { pending: 0, submitted: 0 },
+      };
+
+      (["PLA", "TA"] as const).forEach((role) => {
+        roleStats[role].pending = pendingStaff.filter((s) =>
+          s.roles.includes(role),
+        ).length;
+        roleStats[role].submitted = submittedStaff.filter((s) =>
+          s.roles.includes(role),
+        ).length;
+      });
+
+      // Only send pending staff with the fields the UI actually uses
+      const pendingStaffLite = pendingStaff.map((s) => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        roles: s.roles,
+      }));
+
+      // Fetch all professors with courses & preferences
       const professorUsers = await ctx.db.user.findMany({
-        where: {
-          roles: {
-            some: {
-              role: "PROFESSOR",
-            },
-          },
-        },
+        where: { roles: { some: { role: "PROFESSOR" } } },
         include: {
           teaches: {
-            where: {
-              termId,
-            },
-            include: {
-              professorPreference: true,
-            },
+            where: { termId },
+            include: { professorPreference: true },
           },
         },
       });
 
-      // Transform courses with hour calculations based on stored staff hours
-      const courses = sections.map((section) => {
-        const assignedHours = section.assignments.reduce(
-          (sum, assignment) => sum + (assignment.staff.hours ?? 0),
-          0,
-        );
+      const professorData = professorUsers
+        .filter((p) => p.teaches.length > 0)
+        .map((p) => {
+          const courseCount = p.teaches.length;
+          const hasPreferences = p.teaches.some(
+            (t) => t.professorPreference != null,
+          );
+          return {
+            id: p.id,
+            name: p.name,
+            email: p.email,
+            courseCount,
+            hasPreferences,
+          };
+        });
 
-        return {
-          id: section.id,
-          courseCode: section.courseCode,
-          courseTitle: section.courseTitle,
-          professorName: section.professor?.name ?? "Unknown",
-          enrollment: section.enrollment,
-          capacity: section.capacity,
-          requiredHours: section.requiredHours,
-          assignedHours,
-          assignmentCount: section._count.assignments,
-          description: section.description ?? "",
-          academicLevel: section.academicLevel,
-        };
-      });
+      const submittedProfessors = professorData.filter((p) => p.hasPreferences);
+      const pendingProfessors = professorData.filter((p) => !p.hasPreferences);
 
-      // Get unique professors in this term
-      const uniqueProfessors = [
-        ...new Map(
-          professorUsers
-            .filter((p) => p.teaches.length > 0)
-            .map((p) => [
-              p.id,
-              {
-                id: p.id,
-                name: p.name,
-                email: p.email,
-                courseCount: p.teaches.length,
-                hasPreferences: p.teaches.some(
-                  (t) => t.professorPreference != null,
-                ),
-              },
-            ]),
-        ).values(),
-      ];
+      const profTotalCount = professorData.length;
+      const profSubmittedCount = submittedProfessors.length;
+      const profSubmissionRate =
+        profTotalCount > 0
+          ? Math.round((profSubmittedCount / profTotalCount) * 100)
+          : 0;
+
+      const pendingProfessorsCourseCount = pendingProfessors.reduce(
+        (sum, p) => sum + p.courseCount,
+        0,
+      );
+      const submittedProfessorsCourseCount = submittedProfessors.reduce(
+        (sum, p) => sum + p.courseCount,
+        0,
+      );
+
+      const pendingProfessorsLite = pendingProfessors.map((p) => ({
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        courseCount: p.courseCount,
+      }));
 
       return {
         currentTerm: `${term.termLetter} ${term.year}`,
-        courses,
-        staff: staffUsers.map((user) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          hours: user.hours,
-          roles: user.roles.map((r) => r.role),
-          hasPreferences: user.staffPreferences.length > 0,
-        })),
-        professors: uniqueProfessors,
         termId,
+        staffingGap,
+        staff: {
+          totalCount: staffTotalCount,
+          submittedCount: staffSubmittedCount,
+          submissionRate: staffSubmissionRate,
+          totalAvailableHours,
+          roleStats, // { PLA: {pending, submitted}, TA: {...} }
+          pending: pendingStaffLite,
+        },
+        professors: {
+          totalCount: profTotalCount,
+          submittedCount: profSubmittedCount,
+          submissionRate: profSubmissionRate,
+          pendingCourseCount: pendingProfessorsCourseCount,
+          submittedCourseCount: submittedProfessorsCourseCount,
+          pending: pendingProfessorsLite,
+        },
       };
     }),
 });
