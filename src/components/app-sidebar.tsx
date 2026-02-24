@@ -1,10 +1,11 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { SquareSigma } from "lucide-react";
+import { SquareSigma, Bug } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
@@ -18,6 +19,7 @@ import {
 import Link from "next/link";
 import { allowedTree } from "@/lib/permissions";
 import type { User } from "next-auth";
+import { Button } from "@/components/ui/button";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const links = user ? allowedTree(user) : [];
@@ -78,6 +80,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <Bug />
+              <a href={`mailto:gr-ta-pla-tooling-mqp@wpi.edu`}>Report a Bug</a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarFooter></SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

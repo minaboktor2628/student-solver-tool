@@ -31,7 +31,7 @@ export default async function PreferencesFormPage() {
     userId: userId,
   });
   return (
-    <div className="p-6">
+    <div className="container mx-auto max-w-6xl p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Assignment History</h1>
         <p className="text-muted-foreground mt-2">View all past assignments</p>
