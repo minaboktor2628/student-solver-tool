@@ -7,6 +7,10 @@ import {
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
 } from "@dnd-kit/core";
 import { Draggable } from "@/components/draggable";
 import { Droppable } from "@/components/droppable";
@@ -20,6 +24,7 @@ import {
   DrawerDescription,
   DrawerClose,
 } from "@/components/ui/drawer";
+import { InfoIcon } from "lucide-react";
 
 type TokenType = "prefer" | "strong";
 
@@ -42,10 +47,10 @@ export const allowedPreferTokens = 5;
 interface CoursePreferencesProps {
   userId: string;
   termId: string;
-  /** array of courses with sections that the user qualified for */
   courses?: Course[];
-  /** array of selected section ids from qualifications step */
   selectedSectionIds: string[];
+  prevData: Record<string, TokenType | undefined>;
+  onChange: (selectedPrefs: Record<string, TokenType | undefined>) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -55,6 +60,8 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   termId,
   courses: coursesProp,
   selectedSectionIds,
+  prevData,
+  onChange,
   onNext,
   onBack,
 }) => {
@@ -64,6 +71,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
       console.error("Failed to save preferences:", error);
     },
     onSuccess: () => {
+      onChange(mapping);
       toast.success("Form saved successfully");
       void utils.studentDashboard.invalidate();
       onNext();
@@ -83,9 +91,8 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   }, [coursesProp, selectedSectionIds]);
 
   // mapping holds at most one token per section
-  const [mapping, setMapping] = useState<Record<string, TokenType | undefined>>(
-    {},
-  );
+  const [mapping, setMapping] =
+    useState<Record<string, TokenType | undefined>>(prevData);
 
   // drag/drop handlers
   const [activeToken, setActiveToken] = useState<TokenType | null>(null);
@@ -94,6 +101,10 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   );
   const [drawerCourse, setDrawerCourse] = useState<Course | null>(null);
   const isMobile = useIsMobile();
+
+  const touchSensor = useSensor(TouchSensor);
+  const pointerSensor = useSensor(PointerSensor);
+  const sensors = useSensors(isMobile ? touchSensor : pointerSensor);
 
   function handleDragStart(event: DragStartEvent) {
     const { active } = event;
@@ -135,6 +146,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
     });
   }
 
+  function handleBackClick() {
+    onChange(mapping);
+    onBack();
+  }
+
   const originalNumStrongTokens = allowedStrongTokens;
   const originalNumPreferTokens = allowedPreferTokens;
 
@@ -173,11 +189,12 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
   return (
     <div className="space-y-4">
       <DndContext
+        sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <h2 className="mb-4 text-xl font-semibold">
+        <h2 className="mb-2 text-base font-semibold sm:text-lg md:text-xl">
           Drag preference tokens to sections you prefer to work for
         </h2>
 
@@ -186,7 +203,10 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
           <div className="flex items-center gap-3">
             <Draggable id="prefer">
               {numPreferTokens > 0 && (
-                <div className="cursor-grab rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                <div
+                  className="cursor-grab rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800"
+                  style={isMobile ? { touchAction: "none" } : undefined}
+                >
                   Prefer
                 </div>
               )}
@@ -199,7 +219,10 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
           <div className="flex items-center gap-3">
             <Draggable id="strong">
               {numStrongTokens > 0 && (
-                <div className="cursor-grab rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-800">
+                <div
+                  className="cursor-grab rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-800"
+                  style={isMobile ? { touchAction: "none" } : undefined}
+                >
                   Strongly Prefer
                 </div>
               )}
@@ -208,9 +231,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
               {numStrongTokens}/{allowedStrongTokens}
             </span>
           </div>
-          <div className="text-muted-foreground text-sm">
-            Drag a preference onto a section
-          </div>
+          {!isMobile && (
+            <div className="text-muted-foreground text-sm">
+              Drag a preference onto a section
+            </div>
+          )}
         </div>
 
         <Button
@@ -222,7 +247,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
         </Button>
 
         {/* Section List */}
-        <div className="grid max-h-[calc(100vh-30rem)] grid-cols-1 gap-4 overflow-y-auto pr-4">
+        <div className="grid max-h-[calc(100vh-31rem)] grid-cols-1 gap-4 overflow-y-auto pr-4">
           {filteredCourses.map((course) => (
             <div
               key={course.code}
@@ -230,7 +255,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
             >
               <div className="rounded-md p-4">
                 <div className="flex items-center gap-2 text-lg font-medium">
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isMobile) {
@@ -239,19 +264,21 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                         toggleDescription(course.code);
                       }
                     }}
-                    className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
+                    variant="ghost"
+                    size="icon"
                   >
-                    i
-                  </button>
+                    <InfoIcon className="size-5"></InfoIcon>
+                  </Button>
                   <div>
                     {course.code} - {course.title}
                   </div>
                 </div>
               </div>
               {!isMobile && expandedDescriptions.has(course.code) && (
-                <div className="bg-secondary border-t px-4 py-3 text-sm">
-                  {course.description}
-                </div>
+                <div
+                  className="bg-secondary border-t px-4 py-3 text-sm"
+                  dangerouslySetInnerHTML={{ __html: course.description }}
+                />
               )}
 
               <div className="border-t p-3">
@@ -280,7 +307,9 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                             >
                               <span>
                                 {mapping[section.id] === "strong"
-                                  ? "★ Strongly Prefer"
+                                  ? isMobile
+                                    ? "★ Strong"
+                                    : "★ Strongly Prefer"
                                   : "Prefer"}
                               </span>
                               <span className="ml-1 text-xs leading-none font-bold">
@@ -304,7 +333,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
 
         <div className="mt-4 flex justify-between">
           <Button
-            onClick={onBack}
+            onClick={handleBackClick}
             variant="outline"
             disabled={saveFormMutation.isPending}
           >
@@ -343,7 +372,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
             <DrawerTitle>
               {drawerCourse?.code} - {drawerCourse?.title}
             </DrawerTitle>
-            <DrawerDescription>{drawerCourse?.description}</DrawerDescription>
+            <DrawerDescription
+              dangerouslySetInnerHTML={{
+                __html: drawerCourse?.description ?? "",
+              }}
+            ></DrawerDescription>
           </DrawerHeader>
           <div className="flex justify-center p-4">
             <DrawerClose asChild>

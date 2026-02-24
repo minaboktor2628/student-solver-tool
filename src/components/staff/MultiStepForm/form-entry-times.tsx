@@ -2,11 +2,7 @@
 
 import React, { useState } from "react";
 import { api } from "@/trpc/react";
-import {
-  BaseScheduleSelector,
-  dayLetterFromDate,
-  dateToSlot,
-} from "@/lib/schedule-selector";
+import { BaseScheduleSelector, dateToSlot } from "@/lib/schedule-selector";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -15,19 +11,21 @@ export type WeeklySlot = { day: "M" | "T" | "W" | "R" | "F"; hour: number };
 interface FormEntryTimesProps {
   userId: string;
   termId: string;
+  prevData: Date[];
+  onChange: (selection: Date[]) => void;
   onNext: () => void;
   onBack: () => void;
-  initialSelection?: Date[];
 }
 
 const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
   userId,
   termId,
+  prevData,
+  onChange,
   onNext,
   onBack,
-  initialSelection = [],
 }) => {
-  const [selection, setSelection] = useState<Date[]>(initialSelection);
+  const [selection, setSelection] = useState<Date[]>(prevData);
   const utils = api.useUtils();
   const saveFormMutation = api.studentForm.saveStudentForm.useMutation({
     onError: (error) => {
@@ -36,6 +34,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
     onSuccess: () => {
       toast.success("Form saved successfully");
       void utils.studentDashboard.invalidate();
+      onChange(selection);
       onNext();
     },
   });
@@ -48,6 +47,11 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
       termId,
       weeklyAvailability: weekly,
     });
+  }
+
+  function handleBackClick() {
+    onChange(selection);
+    onBack();
   }
 
   function selectionToWeekly(sel: Date[]): WeeklySlot[] {
@@ -77,7 +81,7 @@ const FormEntryTimes: React.FC<FormEntryTimesProps> = ({
 
       <div className="mt-4 flex justify-between">
         <Button
-          onClick={onBack}
+          onClick={handleBackClick}
           variant="outline"
           disabled={saveFormMutation.isPending}
         >

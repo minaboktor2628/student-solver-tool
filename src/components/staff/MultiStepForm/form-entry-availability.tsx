@@ -41,7 +41,7 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
   const { selectedTerm } = useTerm();
   return (
     <div className="text-center">
-      <h2 className="mb-4 text-xl font-semibold">
+      <h2 className="mb-2 text-base font-semibold sm:text-lg md:text-xl">
         Are you available to work for {selectedTerm?.termLetter} term{" "}
         {selectedTerm?.year}?
       </h2>

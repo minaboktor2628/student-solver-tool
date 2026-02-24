@@ -14,6 +14,7 @@ import {
   DrawerDescription,
   DrawerClose,
 } from "@/components/ui/drawer";
+import { InfoIcon } from "lucide-react";
 
 export type Section = {
   term: string;
@@ -32,6 +33,7 @@ interface FormEntryQualificationsProps {
   userId: string;
   termId: string;
   courses: Course[];
+  prevData: string[];
   onChange: (selectedSectionIds: string[]) => void;
   onNext: () => void;
   onBack: () => void;
@@ -42,6 +44,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
   userId,
   termId,
   courses = [],
+  prevData,
   onChange,
   onNext,
   onBack,
@@ -60,13 +63,12 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
         variables.qualifiedSectionIds.length === 0
       ) {
         onSubmit();
-      }
-      onNext();
+      } else onNext();
     },
   });
 
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
-    () => new Set([]),
+    new Set(prevData),
   );
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
     () => new Set([]),
@@ -147,7 +149,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
 
   return (
     <div className="space-y-4">
-      <h2 className="mb-4 text-xl font-semibold">
+      <h2 className="mb-2 text-base font-semibold sm:text-lg md:text-xl">
         Select courses and sections you are qualified to work for
       </h2>
 
@@ -169,7 +171,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                 className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left"
               >
                 <div className="flex flex-1 items-center gap-2">
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isMobile) {
@@ -178,11 +180,12 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                         toggleDescription(course.code);
                       }
                     }}
-                    className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
+                    variant="ghost"
+                    size="icon"
                   >
-                    i
-                  </button>
-                  <div className="text-lg font-medium">
+                    <InfoIcon className="size-5"></InfoIcon>
+                  </Button>
+                  <div className="text-base font-medium sm:text-lg">
                     {course.code} - {course.title}
                   </div>
                 </div>
@@ -199,9 +202,10 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                 </div>
               </label>
               {!isMobile && expandedDescriptions.has(course.code) && (
-                <div className="bg-secondary border-t px-4 py-3 text-sm">
-                  {course.description}
-                </div>
+                <div
+                  className="bg-secondary border-t px-4 py-3 text-sm"
+                  dangerouslySetInnerHTML={{ __html: course.description }}
+                />
               )}
 
               <div className="border-t p-3">
@@ -264,7 +268,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
             <DrawerTitle>
               {drawerCourse?.code} - {drawerCourse?.title}
             </DrawerTitle>
-            <DrawerDescription>{drawerCourse?.description}</DrawerDescription>
+            <DrawerDescription
+              dangerouslySetInnerHTML={{
+                __html: drawerCourse?.description ?? "",
+              }}
+            ></DrawerDescription>
           </DrawerHeader>
           <div className="flex justify-center p-4">
             <DrawerClose asChild>
