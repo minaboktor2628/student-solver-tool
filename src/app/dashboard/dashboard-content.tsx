@@ -29,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { AssignmentTable } from "@/components/dashboard/assignment-table";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
 import { CopyButton } from "@/components/copy-button";
+import { PublishTermButton } from "@/components/dashboard/publish-term-button";
 
 // Helper to format deadline info
 const formatDeadline = (date: Date) => {
@@ -101,21 +102,11 @@ export default function DashboardContent() {
             </Label>
             <div className="flex items-center gap-2">
               <TermCombobox />
+              <PublishTermButton />
             </div>
           </div>
         </div>
       </div>
-
-      {!selectedTerm.published && (
-        <div className="mb-6">
-          <Button onClick={() => publishTerm(selectedTerm.id)} size="default">
-            <Calendar className="h-4 w-4" /> Publish Term
-          </Button>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Once published, staff and professors can submit preferences
-          </p>
-        </div>
-      )}
 
       {selectedTerm.published && (
         <Card className="mb-4">
