@@ -117,8 +117,14 @@ export const professorFormRoute = createTRPCRouter({
         },
       });
 
+      const professor = await ctx.db.user.findUnique({
+        where: { id: input.professorId },
+        select: { id: true, name: true, email: true },
+      });
+
       return {
         availableAssistants: availableStaff,
+        professor,
         sections: sections.map((s) => ({
           sectionId: s.id,
           courseCode: s.courseCode,
