@@ -5,13 +5,17 @@ import {
   CollapsibleTrigger,
 } from "./ui/collapsible";
 
-export function ExpandableList({
+type ExpandableListProps<T> = {
+  items: T[];
+  initial?: number;
+  children: (item: T, index: number) => React.ReactNode;
+};
+
+export function ExpandableList<T>({
   items,
   initial = 5,
-}: {
-  items: string[];
-  initial?: number;
-}) {
+  children,
+}: ExpandableListProps<T>) {
   const [open, setOpen] = useState(false);
 
   const visible = items.slice(0, initial);
@@ -19,24 +23,23 @@ export function ExpandableList({
 
   return (
     <div>
-      <ul className="list-inside list-disc space-y-2 text-sm">
-        {visible.map((text, i) => (
-          <li key={i} className="py-1 break-words">
-            {text}
-          </li>
+      {/* visible items */}
+      <div className="space-y-2">
+        {visible.map((item, index) => (
+          <div key={index}>{children(item, index)}</div>
         ))}
-      </ul>
+      </div>
 
       {hidden.length > 0 && (
         <Collapsible open={open} onOpenChange={setOpen}>
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
-            <ul className="mt-2 list-inside list-disc space-y-2 text-sm">
-              {hidden.map((text, i) => (
-                <li key={i} className="py-1 break-words">
-                  {text}
-                </li>
+            <div className="mt-2 space-y-2">
+              {hidden.map((item, index) => (
+                <div key={index + initial}>
+                  {children(item, index + initial)}
+                </div>
               ))}
-            </ul>
+            </div>
           </CollapsibleContent>
 
           <CollapsibleTrigger asChild>
