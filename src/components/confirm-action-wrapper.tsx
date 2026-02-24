@@ -11,7 +11,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export function Confim({
+export function Confirm({
   children,
   action,
   title = "Are you sure?",

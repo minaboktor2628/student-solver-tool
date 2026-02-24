@@ -10,7 +10,7 @@ import {
 
 import { Calendar } from "lucide-react";
 import type { ReactNode } from "react";
-import { Confim } from "../confim-action-wrapper";
+import { Confirm } from "../confirm-action-wrapper";
 
 export function PublishTermButton({
   termId,
@@ -38,13 +38,13 @@ export function PublishTermButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Confim action={handlePublish}>
+        <Confirm action={handlePublish}>
           {children ?? (
             <Button>
               <Calendar className="h-4 w-4" /> Publish Term
             </Button>
           )}
-        </Confim>
+        </Confirm>
       </TooltipTrigger>
       <TooltipContent>
         <p>Once published, staff and professors can see their assignments.</p>

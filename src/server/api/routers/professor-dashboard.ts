@@ -141,6 +141,9 @@ export const professorDashboardRoute = createTRPCRouter({
       const sections = await ctx.db.section.findMany({
         where: {
           professorId: input.professorId,
+          term: {
+            published: true,
+          },
         },
         include: {
           term: {
