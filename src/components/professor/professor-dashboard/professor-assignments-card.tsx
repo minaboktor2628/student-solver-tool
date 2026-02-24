@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Mail } from "lucide-react";
 import type { AppRouter } from "@/server/api/root";
-import type { inferRouterOutputs } from "node_modules/@trpc/server/dist/unstable-core-do-not-import.d-x-roAJpB.mjs";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { TermLetter } from "@prisma/client";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
