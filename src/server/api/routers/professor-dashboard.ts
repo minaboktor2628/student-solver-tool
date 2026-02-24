@@ -114,4 +114,74 @@ export const professorDashboardRoute = createTRPCRouter({
         })),
       };
     }),
+
+  getPastProfessorAssignments: professorProcedure
+    .input(
+      z.object({
+        professorId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (
+        !hasPermission(
+          ctx.session.user,
+          "professorPreferenceForm",
+          "viewHistory",
+          {
+            userId: input.professorId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
+        )
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      const sections = await ctx.db.section.findMany({
+        where: {
+          professorId: input.professorId,
+        },
+        include: {
+          term: {
+            select: {
+              id: true,
+              termLetter: true,
+              year: true,
+            },
+          },
+          assignments: {
+            include: {
+              staff: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  roles: { select: { role: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        sections: sections.map((section) => ({
+          termId: section.term.id,
+          termLetter: section.term.termLetter,
+          year: section.term.year,
+          sectionId: section.id,
+          courseCode: section.courseCode,
+          courseSection: section.courseSection,
+          courseTitle: section.courseTitle,
+          meetingPattern: section.meetingPattern,
+          assignedStaff: section.assignments.map((assignment) => ({
+            id: assignment.staff.id,
+            name: assignment.staff.name,
+            email: assignment.staff.email,
+            roles: assignment.staff.roles.map((role) => role.role),
+          })),
+        })),
+      };
+    }),
 });
