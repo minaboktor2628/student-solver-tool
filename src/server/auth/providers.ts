@@ -51,6 +51,7 @@ const microsoftProvider = MicrosoftEntraID({
   clientId: env.AUTH_MICROSOFT_ENTRA_ID_ID,
   clientSecret: env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
   issuer: env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
+  allowDangerousEmailAccountLinking: true, // ik this looks bad but i promise we need it https://authjs.dev/reference/core/errors#oauthcallbackerror
   async profile(profile) {
     return {
       id: profile.sub,

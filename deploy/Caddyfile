@@ -1,0 +1,5 @@
+# change sts.cs.wpi.edu to localhost for dev
+sts.cs.wpi.edu {
+  reverse_proxy sts:3000
+}
+

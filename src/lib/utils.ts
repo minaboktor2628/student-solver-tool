@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
-import type { Session, User } from "next-auth";
+import type { User } from "next-auth";
 import { twMerge } from "tailwind-merge";
 import z from "zod";
 
