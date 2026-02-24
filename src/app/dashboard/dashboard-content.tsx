@@ -37,6 +37,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AssignmentTable } from "@/components/dashboard/assignment-table";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -359,46 +360,61 @@ export default function DashboardContent() {
         )}
 
         {selectedTerm && currentTerm?.status === "published" && (
-          <div className="mb-6">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  size="default"
-                  disabled={releaseAssignmentsMutation.isPending}
-                >
-                  <Calendar className="h-4 w-4" /> Release Assignments
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Release Assignments?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Releasing the assignments will make solver results visible
-                    to staff and professors. This action can be reverted by
-                    unpublishing the term if necessary.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() =>
-                      releaseAssignmentsMutation.mutate({ id: selectedTerm })
-                    }
-                    className="bg-destructive hover:bg-destructive/90"
+          <>
+            <div className="mb-6">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="default"
+                    disabled={releaseAssignmentsMutation.isPending}
                   >
-                    {releaseAssignmentsMutation.isPending
-                      ? "Releasing..."
-                      : "Release"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <Calendar className="h-4 w-4" /> Release Assignments
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Release Assignments?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Releasing the assignments will make solver results visible
+                      to staff and professors. This action can be reverted by
+                      unpublishing the term if necessary.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() =>
+                        releaseAssignmentsMutation.mutate({ id: selectedTerm })
+                      }
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {releaseAssignmentsMutation.isPending
+                        ? "Releasing..."
+                        : "Release"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
-            <p className="text-muted-foreground mt-1 text-sm">
-              Releasing the assignments makes the solver results visible to
-              staff and professors.
-            </p>
-          </div>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Releasing the assignments makes the solver results visible to
+                staff and professors.
+              </p>
+            </div>
+
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>Assignments</CardTitle>
+                <CardDescription>
+                  Here are the assignments for this term. You can export these
+                  using the download button.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AssignmentTable termId={selectedTerm} />
+              </CardContent>
+            </Card>
+          </>
         )}
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

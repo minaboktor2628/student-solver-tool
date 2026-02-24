@@ -24,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { isAssistant, isProfessor } from "@/lib/utils";
-import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
 import {
   Dialog,
   DialogContent,
@@ -34,12 +33,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { GlobalSuspense } from "@/components/global-suspense";
-import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
 import { Button } from "@/components/ui/button";
 import type z from "zod";
 import { FormCombobox, FormInput } from "@/components/form";
 import { Role } from "@prisma/client";
+import Link from "next/link";
 
 export function UserTableRowAction({
   termId,
@@ -115,52 +113,30 @@ export function UserTableRowAction({
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           {isProfessor(user) && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Settings2Icon className="size-4" /> Edit prof preferences
-                </DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-6xl">
-                <DialogHeader>
-                  <DialogTitle>Edit preferences as {user.name}</DialogTitle>
-                  {/* TODO: fix this bruh. i have spent too long trying to, so f it man*/}
-                  <DialogDescription>
-                    Due to a bug, you will have to search the comboboxes in this
-                    view and using your arrow and enter keys instead of clicking
-                    through the list.
-                  </DialogDescription>
-                </DialogHeader>
-                <GlobalSuspense>
-                  <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
-                    <ProfessorPreferenceForm userId={user.id} termId={termId} />
-                  </div>
-                </GlobalSuspense>
-              </DialogContent>
-            </Dialog>
+            <DropdownMenuItem asChild>
+              <Link
+                href={{
+                  pathname: "/professor",
+                  query: { userId: user.id, termId },
+                }}
+                target="_blank"
+              >
+                <Settings2Icon className="size-4" /> Edit staff preferences
+              </Link>
+            </DropdownMenuItem>
           )}
           {isAssistant(user) && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Settings2Icon className="size-4" /> Edit staff preferences
-                </DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-6xl">
-                <DialogHeader>
-                  <DialogTitle>Edit preferences as {user.name}</DialogTitle>
-                </DialogHeader>
-                <GlobalSuspense>
-                  <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
-                    <MultiStepFormModal
-                      userId={user.id}
-                      termId={termId}
-                      inline
-                    />
-                  </div>
-                </GlobalSuspense>
-              </DialogContent>
-            </Dialog>
+            <DropdownMenuItem asChild>
+              <Link
+                href={{
+                  pathname: "/preferences-form",
+                  query: { userId: user.id, termId },
+                }}
+                target="_blank"
+              >
+                <Settings2Icon className="size-4" /> Edit staff preferences
+              </Link>
+            </DropdownMenuItem>
           )}
           <DropdownMenuItem onClick={() => onToggleUserLock(user.id)}>
             {user.locked ? (
@@ -173,7 +149,6 @@ export function UserTableRowAction({
               </>
             )}
           </DropdownMenuItem>
-
           <Dialog>
             <DialogTrigger asChild>
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
@@ -228,7 +203,6 @@ export function UserTableRowAction({
               </form>
             </DialogContent>
           </Dialog>
-
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={handleDelete}>
             {/*TODO: add alert dialog*/}

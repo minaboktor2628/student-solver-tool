@@ -3,6 +3,54 @@ import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 
 export const dashboardRoute = createTRPCRouter({
+  getAssignments: coordinatorProcedure
+    .input(z.object({ termId: z.string() }))
+    .query(async ({ ctx, input: { termId } }) => {
+      const sections = await ctx.db.section.findMany({
+        where: { termId },
+        include: {
+          professor: { select: { name: true } },
+          assignments: {
+            select: { staff: { select: { name: true, roles: true } } },
+          },
+        },
+      });
+
+      return {
+        sections: sections.map(
+          ({
+            professor,
+            assignments,
+            meetingPattern,
+            academicLevel,
+            courseTitle,
+            courseCode,
+            courseSection,
+          }) => {
+            const staffList = assignments
+              .map((a) => a.staff)
+              .filter((s): s is NonNullable<typeof s> => !!s)
+              .map((s) => ({
+                name: s.name,
+                roles: s.roles.map((r) => r.role),
+              }));
+
+            const plas = staffList.filter((s) => s.roles.includes("PLA"));
+            const tas = staffList.filter((s) => s.roles.includes("TA"));
+
+            return {
+              title: `${courseCode}-${courseSection} - ${courseTitle}`,
+              professor: professor?.name ?? null,
+              meetingPattern,
+              academicLevel,
+              plas: plas.map((p) => p.name),
+              tas: tas.map((p) => p.name),
+            };
+          },
+        ),
+      };
+    }),
+
   solverAlertInfo: coordinatorProcedure
     .input(z.object({ termId: z.string() }))
     .query(async ({ ctx, input: { termId } }) => {

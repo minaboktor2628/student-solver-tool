@@ -1,6 +1,10 @@
 /* Staff related endpoints */
 import { z } from "zod";
-import { coordinatorProcedure, createTRPCRouter } from "../trpc";
+import {
+  coordinatorProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+} from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { Role, type Day, type PreferenceLevel } from "@prisma/client";
 
@@ -501,5 +505,16 @@ export const staffRoute = createTRPCRouter({
           ? "User unlocked - can now edit preferences"
           : "User locked - cannot edit preferences",
       };
+    }),
+
+  getStaffById: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input: { id }, ctx }) => {
+      return ctx.db.user
+        .findUnique({
+          where: { id },
+          select: { id: true, name: true, email: true, roles: true },
+        })
+        .then((user) => ({ ...user, roles: user?.roles.map((r) => r.role) }));
     }),
 });
