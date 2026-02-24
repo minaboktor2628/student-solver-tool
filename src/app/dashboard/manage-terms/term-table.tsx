@@ -82,20 +82,20 @@ export function TermTable() {
     },
   });
 
-  const columns = createColumns(
-    (id) => activateTerm.mutate({ id }),
-    (id) => deactivateTerm.mutate({ id }),
-    (id) => deleteTerm.mutate({ id }),
-    {
-      releaseAssignments: (id: string) =>
-        releaseAssignmentsMutation.mutate({ id }),
-      lockAll: (termId: string) => lockAllMutation.mutate({ termId }),
-      unlockAll: (termId: string) => unlockAllMutation.mutate({ termId }),
-      releasePending: releaseAssignmentsMutation.isPending,
-      lockPending: lockAllMutation.isPending,
-      unlockPending: unlockAllMutation.isPending,
-    },
-  );
+  const actions = {
+    onActivate: (id: string) => activateTerm.mutate({ id }),
+    onDeactivate: (id: string) => deactivateTerm.mutate({ id }),
+    onDelete: (id: string) => deleteTerm.mutate({ id }),
+    releaseAssignments: (id: string) =>
+      releaseAssignmentsMutation.mutate({ id }),
+    lockAll: (termId: string) => lockAllMutation.mutate({ termId }),
+    unlockAll: (termId: string) => unlockAllMutation.mutate({ termId }),
+    releasePending: releaseAssignmentsMutation.isPending,
+    lockPending: lockAllMutation.isPending,
+    unlockPending: unlockAllMutation.isPending,
+  };
+
+  const columns = createColumns(actions);
 
   const rows: TermRow[] = (termStats ?? []).map((t) => ({
     ...(t as Omit<TermRow, "name">),

@@ -1,19 +1,9 @@
 "use client";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontalIcon } from "lucide-react";
 import { type TermLetter } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-users-form";
-import { SyncSectionsForm } from "@/components/dashboard/sync-sections-form";
+import { TermTableRowActions } from "./term-table-row-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,19 +27,19 @@ export type TermRow = {
   name: string;
 };
 
-export const createColumns = (
-  onActivate: (id: string) => void,
-  onDeactivate: (id: string) => void,
-  onDelete: (id: string) => void,
-  actions: {
-    releaseAssignments: (id: string) => void;
-    lockAll: (termId: string) => void;
-    unlockAll: (termId: string) => void;
-    releasePending: boolean;
-    lockPending: boolean;
-    unlockPending: boolean;
-  },
-): ColumnDef<TermRow>[] => [
+export type TermActions = {
+  onActivate: (id: string) => void;
+  onDeactivate: (id: string) => void;
+  onDelete: (id: string) => void;
+  releaseAssignments: (id: string) => void;
+  lockAll: (termId: string) => void;
+  unlockAll: (termId: string) => void;
+  releasePending: boolean;
+  lockPending: boolean;
+  unlockPending: boolean;
+};
+
+export const createColumns = (actions: TermActions): ColumnDef<TermRow>[] => [
   {
     accessorKey: "name",
     header: "Term Name",
@@ -91,55 +81,7 @@ export const createColumns = (
     header: () => <div className="text-right">Actions</div>,
     cell: ({ row }) => {
       const term = row.original;
-      return (
-        <div className="text-right">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8">
-                <MoreHorizontalIcon />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <UploadAllowedUsersForm termId={term.id}>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  Upload users
-                </DropdownMenuItem>
-              </UploadAllowedUsersForm>
-              <SyncSectionsForm year={term.year} termLetter={term.termLetter} />
-              <DropdownMenuItem
-                onSelect={(e) => e.preventDefault()}
-                onClick={() => actions.releaseAssignments(term.id)}
-                disabled={actions.releasePending}
-              >
-                Release Assignments
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => e.preventDefault()}
-                onClick={() => actions.lockAll(term.id)}
-                disabled={actions.lockPending}
-              >
-                Lock all
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => e.preventDefault()}
-                onClick={() => actions.unlockAll(term.id)}
-                disabled={actions.unlockPending}
-              >
-                Unlock all
-              </DropdownMenuItem>
-              <ActivateDeactivateButton
-                active={term.active}
-                onActivate={() => onActivate(term.id)}
-                onDeactivate={() => onDeactivate(term.id)}
-              />
-              <DropdownMenuSeparator />
-              <DeleteButton onClick={() => onDelete(term.id)} />
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
+      return <TermTableRowActions term={term} actions={actions} />;
     },
   },
 ];
