@@ -1,12 +1,10 @@
-import { AlertCircleIcon, ArrowUpRight } from "lucide-react";
+import { AlertCircleIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 const errorMap = {
   Configuration: "There is a problem with the server configuration.",
-  AccessDenied: "You do not have permission to sign in.",
+  AccessDenied: "You do not have permission.",
   Verification: "Something went wrong.",
   Default: "Something went wrong.",
 } as const;
@@ -27,11 +25,6 @@ export default async function ErrorPage({
           {errorMap[error] ?? "Please contact us if this error persists."}
         </AlertDescription>
       </Alert>
-      <Button asChild variant="secondary">
-        <Link href="/login">
-          Back to login <ArrowUpRight />
-        </Link>
-      </Button>
     </div>
   );
 }

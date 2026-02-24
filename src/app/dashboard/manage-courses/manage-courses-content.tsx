@@ -2,8 +2,6 @@
 
 import { api } from "@/trpc/react";
 
-import { RefreshCwIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table";
 import {
   Card,
@@ -19,6 +17,7 @@ import { SyncSectionsForm } from "@/components/dashboard/sync-sections-form";
 import { AcademicLevel } from "@prisma/client";
 import { humanizeKey } from "@/lib/utils";
 import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
+import { RefetchButton } from "@/components/refetch-button";
 
 export default function ManageCoursesContent() {
   const { selectedTerm } = useTerm();
@@ -52,17 +51,7 @@ export default function ManageCoursesContent() {
             Add, edit, and remove course for the selected term.
           </CardDescription>
           <CardAction>
-            <Button
-              onClick={() => courseApi.refetch()}
-              disabled={courseApi.isRefetching}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCwIcon
-                className={courseApi.isRefetching ? "animate-spin" : ""}
-              />{" "}
-              Re-fetch
-            </Button>
+            <RefetchButton query={courseApi} />
           </CardAction>
         </CardHeader>
         <CardContent>

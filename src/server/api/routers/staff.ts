@@ -264,6 +264,10 @@ export const staffRoute = createTRPCRouter({
             where: { termId },
             select: { id: true },
           },
+          teaches: {
+            where: { termId },
+            select: { id: true, professorPreference: { select: { id: true } } },
+          },
         },
         orderBy: {
           name: "asc",
@@ -273,6 +277,10 @@ export const staffRoute = createTRPCRouter({
       return {
         users: users.map((user) => {
           const staffPref = user.staffPreferences?.[0];
+          const hasProfessorPreference =
+            user.teaches?.some((section) => section.professorPreference) ??
+            false;
+
           return {
             id: user.id,
             name: user.name,
@@ -280,7 +288,7 @@ export const staffRoute = createTRPCRouter({
             hours: user.hours,
             roles: user.roles.map((r) => r.role),
             locked: !user.canEditForm,
-            hasPreference: !!staffPref,
+            hasPreference: !!staffPref || hasProfessorPreference,
           };
         }),
       };
