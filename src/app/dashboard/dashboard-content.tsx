@@ -27,6 +27,7 @@ import {
   BannerTitle,
 } from "@/components/banner";
 import { ExpandableList } from "@/components/expandable-list";
+import { EmailUsers } from "@/components/email-users";
 
 // Helper to format deadline info
 const formatDeadline = (date: Date) => {
@@ -245,13 +246,23 @@ export default function DashboardContent() {
                     </CardDescription>
                   </div>
                   {staff.pending.length > 0 && (
-                    <CopyButton
-                      value={staff.pending.map((s) => s.email).join(", ")}
-                      size="sm"
-                      variant="outline"
-                    >
-                      Copy Emails
-                    </CopyButton>
+                    <div className="flex gap-2">
+                      <CopyButton
+                        value={staff.pending.map((s) => s.email).join(", ")}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Copy Emails
+                      </CopyButton>
+                      <EmailUsers
+                        subject="Submitting preferences"
+                        emails={staff.pending
+                          .map((s) => s.email)
+                          .filter((s): s is string => !!s)}
+                      >
+                        Email Users
+                      </EmailUsers>
+                    </div>
                   )}
                 </div>
                 {staff.pending.length > 0 && (
@@ -322,13 +333,25 @@ export default function DashboardContent() {
                     </CardDescription>
                   </div>
                   {professors.pending.length > 0 && (
-                    <CopyButton
-                      value={professors.pending.map((p) => p.email).join(", ")}
-                      size="sm"
-                      variant="outline"
-                    >
-                      Copy Emails
-                    </CopyButton>
+                    <div className="flex gap-2">
+                      <CopyButton
+                        value={professors.pending
+                          .map((p) => p.email)
+                          .join(", ")}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Copy Emails
+                      </CopyButton>
+                      <EmailUsers
+                        subject="Submitting preferences"
+                        emails={professors.pending
+                          .map((p) => p.email)
+                          .filter((s): s is string => !!s)}
+                      >
+                        Email Users
+                      </EmailUsers>
+                    </div>
                   )}
                 </div>
                 {professors.pending.length > 0 && (
