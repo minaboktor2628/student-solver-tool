@@ -1,10 +1,9 @@
 "use client";
-// TODO: Clean up this component.
 
 import { Role } from "@prisma/client";
 import { api, type RouterOutputs } from "@/trpc/react";
 import { toast } from "sonner";
-import { RefreshCw, Lock, Unlock, RefreshCwIcon } from "lucide-react";
+import { RefreshCw, Lock, Unlock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table";
