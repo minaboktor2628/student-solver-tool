@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   Users,
   CheckCircle,
@@ -18,6 +17,17 @@ import { Role } from "@prisma/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/api/root";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 import {
@@ -173,23 +183,41 @@ export default function DashboardContent() {
     submitted: p.hasPreferences ?? false,
   }));
 
-  const publishTermMutation = api.term.publishTerm.useMutation();
-  const releaseAssignmentsMutation = api.term.releaseAssignments.useMutation();
+  const utils = api.useUtils();
 
-  // Publish term
-  const publishTerm = async (termId: string) => {
-    try {
-      const response = await publishTermMutation.mutateAsync({ id: termId });
-      if (response.success) {
+  const publishTermMutation = api.term.publishTerm.useMutation({
+    onSuccess: async (res) => {
+      if (res?.success) {
         toast.success("Term published successfully!");
-        window.location.reload(); // Simple reload for now
+        await utils.term.getAllTerms.invalidate();
+        await utils.dashboard.getDashboardData.invalidate();
       } else {
         toast.error("Failed to publish term");
       }
-    } catch (err) {
-      console.error("Error publishing term:", err);
-      toast.error("Failed to publish term");
-    }
+    },
+    onError: (err) => {
+      toast.error(err.message ?? "Failed to publish term");
+    },
+  });
+
+  const releaseAssignmentsMutation = api.term.releaseAssignments.useMutation({
+    onSuccess: async (res) => {
+      if (res?.success) {
+        toast.success("Assignments released.");
+        await utils.term.getAllTerms.invalidate();
+        await utils.dashboard.getDashboardData.invalidate();
+      } else {
+        toast.error("Failed to release assignments");
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message ?? "Failed to release assignments");
+    },
+  });
+
+  // Publish term
+  const publishTerm = (termId: string) => {
+    publishTermMutation.mutate({ id: termId });
   };
 
   // Calculated stats (pre-computed to avoid logic in markup)
@@ -332,33 +360,40 @@ export default function DashboardContent() {
 
         {selectedTerm && currentTerm?.status === "published" && (
           <div className="mb-6">
-            <Button
-              onClick={async () => {
-                const ok = window.confirm(
-                  "Release assignments for this term? This will make assignments visible to staff and professors.",
-                );
-                if (!ok) return;
-                try {
-                  const res = await releaseAssignmentsMutation.mutateAsync({
-                    id: selectedTerm,
-                  });
-                  if (res?.success) {
-                    toast.success("Assignments released.");
-                    // refresh page to pick up published state
-                    window.location.reload();
-                  } else {
-                    toast.error("Failed to release assignments");
-                  }
-                } catch (err) {
-                  console.error(err);
-                  toast.error("Failed to release assignments");
-                }
-              }}
-              size="default"
-              disabled={releaseAssignmentsMutation.isPending}
-            >
-              <Calendar className="h-4 w-4" /> Release Assignments
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="default"
+                  disabled={releaseAssignmentsMutation.isPending}
+                >
+                  <Calendar className="h-4 w-4" /> Release Assignments
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Release Assignments?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Releasing the assignments will make solver results visible
+                    to staff and professors. This action can be reverted by
+                    unpublishing the term if necessary.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() =>
+                      releaseAssignmentsMutation.mutate({ id: selectedTerm })
+                    }
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {releaseAssignmentsMutation.isPending
+                      ? "Releasing..."
+                      : "Release"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             <p className="text-muted-foreground mt-1 text-sm">
               Releasing the assignments makes the solver results visible to
               staff and professors.
