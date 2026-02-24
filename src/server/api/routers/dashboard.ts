@@ -182,9 +182,8 @@ export const dashboardRoute = createTRPCRouter({
           ? Math.round((staffSubmittedCount / staffTotalCount) * 100)
           : 0;
 
-      // Compute total available hours using role-based increments per submission.
-      // TA submissions add 20, PLA submissions add 10. If a user has both roles,
-      // prefer TA (20) over PLA.
+      // Compute total available hours using role based increments per submission.
+      // TA submissions add 20, PLA submissions add 10
       const totalAvailableHours = submittedStaff.reduce((sum, s) => {
         const roles = s.roles || [];
         if (roles.includes("TA")) return sum + 20;
