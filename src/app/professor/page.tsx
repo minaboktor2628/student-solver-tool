@@ -55,7 +55,11 @@ export default async function ProfessorPreferencesPage(props: PageProps) {
           <BannerClose />
         </Banner>
       )}
-      <ProfessorPreferenceForm userId={userId} termId={termId} />
+      <ProfessorPreferenceForm
+        userId={userId}
+        termId={termId}
+        redirectOnComplete="/"
+      />
     </div>
   );
 }
