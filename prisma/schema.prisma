@@ -1,74 +1,278 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
+enum Role {
+  PLA
+  GLA
+  TA
+  COORDINATOR
+  PROFESSOR
 }
 
-// Necessary for Next auth
-model Account {
-    id                       String  @id @default(cuid())
-    userId                   String
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
-
-    @@unique([provider, providerAccountId])
+enum PreferenceLevel {
+  PREFER
+  STRONGLY_PREFER
 }
 
-model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum Day {
+  M
+  T
+  W
+  R
+  F
+}
+
+enum TermLetter {
+  A
+  B
+  C
+  D
+}
+
+enum AcademicLevel {
+  UNDERGRADUATE
+  GRADUATE
+}
+
+model Term {
+  id         String     @id @default(cuid())
+  termLetter TermLetter // Fall semester gets combined with A term, Spring with C term
+  year       Int
+
+  staffPreferences StaffPreference[]
+  sections         Section[]
+  allowedUsers     User[] // This term's participating PLAs/TAs/Professors
+
+  termStaffDueDate     DateTime // When PLAs/TAs should have their preferences submitted by
+  termProfessorDueDate DateTime // When professors should have their preferences submitted by
+
+  published Boolean @default(false)
+
+  createdAt            DateTime @default(now())
+  active               Boolean  @default(false)
+
+  @@unique([termLetter, year])
+}
+
+model StaffPreference {
+  id String @id @default(cuid())
+
+  // Associated staff
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // Associated term
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String
+
+  isAvailableForTerm Boolean @default(false) // Whether the staff is available to work this term at all
+
+  timesAvailable StaffAvailableHour[]
+  comments       String? // Any additional comments that the staff has
+
+  qualifiedForSections StaffPreferenceQualifiedSection[]
+  preferredSections    StaffPreferencePreferredSection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // one staff preference per user per term
+  @@unique([userId, termId])
+}
+
+// Courses the staff can be assigned to
+model StaffPreferenceQualifiedSection {
+  staffPreference   StaffPreference @relation(fields: [staffPreferenceId], references: [id], onDelete: Cascade)
+  staffPreferenceId String
+
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+
+  @@id([staffPreferenceId, sectionId])
+}
+
+// Ordered list of preferred sections
+model StaffPreferencePreferredSection {
+  rank PreferenceLevel
+
+  staffPreference   StaffPreference @relation(fields: [staffPreferenceId], references: [id], onDelete: Cascade)
+  staffPreferenceId String
+
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+
+  @@id([staffPreferenceId, sectionId])
+}
+
+// Which staff (users) are actually assigned to a section
+model SectionAssignment {
+  id String @id @default(cuid())
+
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+
+  staff   User   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
+
+  locked Boolean @default(false) // if true, solver must not change/remove this
+
+  // Prevent duplicate assignments
+  @@unique([sectionId, staffId])
+}
+
+model Section {
+  id String @id @default(cuid())
+
+  term   Term   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  termId String
+
+  courseTitle    String // Ex: "Discrete Mathematics"
+  courseCode     String // Ex: "CS 2022"
+  courseSection  String // Ex: "LO1"
+  meetingPattern String // Ex: "M-R | 2:00pm - 3:50pm"
+  description    String // Course description (stored as an html string)
+
+  professor   User?   @relation("TeachesSections", fields: [professorId], references: [id])
+  professorId String?
+
+  enrollment    Int // Number of students enrolled in this course
+  capacity      Int // Max number of students allowed to enroll in this course
+  requiredHours Int // Number of staff hours required to fulfill this course's needs
+  academicLevel AcademicLevel // Undergraduate or Graduate
+
+  assignments          SectionAssignment[]
+  qualifiedPreferences StaffPreferenceQualifiedSection[]
+  preferredPreferences StaffPreferencePreferredSection[]
+  professorPreference  ProfessorPreference?
+
+  // only one section like "CS 2022 LO1" per term
+  @@unique([termId, courseCode, courseSection])
+}
+
+model ProfessorPreference {
+  id String @id @default(cuid())
+
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String  @unique
+
+  timesRequired SectionNeededHour[]
+  comments      String?
+
+  preferredStaff ProfessorPreferencePreferredStaff[]
+  avoidedStaff   ProfessorPreferenceAvoidedStaff[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Which staff the professor prefers for this course
+model ProfessorPreferencePreferredStaff {
+  professorPreference   ProfessorPreference @relation(fields: [professorPreferenceId], references: [id], onDelete: Cascade)
+  professorPreferenceId String
+
+  staff   User   @relation("ProfPrefPreferredStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
+
+  @@id([professorPreferenceId, staffId])
+}
+
+// Which staff the professor does NOT want for this course
+model ProfessorPreferenceAvoidedStaff {
+  professorPreference   ProfessorPreference @relation(fields: [professorPreferenceId], references: [id], onDelete: Cascade)
+  professorPreferenceId String
+
+  staff   User   @relation("ProfPrefAvoidedStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
+
+  @@id([professorPreferenceId, staffId])
+}
+
+model StaffAvailableHour {
+  id                String           @id @default(uuid())
+  hour              Int
+  day               Day
+  StaffPreference   StaffPreference? @relation(fields: [staffPreferenceId], references: [id])
+  staffPreferenceId String?
+}
+
+model SectionNeededHour {
+  id                    String               @id @default(uuid())
+  hour                  Int
+  day                   Day
+  ProfessorPreference   ProfessorPreference? @relation(fields: [professorPreferenceId], references: [id])
+  professorPreferenceId String?
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+  id            String     @id @default(cuid())
+  name          String?
+  email         String?    @unique
+  emailVerified DateTime?
+  canEditForm   Boolean @default(true)
+  accounts      Account[]
+  sessions      Session[]
+  roles         UserRole[]
+
+  // staff specific
+  hours              Int?
+  staffPreferences   StaffPreference[]
+  sectionAssignments SectionAssignment[]
+  preferredInCourses ProfessorPreferencePreferredStaff[] @relation("ProfPrefPreferredStaff")
+  avoidedInCourses   ProfessorPreferenceAvoidedStaff[]   @relation("ProfPrefAvoidedStaff")
+
+  // professor specific
+  teaches Section[] @relation("TeachesSections")
+
+  AllowedInTerms Term[]
+}
+
+model UserRole {
+  role   Role
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@id([userId, role])
+}
+
+model Account {
+  id                       String  @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String?
+  access_token             String?
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String?
+  session_state            String?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refresh_token_expires_in Int?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
 }

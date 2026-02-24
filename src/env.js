@@ -11,13 +11,32 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    AUTH_MICROSOFT_ENTRA_ID_ISSUER: z.string().url(),
-    AUTH_MICROSOFT_ENTRA_ID_ID: z.string(),
-    AUTH_MICROSOFT_ENTRA_ID_SECRET: z.string(),
+    AUTH_MICROSOFT_ENTRA_ID_ISSUER:
+      process.env.NODE_ENV === "production"
+        ? z.string().url()
+        : z.string().url().optional(),
+    AUTH_MICROSOFT_ENTRA_ID_ID:
+      process.env.NODE_ENV === "production"
+        ? z.string()
+        : z.string().optional(),
+    AUTH_MICROSOFT_ENTRA_ID_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string()
+        : z.string().optional(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    COORDINATOR_EMAILS: z.preprocess(
+      (val) =>
+        typeof val === "string"
+          ? val
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : val,
+      z.array(z.string().email()),
+    ),
   },
 
   /**
@@ -40,6 +59,7 @@ export const env = createEnv({
     AUTH_MICROSOFT_ENTRA_ID_SECRET: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    COORDINATOR_EMAILS: process.env.COORDINATOR_EMAILS,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

@@ -1,15 +1,58 @@
-version: "3.9"
 services:
-  frontend:
-    platform: "linux/amd64"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - sts
+
+  sts:
     build:
       context: .
+      target: runner
       dockerfile: Dockerfile
       args:
+        # frontend env args are needed at build time; put them here
         NEXT_PUBLIC_CLIENTVAR: "clientvar"
-    working_dir: /app
-    ports:
-      - "3000:3000"
+    restart: unless-stopped
+    expose:
+      - "3000"
     env_file:
       - .env
-    image: t3-app
+    volumes:
+      - sts_sqlite:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/health').then(() => process.exit(0)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  sts-migrate:
+    build:
+      context: .
+      target: migrator
+    env_file:
+      - .env
+    volumes:
+      - sts_sqlite:/data
+    restart: "no"
+    profiles: ["migrate"]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  sts_sqlite:
+    name: sts_sqlite

@@ -16,6 +16,8 @@ yarn.lock
 /prisma/db.sqlite
 /prisma/db.sqlite-journal
 db.sqlite
+/prisma/*.db
+/**/dev.db
 
 # next.js
 /.next/
@@ -53,3 +55,6 @@ yarn-error.log*
 # Fumadocs generated
 .source
 
+# cypress 
+cypress/screenshots
+prisma/local-seed.ts

@@ -1,10 +1,5 @@
 /**
- * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
- * 1. You want to modify request context (see Part 1).
- * 2. You want to create a new middleware or type of procedure (see Part 3).
- *
- * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
- * need to use are documented accordingly near the end.
+ * This is where all the tRPC server stuff is created and plugged in.
  */
 
 import { initTRPC, TRPCError } from "@trpc/server";
@@ -13,6 +8,7 @@ import { ZodError } from "zod";
 
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
+import type { Role } from "@prisma/client";
 
 /**
  * 1. CONTEXT
@@ -35,7 +31,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     ...opts,
   };
 };
-
+export type CtxType = Awaited<ReturnType<typeof createTRPCContext>>;
 /**
  * 2. INITIALIZATION
  *
@@ -101,6 +97,28 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   return result;
 });
 
+/** Ensures ctx.session.user is present and narrows it for downstream handlers */
+const isAuthed = t.middleware(({ ctx, next }) => {
+  const { session } = ctx;
+  if (!session?.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+  return next({ ctx: { session } }); // session now non-nullable
+});
+
+/** Factory to require any of the given roles */
+const requireRoles = (allowed: readonly Role[]) =>
+  t.middleware(({ ctx, next }) => {
+    const roles = Array.isArray(ctx?.session?.user.roles)
+      ? ctx.session.user.roles
+      : [];
+    if (!allowed.some((r) => roles.includes(r))) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `Must be ${allowed.join(" or ")} to access this resource.`,
+      });
+    }
+    return next();
+  });
+
 /**
  * Public (unauthenticated) procedure
  *
@@ -120,14 +138,34 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
-  .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-    return next({
-      ctx: {
-        // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
-  });
+  .use(isAuthed);
+
+/**
+ * Assistant (authenticated) procedure
+ *
+ * Only allow TAs and PLAs
+ */
+export const assistantProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(isAuthed)
+  .use(requireRoles(["TA", "PLA", "COORDINATOR"]));
+
+/**
+ * Professor (authenticated) procedure
+ *
+ * Only allow professors
+ */
+export const professorProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(isAuthed)
+  .use(requireRoles(["PROFESSOR", "COORDINATOR"]));
+
+/**
+ * Coordinator (authenticated) procedure
+ *
+ * Only allow coordinator
+ */
+export const coordinatorProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(isAuthed)
+  .use(requireRoles(["COORDINATOR"]));
