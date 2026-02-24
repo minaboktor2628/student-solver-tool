@@ -167,21 +167,15 @@ export const termRoute = createTRPCRouter({
   publishTerm: coordinatorProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input: { id }, ctx }) => {
-      await ctx.db.term.updateMany({
-        where: { active: true },
-        data: { active: false },
-      });
+      const term = await ctx.db.term.findUnique({ where: { id } });
+      if (!term) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Term not found" });
+      }
 
-      const updatedTerm = await ctx.db.term.update({
+      return ctx.db.term.update({
         where: { id },
-        data: { active: true },
+        data: { published: true },
       });
-
-      return {
-        success: true,
-        termId: updatedTerm.id,
-        message: "Term published successfully",
-      };
     }),
 
   syncUsersToTerm: coordinatorProcedure
