@@ -29,11 +29,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { UploadAllowedUsersForm } from "./upload-allowed-users-form";
+import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-users-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { SyncSectionsForm } from "./sync-sections-form";
+import { SyncSectionsForm } from "../../../components/dashboard/sync-sections-form";
 
 // TODO: make this paginated
 export function TermTable() {
@@ -120,20 +120,20 @@ export function TermTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <UploadAllowedUsersForm
-                        termId={term.id}
-                        trigger={
-                          <DropdownMenuItem
-                            onSelect={(e) => e.preventDefault()}
-                          >
-                            Upload Users
-                          </DropdownMenuItem>
-                        }
-                      />
+                      <UploadAllowedUsersForm termId={term.id}>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          Upload users
+                        </DropdownMenuItem>
+                      </UploadAllowedUsersForm>
+
                       <SyncSectionsForm
                         year={term.year}
                         termLetter={term.termLetter}
-                      />
+                      >
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          Sync Sections
+                        </DropdownMenuItem>
+                      </SyncSectionsForm>
                       <ActivateDeactivateButton
                         active={term.active}
                         onActivate={() => activateTerm.mutate({ id: term.id })}

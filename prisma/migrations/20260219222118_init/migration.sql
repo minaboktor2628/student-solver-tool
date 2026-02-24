@@ -5,6 +5,7 @@ CREATE TABLE "Term" (
     "year" INTEGER NOT NULL,
     "termStaffDueDate" DATETIME NOT NULL,
     "termProfessorDueDate" DATETIME NOT NULL,
+    "published" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "active" BOOLEAN NOT NULL DEFAULT false
 );
@@ -15,7 +16,6 @@ CREATE TABLE "StaffPreference" (
     "userId" TEXT NOT NULL,
     "termId" TEXT NOT NULL,
     "isAvailableForTerm" BOOLEAN NOT NULL DEFAULT false,
-    "canEdit" BOOLEAN NOT NULL DEFAULT true,
     "comments" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
@@ -63,20 +63,19 @@ CREATE TABLE "Section" (
     "courseSection" TEXT NOT NULL,
     "meetingPattern" TEXT NOT NULL,
     "description" TEXT NOT NULL,
-    "professorId" TEXT NOT NULL,
+    "professorId" TEXT,
     "enrollment" INTEGER NOT NULL,
     "capacity" INTEGER NOT NULL,
     "requiredHours" INTEGER NOT NULL,
     "academicLevel" TEXT NOT NULL,
     CONSTRAINT "Section_termId_fkey" FOREIGN KEY ("termId") REFERENCES "Term" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "Section_professorId_fkey" FOREIGN KEY ("professorId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "Section_professorId_fkey" FOREIGN KEY ("professorId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "ProfessorPreference" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "sectionId" TEXT NOT NULL,
-    "canEdit" BOOLEAN NOT NULL DEFAULT true,
     "comments" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
@@ -127,6 +126,7 @@ CREATE TABLE "User" (
     "name" TEXT,
     "email" TEXT,
     "emailVerified" DATETIME,
+    "canEditForm" BOOLEAN NOT NULL DEFAULT true,
     "hours" INTEGER
 );
 
@@ -137,16 +137,6 @@ CREATE TABLE "UserRole" (
 
     PRIMARY KEY ("userId", "role"),
     CONSTRAINT "UserRole_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "AllowedTermUser" (
-    "userId" TEXT NOT NULL,
-    "termId" TEXT NOT NULL,
-
-    PRIMARY KEY ("termId", "userId"),
-    CONSTRAINT "AllowedTermUser_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "AllowedTermUser_termId_fkey" FOREIGN KEY ("termId") REFERENCES "Term" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -183,6 +173,14 @@ CREATE TABLE "VerificationToken" (
     "expires" DATETIME NOT NULL
 );
 
+-- CreateTable
+CREATE TABLE "_TermToUser" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+    CONSTRAINT "_TermToUser_A_fkey" FOREIGN KEY ("A") REFERENCES "Term" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "_TermToUser_B_fkey" FOREIGN KEY ("B") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Term_termLetter_year_key" ON "Term"("termLetter", "year");
 
@@ -191,6 +189,9 @@ CREATE UNIQUE INDEX "StaffPreference_userId_termId_key" ON "StaffPreference"("us
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SectionAssignment_sectionId_staffId_key" ON "SectionAssignment"("sectionId", "staffId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Section_termId_courseCode_courseSection_key" ON "Section"("termId", "courseCode", "courseSection");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ProfessorPreference_sectionId_key" ON "ProfessorPreference"("sectionId");
@@ -209,3 +210,9 @@ CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "_TermToUser_AB_unique" ON "_TermToUser"("A", "B");
+
+-- CreateIndex
+CREATE INDEX "_TermToUser_B_index" ON "_TermToUser"("B");

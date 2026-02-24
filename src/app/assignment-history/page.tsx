@@ -2,8 +2,10 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import StaffAssignment from "@/components/staff/staff-assignment-card";
 import { redirectToForbidden } from "@/lib/navigation";
 import { hasPermission } from "@/lib/permissions";
+import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
+import { unknownProfessorName } from "@/lib/constants";
 
 export const metadata = {
   title: "Assignment History",
@@ -18,7 +20,8 @@ export default async function PreferencesFormPage() {
 
   if (
     !hasPermission(session.user, "staffPreferenceForm", "viewHistory", {
-      id: userId,
+      userId,
+      isAllowedInActiveTerm: await isUserAllowedInActiveTerm(userId),
     })
   ) {
     redirectToForbidden();
@@ -43,7 +46,7 @@ export default async function PreferencesFormPage() {
             courseTitle={assignment.section.courseTitle}
             courseSection={assignment.section.courseSection}
             professorName={
-              assignment.section.professor?.name ?? "Professor TBD"
+              assignment.section.professor?.name ?? unknownProfessorName
             }
             professorEmail={assignment.section.professor?.email ?? ""}
             meetingPattern={assignment.section.meetingPattern}

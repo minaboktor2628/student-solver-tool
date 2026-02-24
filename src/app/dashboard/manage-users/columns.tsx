@@ -3,15 +3,13 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Mail, Trash2, Lock, Unlock } from "lucide-react";
-import { Role, type User as PrismaUser } from "@prisma/client";
+import { Lock, Unlock, CheckIcon, XIcon } from "lucide-react";
+import type { Role } from "@prisma/client";
 
-// Uses Prisma User fields + API computed fields (roles transformed, locked/hasPreference added)
-export type User = Pick<PrismaUser, "id" | "name" | "email" | "hours"> & {
-  roles: Role[]; // Array of Role enum values from UserRole relation
-  locked: boolean; // Computed from staffPreferences.canEdit
-  hasPreference: boolean; // Computed from staffPreferences existence
-};
+import { CopyButton } from "@/components/copy-button";
+import { DataTableColumnHeader } from "@/components/data-table";
+import type { UserTableRow } from "./manage-users-content";
+import { UserTableRowAction } from "./user-table-row-actions";
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
@@ -19,34 +17,54 @@ const ROLE_COLORS: Record<Role, string> = {
   GLA: "bg-chart-2/20 text-chart-2 border-chart-2/30",
   PROFESSOR: "bg-chart-3/20 text-chart-3 border-chart-3/30",
   COORDINATOR: "bg-warning/20 text-warning border-warning/30",
-};
+} as const;
 
 const getRoleBadgeClass = (role: Role): string => {
-  const color = ROLE_COLORS[role];
-  return color ?? "bg-muted/20 text-muted-foreground border-muted/30";
+  return ROLE_COLORS[role];
 };
 
+// TODO: add locked pref col, has pref cols
+
 export const createColumns = (
-  onEdit: (user: User) => void,
-  onDelete: (user: User) => void,
-  onToggleLock?: (user: User) => void,
-  activeTerm?: string | null,
-): ColumnDef<User>[] => [
+  activeTermId: string,
+): ColumnDef<UserTableRow>[] => [
   {
     accessorKey: "name",
-    header: "Name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
+    ),
     cell: ({ row }) => {
-      return <div className="font-medium">{row.getValue("name")}</div>;
+      return <div className="font-medium">{row.original.name}</div>;
+    },
+    filterFn: (row, _, filterValue) => {
+      const term = String(filterValue ?? "").toLowerCase();
+      if (!term) return true;
+
+      const name = (row.getValue<string>("name") ?? "").toLowerCase();
+      const email = (row.getValue<string>("email") ?? "").toLowerCase();
+
+      return name.includes(term) || email.includes(term);
     },
   },
   {
     accessorKey: "email",
-    header: "Email",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Email" />
+    ),
     cell: ({ row }) => {
+      const email = row.original.email ?? "";
+      const name = row.original.name ?? "";
       return (
         <div className="flex items-center gap-2">
-          <Mail className="text-muted-foreground h-4 w-4" />
-          {row.getValue("email")}
+          <CopyButton value={email} title="Copy email" />
+          <Button
+            asChild
+            variant="link"
+            className="text-foreground p-0"
+            title={`Send email to ${name}`}
+          >
+            <a href={`mailto:${email}`}>{email}</a>
+          </Button>
         </div>
       );
     },
@@ -55,7 +73,7 @@ export const createColumns = (
     accessorKey: "roles",
     header: "Role",
     cell: ({ row }) => {
-      const roles = row.getValue<Role[]>("roles");
+      const roles = row.original.roles ?? [];
       return (
         <div className="flex flex-wrap gap-1">
           {roles.map((role) => (
@@ -70,39 +88,34 @@ export const createColumns = (
         </div>
       );
     },
-    filterFn: (row, id, value: string) => {
-      const roles = row.getValue<Role[]>(id);
-      return roles.some((role) =>
-        role.toLowerCase().includes(value.toLowerCase()),
-      );
-    },
+    filterFn: "arrIncludesSome",
   },
   {
-    accessorKey: "locked",
-    header: "Status",
+    accessorKey: "hasPreference",
+    header: "Preference form status",
+    filterFn: (row, columnId, filterValue) => {
+      const selected = filterValue as string[] | undefined;
+      if (!selected || selected.length === 0) return true;
+
+      const value = row.getValue<boolean>(columnId);
+      const valueAsString = value ? "true" : "false";
+      return selected.includes(valueAsString);
+    },
     cell: ({ row }) => {
-      const locked = row.getValue<boolean>("locked");
       const hasPreference = row.original.hasPreference;
 
-      if (!hasPreference) {
-        return (
-          <Badge variant="outline" className="text-xs">
-            No Preference
-          </Badge>
-        );
-      }
-
       return (
-        <Badge variant={locked ? "destructive" : "success"} className="text-xs">
-          {locked ? (
+        <Badge
+          variant={hasPreference ? "success" : "destructive"}
+          className="text-xs"
+        >
+          {hasPreference ? (
             <>
-              <Lock className="mr-1 h-3 w-3" />
-              Locked
+              <CheckIcon /> Submitted
             </>
           ) : (
             <>
-              <Unlock className="mr-1 h-3 w-3" />
-              Unlocked
+              <XIcon /> Not submitted
             </>
           )}
         </Badge>
@@ -110,50 +123,39 @@ export const createColumns = (
     },
   },
   {
-    id: "actions",
-    header: () => <div className="text-right">Actions</div>,
+    accessorKey: "locked",
+    header: "Preference form access",
     cell: ({ row }) => {
-      const user = row.original;
-      const isCoordinator = user.roles.includes(Role.COORDINATOR);
-      const canToggleLock = onToggleLock && activeTerm;
+      const locked = row.original.locked;
 
       return (
-        <div className="flex justify-end gap-2">
-          {canToggleLock && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onToggleLock(user)}
-              title={user.locked ? "Unlock user" : "Lock user"}
-            >
-              {user.locked ? (
-                <Unlock className="h-4 w-4" />
-              ) : (
-                <Lock className="h-4 w-4" />
-              )}
-            </Button>
+        <Badge variant={locked ? "destructive" : "success"} className="text-xs">
+          {locked ? (
+            <>
+              <Lock className="mr-1 h-3 w-3" /> Locked
+            </>
+          ) : (
+            <>
+              <Unlock className="mr-1 h-3 w-3" /> Unlocked
+            </>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(user)}
-            disabled={isCoordinator}
-            title={isCoordinator ? "Cannot edit coordinator" : "Edit user"}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(user)}
-            disabled={isCoordinator}
-            title={isCoordinator ? "Cannot delete coordinator" : "Delete user"}
-            className="text-destructive hover:text-destructive/80"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        </Badge>
       );
     },
+    filterFn: (row, columnId, filterValue) => {
+      const selected = filterValue as string[] | undefined;
+      if (!selected || selected.length === 0) return true;
+
+      const value = row.getValue<boolean>(columnId);
+      const valueAsString = value ? "true" : "false";
+      return selected.includes(valueAsString);
+    },
+  },
+  {
+    id: "actions",
+    meta: { export: false },
+    cell: ({ row }) => (
+      <UserTableRowAction termId={activeTermId} user={row.original} />
+    ),
   },
 ];

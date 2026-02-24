@@ -13,33 +13,39 @@ import {
 import { SelectItem } from "@/components/ui/select";
 import { SectionItemSchema, type SectionItem } from "@/lib/courselisting-api";
 import type { User } from "next-auth";
+import type z from "zod";
+import { useEffect } from "react";
 
 export type CreateSectionFormProps = {
   onSubmit: (data: SectionItem) => void;
   professors: Array<Pick<User, "id" | "name">>;
+  defaultValues?: z.infer<typeof SectionItemSchema>;
 };
 
-export function CreateSectionForm({
+export function SingleSectionForm({
   onSubmit,
   professors,
+  defaultValues = {
+    courseTitle: "",
+    courseCode: "",
+    courseSection: "",
+    meetingPattern: "",
+    description: "",
+    professorId: "",
+    professorName: "",
+    enrollment: 0,
+    capacity: 0,
+    requiredHours: 0,
+    academicLevel: "UNDERGRADUATE" as const,
+  },
 }: CreateSectionFormProps) {
   const form = useForm({
     resolver: zodResolver(SectionItemSchema),
     mode: "onChange",
-    defaultValues: {
-      courseTitle: "",
-      courseCode: "",
-      courseSection: "",
-      meetingPattern: "",
-      description: "",
-      professorId: "",
-      professorName: "",
-      enrollment: 0,
-      capacity: 0,
-      requiredHours: 0,
-      academicLevel: "UNDERGRADUATE" as AcademicLevel,
-    },
+    defaultValues,
   });
+
+  console.log({ defaultValues });
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="my-2">

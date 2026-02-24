@@ -9,7 +9,7 @@ export default async function Home() {
   const activeTerm = await api.term.getActive();
   if (!session) return;
 
-  if (isProfessor(session)) {
+  if (isProfessor(session.user)) {
     if (!activeTerm) return "No active term.";
     return (
       <ProfessorHomePageComponent
@@ -17,7 +17,7 @@ export default async function Home() {
         termId={activeTerm.id}
       />
     );
-  } else if (isAssistant(session)) {
+  } else if (isAssistant(session.user)) {
     return <StaffHomePage userId={session?.user?.id} />;
   } else {
     return "you dont belong here.";

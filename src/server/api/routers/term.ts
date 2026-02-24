@@ -7,7 +7,10 @@ import {
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { Role, TermLetter } from "@prisma/client";
-import { createTermInputSchema } from "@/types/form-inputs";
+import {
+  createTermInputSchema,
+  createUserInputSchema,
+} from "@/types/form-inputs";
 import { getDefaultHoursForRole } from "@/lib/constants";
 import { getTermSectionData, SectionItemSchema } from "@/lib/courselisting-api";
 
@@ -15,7 +18,13 @@ export const termRoute = createTRPCRouter({
   getTerms: publicProcedure.query(async ({ ctx }) => {
     const all = await ctx.db.term.findMany({
       orderBy: [{ year: "desc" }, { termLetter: "desc" }],
-      select: { active: true, year: true, termLetter: true, id: true },
+      select: {
+        active: true,
+        year: true,
+        termLetter: true,
+        id: true,
+        published: true,
+      },
     });
 
     // combine year and term letter into label field for convenience
@@ -34,7 +43,13 @@ export const termRoute = createTRPCRouter({
     // find first because only supposed to have one active term
     return ctx.db.term.findFirst({
       where: { active: true },
-      select: { active: true, year: true, termLetter: true, id: true },
+      select: {
+        active: true,
+        year: true,
+        termLetter: true,
+        id: true,
+        published: true,
+      },
     });
   }),
 
@@ -168,14 +183,8 @@ export const termRoute = createTRPCRouter({
   syncUsersToTerm: coordinatorProcedure
     .input(
       z.object({
-        users: z.array(
-          z.object({
-            name: z.string(),
-            email: z.string().email(),
-            role: z.nativeEnum(Role),
-          }),
-        ),
         termId: z.string(),
+        users: z.array(createUserInputSchema),
       }),
     )
     .mutation(async ({ ctx, input: { users, termId } }) => {
@@ -198,8 +207,56 @@ export const termRoute = createTRPCRouter({
         include: { allowedUsers: true },
       });
 
-      // term.allowedUsers may contain more users than just the ones we touched
-      // we return *only* the set we just created/connected:
+      await Promise.all(
+        users.map(async ({ email, role }) => {
+          const user = await ctx.db.user.findUnique({
+            where: { email },
+            include: { roles: true },
+          });
+
+          if (!user) return; // should not happen, but safeguard
+
+          const roles = user.roles;
+
+          const isTaOrPla = roles.some(
+            (r) => r.role === Role.TA || r.role === Role.PLA,
+          );
+
+          if (isTaOrPla) {
+            // Exception:
+            // If user is TA or PLA, the *new* role takes precedence:
+            //  -> wipe old roles and set only the new one
+            await ctx.db.user.update({
+              where: { id: user.id },
+              data: {
+                roles: {
+                  deleteMany: {}, // drop existing roles (TA/PLA)
+                  create: { role }, // set only new role
+                },
+                hours: getDefaultHoursForRole(role),
+              },
+            });
+          } else {
+            // Default:
+            // Roles always get appended if they don't already have this role
+            const alreadyHasRole = roles.some((r) => r.role === role);
+            if (!alreadyHasRole) {
+              await ctx.db.user.update({
+                where: { id: user.id },
+                data: {
+                  roles: {
+                    connectOrCreate: {
+                      where: { userId_role: { userId: user.id, role } },
+                      create: { role },
+                    },
+                  },
+                },
+              });
+            }
+          }
+        }),
+      );
+
       const affectedUsers = term.allowedUsers.filter((u) =>
         users.some((inputUser) => inputUser.email === u.email),
       );

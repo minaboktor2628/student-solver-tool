@@ -8,11 +8,6 @@ import {
 } from "@/components/ui/resizable";
 import { useState } from "react";
 import { StaffSelectionSidebar } from "@/components/solver/staff-selection-sidebar";
-import {
-  ButtonGroup,
-  ButtonGroupSeparator,
-} from "@/components/ui/button-group";
-import { Button } from "@/components/ui/button";
 import { api } from "@/trpc/react";
 import { GlobalSuspense } from "@/components/global-suspense";
 import {
@@ -25,7 +20,8 @@ import { StaffItem, type StaffItemProps } from "@/components/solver/staff-item";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { AleadyAssignedAlert } from "@/components/solver/already-assigned-alert";
 import { toast } from "sonner";
-import { TermCombobox, useTerm } from "@/components/term-combobox";
+import { useTerm } from "@/components/term-combobox";
+import { SolverPageHeader } from "@/components/solver/page-header";
 
 type PendingAssign = {
   toSectionId: string;
@@ -161,6 +157,7 @@ export default function SolverPage() {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
         utils.staff.getStaffForSection.invalidate(),
+        utils.dashboard.getAssignments.invalidate(),
       ]);
     },
   });
@@ -219,6 +216,7 @@ export default function SolverPage() {
       await Promise.all([
         utils.courses.getAllCoursesForTerm.invalidate({ termId }),
         utils.staff.getStaffForSection.invalidate(),
+        utils.dashboard.getAssignments.invalidate(),
       ]);
     },
   });
@@ -334,18 +332,7 @@ export default function SolverPage() {
           setActiveStaff(null);
         }}
       />
-      <div className="flex items-center px-4">
-        <h1 className="pr-2 font-bold">Term: </h1> <TermCombobox />
-        <ButtonGroup className="ml-auto">
-          <Button size="sm" disabled>
-            Solve Next
-          </Button>
-          <ButtonGroupSeparator />
-          <Button size="sm" disabled>
-            Done
-          </Button>
-        </ButtonGroup>
-      </div>
+      <SolverPageHeader termId={termId} />
       <Separator className="mt-2" />
       <div className="min-h-0 flex-1">
         <DndContext

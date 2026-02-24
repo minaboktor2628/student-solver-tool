@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
-import type { Session } from "next-auth";
+import type { Session, User } from "next-auth";
 import { twMerge } from "tailwind-merge";
 import z from "zod";
 
@@ -23,16 +23,16 @@ export const isExcelType = (type: string) =>
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
   type === "application/vnd.ms-excel";
 
-export function isCoordinator(session: Session | null) {
-  return session?.user.roles.some((r) => r === "COORDINATOR");
+export function isCoordinator(user?: User): boolean {
+  return user?.roles?.some((r) => r === "COORDINATOR") ?? false;
 }
 
-export function isAssistant(session: Session | null) {
-  return session?.user.roles.some((r) => r === "TA" || r === "PLA");
+export function isAssistant(user?: User): boolean {
+  return user?.roles?.some((r) => r === "TA" || r === "PLA") ?? false;
 }
 
-export function isProfessor(session: Session | null) {
-  return session?.user.roles.some((r) => r === "PROFESSOR");
+export function isProfessor(user?: User): boolean {
+  return user?.roles?.some((r) => r === "PROFESSOR") ?? false;
 }
 
 export function toFullCourseName(section: string, code: string, title: string) {
@@ -48,10 +48,20 @@ export function normalize(str: string) {
 
 // take in something like professorId -> Professor Id
 export function humanizeKey(k: string) {
-  return k
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/_/g, " ")
-    .replace(/^./, (c) => c.toUpperCase());
+  return (
+    k
+      // Convert ALL CAPS words to lowercase first
+      .replace(/^[A-Z0-9_]+$/, (str) => str.toLowerCase())
+
+      // Add space between camelCase transitions
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+
+      // Replace underscores with spaces
+      .replace(/_/g, " ")
+
+      // Capitalize first letter of each word
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }
 
 // take in any value and turn it into a string

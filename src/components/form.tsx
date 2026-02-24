@@ -128,10 +128,27 @@ function FormBase<
 
 type Placeholder = { placeholder?: string };
 
-export const FormInput: FormControlFunc<Placeholder> = (props) => {
+export const FormInput: FormControlFunc<
+  Placeholder & { type?: React.InputHTMLAttributes<HTMLInputElement>["type"] }
+> = (props) => {
   return (
     <FormBase {...props}>
-      {(field) => <Input {...field} placeholder={props.placeholder} />}
+      {({ value, onChange, ...field }) => (
+        <Input
+          {...field}
+          placeholder={props.placeholder}
+          type={props.type}
+          value={value ?? ""}
+          onChange={(e) => {
+            if (props.type === "number") {
+              const raw = e.target.value;
+              onChange(raw === "" ? undefined : Number(raw));
+            } else {
+              onChange(e.target.value);
+            }
+          }}
+        />
+      )}
     </FormBase>
   );
 };

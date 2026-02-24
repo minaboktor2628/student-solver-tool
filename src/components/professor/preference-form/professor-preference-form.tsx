@@ -12,7 +12,6 @@ import {
 } from "../../ui/card";
 
 import { Button } from "../../ui/button";
-import { CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SelectAssistantPref } from "./select-assistant-pref";
 import { SelectRequiredTimes } from "./select-required-times";
@@ -21,10 +20,12 @@ import type { Slot } from "@/lib/schedule-selector";
 import { Separator } from "@/components/ui/separator";
 import type { User } from "next-auth";
 import { useRouter } from "next/navigation";
+import type { Route } from "next";
 
 interface ProfessorPreferenceFormProps {
   userId: string;
   termId: string;
+  redirectOnComplete?: Route;
 }
 
 type SectionPrefs = {
@@ -44,9 +45,10 @@ const EMPTY_PREFS: SectionPrefs = {
 export default function ProfessorPreferenceForm({
   userId,
   termId,
+  redirectOnComplete,
 }: ProfessorPreferenceFormProps) {
   const router = useRouter();
-  const [{ sections, availableAssistants }] =
+  const [{ sections, availableAssistants, professor }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
       termId,
       professorId: userId,
@@ -87,7 +89,7 @@ export default function ProfessorPreferenceForm({
     api.professorForm.updateProfessorSectionsForTerm.useMutation({
       onSuccess: () => {
         toast.success("Form submitted successfully!");
-        router.push("/");
+        if (redirectOnComplete) router.push(redirectOnComplete);
       },
       onError: (err) => {
         console.error("Mutation failed:", err);
@@ -135,9 +137,14 @@ export default function ProfessorPreferenceForm({
   }
 
   return (
-    <div className="flex flex-col space-y-4 p-4">
+    <div className="flex flex-col space-y-4">
       <div className="flex flex-row content-center justify-between">
-        <h1 className="text-foreground text-3xl font-bold">Preference Form</h1>
+        <div>
+          <h1 className="text-foreground text-3xl font-bold">
+            Preference Form
+          </h1>
+          <p className="text-muted-foreground">{professor?.name}</p>
+        </div>
         <p className="text-muted-foreground">{sections.length} section(s)</p>
       </div>
       <div className="flex flex-col items-center justify-center">
@@ -168,7 +175,7 @@ export default function ProfessorPreferenceForm({
             }
 
             return (
-              <div key={section.sectionId} className="px-4 py-2">
+              <div key={section.sectionId} className="py-2">
                 <Card>
                   <CardHeader>
                     <CardTitle>
