@@ -8,11 +8,9 @@ import {
   Clock,
   AlertCircle,
   Plus,
-  Calendar,
 } from "lucide-react";
 import { api } from "@/trpc/react";
 import { Role } from "@prisma/client";
-import { toast } from "sonner";
 
 import {
   Card,
@@ -30,6 +28,13 @@ import { AssignmentTable } from "@/components/dashboard/assignment-table";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
 import { CopyButton } from "@/components/copy-button";
 import { PublishTermButton } from "@/components/dashboard/publish-term-button";
+import { RefetchButton } from "@/components/refetch-button";
+import {
+  Banner,
+  BannerAction,
+  BannerDescription,
+  BannerTitle,
+} from "@/components/banner";
 
 // Helper to format deadline info
 const formatDeadline = (date: Date) => {
@@ -53,28 +58,10 @@ export default function DashboardContent() {
   const [showAllProfessors, setShowAllProfessors] = useState(false);
   const INITIAL_DISPLAY_COUNT = 8;
 
-  const [{ staff, professors, staffingGap }] =
+  const [{ staff, professors, staffingGap }, dashboardDataApi] =
     api.dashboard.getDashboardData.useSuspenseQuery({
       termId: selectedTerm.id,
     });
-
-  const publishTermMutation = api.term.publishTerm.useMutation();
-
-  // Publish term
-  const publishTerm = async (termId: string) => {
-    try {
-      const response = await publishTermMutation.mutateAsync({ id: termId });
-      if (response.success) {
-        toast.success("Term published successfully!");
-        window.location.reload(); // Simple reload for now
-      } else {
-        toast.error("Failed to publish term");
-      }
-    } catch (err) {
-      console.error("Error publishing term:", err);
-      toast.error("Failed to publish term");
-    }
-  };
 
   const hasCompletedSubmissions =
     staff.submittedCount > 0 || professors.submittedCount > 0;
@@ -102,13 +89,13 @@ export default function DashboardContent() {
             </Label>
             <div className="flex items-center gap-2">
               <TermCombobox />
-              <PublishTermButton termId={selectedTerm.id} />
+              <RefetchButton query={dashboardDataApi} />
             </div>
           </div>
         </div>
       </div>
 
-      {selectedTerm.published && (
+      {selectedTerm.published ? (
         <Card className="mb-4">
           <CardHeader>
             <CardTitle>The selected term is published.</CardTitle>
@@ -121,6 +108,18 @@ export default function DashboardContent() {
             <AssignmentTable termId={selectedTerm.id} />
           </CardContent>
         </Card>
+      ) : (
+        <Banner className="mb-4">
+          <AlertCircle />
+          <BannerTitle>This term is not published.</BannerTitle>
+          <BannerDescription>
+            If you have done the assignments, professors and staff cannot yet
+            see them.
+          </BannerDescription>
+          <BannerAction>
+            <PublishTermButton termId={selectedTerm.id} />
+          </BannerAction>
+        </Banner>
       )}
 
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

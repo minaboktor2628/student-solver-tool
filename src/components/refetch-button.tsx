@@ -2,23 +2,29 @@
 import { RefreshCwIcon } from "lucide-react";
 import { Button, type ButtonProps } from "./ui/button";
 
-export function RefetchButton({
-  refetch,
-  isRefetching,
-  ...props
-}: {
+type Refetchable = {
   refetch: () => void;
   isRefetching: boolean;
+};
+
+export function RefetchButton({
+  query,
+  children,
+  ...props
+}: {
+  query: Refetchable;
 } & ButtonProps) {
+  const { refetch, isRefetching } = query;
+
   return (
     <Button
-      onClick={refetch}
+      onClick={() => refetch()}
       disabled={isRefetching}
       variant="outline"
-      size="sm"
       {...props}
     >
-      <RefreshCwIcon className={isRefetching ? "animate-spin" : ""} /> Re-fetch
+      <RefreshCwIcon className={isRefetching ? "animate-spin" : ""} />{" "}
+      {children ?? "Re-fetch"}
     </Button>
   );
 }

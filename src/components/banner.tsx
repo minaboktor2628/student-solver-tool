@@ -81,6 +81,7 @@ export const BannerTitle = AlertTitle;
 export const BannerDescription = AlertDescription;
 
 export type BannerCloseProps = Omit<ButtonProps, "variant" | "size">;
+export const BannerAction = AlertAction;
 
 /**
  * A close button that hooks into the nearest Banner.
