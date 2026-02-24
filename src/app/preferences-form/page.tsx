@@ -48,6 +48,8 @@ export default async function PreferencesFormPage(props: PageProps) {
     throw new Error("No active term. Please contact admin.");
   }
 
+  const user = await api.staff.getStaffById({ id: userId });
+
   const isFillingOnBehalf = session.user.id !== userId;
 
   return (
@@ -62,7 +64,10 @@ export default async function PreferencesFormPage(props: PageProps) {
           <BannerClose />
         </Banner>
       )}
-      <h1 className="mb-4 text-2xl font-bold">Preferences Form</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Preferences Form</h1>
+        <p className="text-muted-foreground">{user?.name}</p>
+      </div>
       <MultiStepFormModal
         userId={userId}
         termId={termId}

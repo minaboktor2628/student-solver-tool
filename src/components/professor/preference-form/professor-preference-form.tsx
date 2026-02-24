@@ -48,7 +48,7 @@ export default function ProfessorPreferenceForm({
   redirectOnComplete,
 }: ProfessorPreferenceFormProps) {
   const router = useRouter();
-  const [{ sections, availableAssistants }] =
+  const [{ sections, availableAssistants, professor }] =
     api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
       termId,
       professorId: userId,
@@ -139,7 +139,12 @@ export default function ProfessorPreferenceForm({
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex flex-row content-center justify-between">
-        <h1 className="text-foreground text-3xl font-bold">Preference Form</h1>
+        <div>
+          <h1 className="text-foreground text-3xl font-bold">
+            Preference Form
+          </h1>
+          <p className="text-muted-foreground">{professor?.name}</p>
+        </div>
         <p className="text-muted-foreground">{sections.length} section(s)</p>
       </div>
       <div className="flex flex-col items-center justify-center">
@@ -170,7 +175,7 @@ export default function ProfessorPreferenceForm({
             }
 
             return (
-              <div key={section.sectionId} className="px-4 py-2">
+              <div key={section.sectionId} className="py-2">
                 <Card>
                   <CardHeader>
                     <CardTitle>
