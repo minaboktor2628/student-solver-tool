@@ -48,10 +48,20 @@ export function normalize(str: string) {
 
 // take in something like professorId -> Professor Id
 export function humanizeKey(k: string) {
-  return k
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/_/g, " ")
-    .replace(/^./, (c) => c.toUpperCase());
+  return (
+    k
+      // Convert ALL CAPS words to lowercase first
+      .replace(/^[A-Z0-9_]+$/, (str) => str.toLowerCase())
+
+      // Add space between camelCase transitions
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+
+      // Replace underscores with spaces
+      .replace(/_/g, " ")
+
+      // Capitalize first letter of each word
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }
 
 // take in any value and turn it into a string

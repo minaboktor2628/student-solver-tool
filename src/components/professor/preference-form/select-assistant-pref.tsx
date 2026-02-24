@@ -93,7 +93,10 @@ export const SelectAssistantPref: React.FC<SelectAssistantPreferenceProps> = ({
                 </ComboboxChip>
               ))}
             </ComboboxValue>
-            <ComboboxChipsInput placeholder="Select staff..." />
+            <ComboboxChipsInput
+              className="text-base"
+              placeholder="Select staff..."
+            />
           </ComboboxChips>
           <ComboboxContent className="min-w-[250px]">
             <ComboboxEmpty>No staff found.</ComboboxEmpty>

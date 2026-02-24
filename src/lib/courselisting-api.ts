@@ -5,6 +5,7 @@ import {
 import { AcademicLevel, type TermLetter } from "@prisma/client";
 import { calculateRequiredAssistantHours } from "./utils";
 import z from "zod";
+import { unknownProfessorName } from "./constants";
 
 export const SectionItemSchema = z.object({
   academicLevel: z.nativeEnum(AcademicLevel),
@@ -136,7 +137,8 @@ function mapCourses(data: ReportEntryRow[]): SectionItem[] {
       courseSection,
       meetingPattern,
       description,
-      professorName: professorName === "" ? ("TBD" as const) : professorName,
+      professorName:
+        professorName === "" ? unknownProfessorName : professorName,
       enrollment,
       capacity,
       requiredHours,

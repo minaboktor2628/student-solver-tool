@@ -3,36 +3,13 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Lock, Unlock, Settings2Icon } from "lucide-react";
-import { type Role } from "@prisma/client";
-import { MoreHorizontal } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { isAssistant, isProfessor } from "@/lib/utils";
-import ProfessorPreferenceForm from "@/components/professor/preference-form/professor-preference-form";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { GlobalSuspense } from "@/components/global-suspense";
-import MultiStepFormModal from "@/components/staff/MultiStepForm/multi-step-form-modal";
-import type { User as NextUser } from "next-auth";
-import { CopyButton } from "@/components/copy-button";
+import { Lock, Unlock, CheckIcon, XIcon } from "lucide-react";
+import type { Role } from "@prisma/client";
 
-export type User = NextUser & {
-  locked: boolean; // Computed from staffPreferences.canEdit
-  hasPreference: boolean; // Computed from staffPreferences existence
-};
+import { CopyButton } from "@/components/copy-button";
+import { DataTableColumnHeader } from "@/components/data-table";
+import type { UserTableRow } from "./manage-users-content";
+import { UserTableRowAction } from "./user-table-row-actions";
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
@@ -46,22 +23,34 @@ const getRoleBadgeClass = (role: Role): string => {
   return ROLE_COLORS[role];
 };
 
+// TODO: add locked pref col, has pref cols
+
 export const createColumns = (
-  onEdit: (user: User) => void,
-  onDelete: (user: User) => void,
-  onToggleLock: (user: User) => void,
   activeTermId: string,
-): ColumnDef<User>[] => [
+): ColumnDef<UserTableRow>[] => [
   {
     accessorKey: "name",
-    header: "Name",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
+    ),
     cell: ({ row }) => {
       return <div className="font-medium">{row.original.name}</div>;
+    },
+    filterFn: (row, _, filterValue) => {
+      const term = String(filterValue ?? "").toLowerCase();
+      if (!term) return true;
+
+      const name = (row.getValue<string>("name") ?? "").toLowerCase();
+      const email = (row.getValue<string>("email") ?? "").toLowerCase();
+
+      return name.includes(term) || email.includes(term);
     },
   },
   {
     accessorKey: "email",
-    header: "Email",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Email" />
+    ),
     cell: ({ row }) => {
       const email = row.original.email ?? "";
       const name = row.original.name ?? "";
@@ -71,7 +60,7 @@ export const createColumns = (
           <Button
             asChild
             variant="link"
-            className="text-primary-foreground p-0"
+            className="text-foreground p-0"
             title={`Send email to ${name}`}
           >
             <a href={`mailto:${email}`}>{email}</a>
@@ -99,28 +88,45 @@ export const createColumns = (
         </div>
       );
     },
-    filterFn: (row, value: string) => {
-      const roles = row.original.roles ?? [];
-      return roles.some((role) =>
-        role.toLowerCase().includes(value.toLowerCase()),
+    filterFn: "arrIncludesSome",
+  },
+  {
+    accessorKey: "hasPreference",
+    header: "Preference form status",
+    filterFn: (row, columnId, filterValue) => {
+      const selected = filterValue as string[] | undefined;
+      if (!selected || selected.length === 0) return true;
+
+      const value = row.getValue<boolean>(columnId);
+      const valueAsString = value ? "true" : "false";
+      return selected.includes(valueAsString);
+    },
+    cell: ({ row }) => {
+      const hasPreference = row.original.hasPreference;
+
+      return (
+        <Badge
+          variant={hasPreference ? "success" : "destructive"}
+          className="text-xs"
+        >
+          {hasPreference ? (
+            <>
+              <CheckIcon /> Submitted
+            </>
+          ) : (
+            <>
+              <XIcon /> Not submitted
+            </>
+          )}
+        </Badge>
       );
     },
   },
   {
     accessorKey: "locked",
-    header: "Status",
+    header: "Preference form access",
     cell: ({ row }) => {
       const locked = row.original.locked;
-      const hasPreference = row.original.hasPreference;
-
-      // TODO: does it matter that they have no preferences?
-      if (!hasPreference) {
-        return (
-          <Badge variant="outline" className="text-xs">
-            No Preference
-          </Badge>
-        );
-      }
 
       return (
         <Badge variant={locked ? "destructive" : "success"} className="text-xs">
@@ -136,101 +142,20 @@ export const createColumns = (
         </Badge>
       );
     },
+    filterFn: (row, columnId, filterValue) => {
+      const selected = filterValue as string[] | undefined;
+      if (!selected || selected.length === 0) return true;
+
+      const value = row.getValue<boolean>(columnId);
+      const valueAsString = value ? "true" : "false";
+      return selected.includes(valueAsString);
+    },
   },
   {
     id: "actions",
-    header: () => <p className="text-right">Actions</p>,
-    cell: ({ row }) => {
-      const user = row.original;
-
-      return (
-        <div className="flex justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {isProfessor(user) && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Settings2Icon className="size-4" /> Edit prof preferences
-                    </DropdownMenuItem>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-6xl">
-                    <DialogHeader>
-                      <DialogTitle>Edit preferences as {user.name}</DialogTitle>
-                      {/* TODO: fix this bruh. i have spent too long trying to, so f it man*/}
-                      <DialogDescription>
-                        Due to a bug, you will have to search the comboboxes in
-                        this view and using your arrow and enter keys instead of
-                        clicking through the list.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <GlobalSuspense>
-                      <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
-                        <ProfessorPreferenceForm
-                          userId={user.id}
-                          termId={activeTermId}
-                        />
-                      </div>
-                    </GlobalSuspense>
-                  </DialogContent>
-                </Dialog>
-              )}
-              {isAssistant(user) && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Settings2Icon className="size-4" /> Edit staff
-                      preferences
-                    </DropdownMenuItem>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-6xl">
-                    <DialogHeader>
-                      <DialogTitle>Edit preferences as {user.name}</DialogTitle>
-                    </DialogHeader>
-                    <GlobalSuspense>
-                      <div className="no-scrollbar -mx-4 max-h-[70vh] overflow-y-auto px-4">
-                        <MultiStepFormModal
-                          userId={user.id}
-                          termId={activeTermId}
-                          inline
-                        />
-                      </div>
-                    </GlobalSuspense>
-                  </DialogContent>
-                </Dialog>
-              )}
-              <DropdownMenuItem onClick={() => onToggleLock(user)}>
-                {user.locked ? (
-                  <>
-                    <Unlock className="h-4 w-4" /> Unlock preferences
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4" /> Lock preferences
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(user)}>
-                <Edit className="h-4 w-4" /> Edit user
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => onDelete(user)}
-              >
-                <Trash2 className="h-4 w-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    },
+    meta: { export: false },
+    cell: ({ row }) => (
+      <UserTableRowAction termId={activeTermId} user={row.original} />
+    ),
   },
 ];
