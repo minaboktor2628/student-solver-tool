@@ -24,6 +24,7 @@ import {
   DrawerDescription,
   DrawerClose,
 } from "@/components/ui/drawer";
+import { InfoIcon } from "lucide-react";
 
 type TokenType = "prefer" | "strong";
 
@@ -254,7 +255,7 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
             >
               <div className="rounded-md p-4">
                 <div className="flex items-center gap-2 text-lg font-medium">
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isMobile) {
@@ -263,10 +264,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
                         toggleDescription(course.code);
                       }
                     }}
-                    className="hover:bg-secondary inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border text-xs"
+                    variant="ghost"
+                    size="icon"
                   >
-                    i
-                  </button>
+                    <InfoIcon className="size-5"></InfoIcon>
+                  </Button>
                   <div>
                     {course.code} - {course.title}
                   </div>
@@ -370,7 +372,11 @@ const FormEntryPreferences: React.FC<CoursePreferencesProps> = ({
             <DrawerTitle>
               {drawerCourse?.code} - {drawerCourse?.title}
             </DrawerTitle>
-            <DrawerDescription>{drawerCourse?.description}</DrawerDescription>
+            <DrawerDescription
+              dangerouslySetInnerHTML={{
+                __html: drawerCourse?.description ?? "",
+              }}
+            ></DrawerDescription>
           </DrawerHeader>
           <div className="flex justify-center p-4">
             <DrawerClose asChild>

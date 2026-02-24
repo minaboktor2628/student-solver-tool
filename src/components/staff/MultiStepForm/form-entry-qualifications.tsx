@@ -14,6 +14,7 @@ import {
   DrawerDescription,
   DrawerClose,
 } from "@/components/ui/drawer";
+import { InfoIcon } from "lucide-react";
 
 export type Section = {
   term: string;
@@ -170,7 +171,7 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                 className="hover:bg-input flex w-full items-center justify-between gap-3 gap-4 rounded-md p-4 text-left"
               >
                 <div className="flex flex-1 items-center gap-2">
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isMobile) {
@@ -179,10 +180,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
                         toggleDescription(course.code);
                       }
                     }}
-                    className="hover:bg-secondary inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border text-base sm:h-5 sm:w-5 sm:text-xs"
+                    variant="ghost"
+                    size="icon"
                   >
-                    i
-                  </button>
+                    <InfoIcon className="size-5"></InfoIcon>
+                  </Button>
                   <div className="text-base font-medium sm:text-lg">
                     {course.code} - {course.title}
                   </div>
@@ -266,7 +268,11 @@ const FormEntryQualifications: React.FC<FormEntryQualificationsProps> = ({
             <DrawerTitle>
               {drawerCourse?.code} - {drawerCourse?.title}
             </DrawerTitle>
-            <DrawerDescription>{drawerCourse?.description}</DrawerDescription>
+            <DrawerDescription
+              dangerouslySetInnerHTML={{
+                __html: drawerCourse?.description ?? "",
+              }}
+            ></DrawerDescription>
           </DrawerHeader>
           <div className="flex justify-center p-4">
             <DrawerClose asChild>
