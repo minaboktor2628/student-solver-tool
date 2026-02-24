@@ -22,6 +22,7 @@ import { AleadyAssignedAlert } from "@/components/solver/already-assigned-alert"
 import { toast } from "sonner";
 import { useTerm } from "@/components/term-combobox";
 import { SolverPageHeader } from "@/components/solver/page-header";
+import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
 
 type PendingAssign = {
   toSectionId: string;
@@ -44,7 +45,7 @@ export default function SolverPage() {
     string | undefined
   >();
 
-  if (!termId) throw new Error("Term id is invalid.");
+  if (!termId) return <NoTermsAlert />;
   const [{ courses }] = api.courses.getAllCoursesForTerm.useSuspenseQuery({
     termId,
   });

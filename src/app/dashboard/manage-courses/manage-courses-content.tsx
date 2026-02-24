@@ -18,11 +18,12 @@ import { TermCombobox, useTerm } from "@/components/term-combobox";
 import { SyncSectionsForm } from "@/components/dashboard/sync-sections-form";
 import { AcademicLevel } from "@prisma/client";
 import { humanizeKey } from "@/lib/utils";
+import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
 
 export default function ManageCoursesContent() {
   const { selectedTerm } = useTerm();
 
-  if (!selectedTerm) throw new Error("No selected term!");
+  if (!selectedTerm) return <NoTermsAlert />;
 
   const [{ courses }, courseApi] = api.courses.getAllCourses.useSuspenseQuery({
     termId: selectedTerm?.id,

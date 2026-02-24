@@ -28,6 +28,7 @@ import {
 } from "@/components/banner";
 import { ExpandableList } from "@/components/expandable-list";
 import { EmailUsers } from "@/components/email-users";
+import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
 
 // Helper to format deadline info
 const formatDeadline = (date: Date) => {
@@ -45,8 +46,9 @@ const formatDeadline = (date: Date) => {
 export default function DashboardContent() {
   const { selectedTerm } = useTerm();
 
-  // TODO: return something better
-  if (!selectedTerm) throw new Error("No selected term");
+  if (!selectedTerm) {
+    return <NoTermsAlert />;
+  }
 
   const [{ staff, professors, staffingGap }, dashboardDataApi] =
     api.dashboard.getDashboardData.useSuspenseQuery({
