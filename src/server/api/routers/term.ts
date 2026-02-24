@@ -19,11 +19,13 @@ export const termRoute = createTRPCRouter({
     const all = await ctx.db.term.findMany({
       orderBy: [{ year: "desc" }, { termLetter: "desc" }],
       select: {
+        id: true,
         active: true,
         year: true,
         termLetter: true,
-        id: true,
         published: true,
+        termProfessorDueDate: true,
+        termStaffDueDate: true,
       },
     });
 
@@ -44,11 +46,13 @@ export const termRoute = createTRPCRouter({
     return ctx.db.term.findFirst({
       where: { active: true },
       select: {
+        id: true,
         active: true,
         year: true,
         termLetter: true,
-        id: true,
         published: true,
+        termProfessorDueDate: true,
+        termStaffDueDate: true,
       },
     });
   }),
@@ -163,21 +167,15 @@ export const termRoute = createTRPCRouter({
   publishTerm: coordinatorProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input: { id }, ctx }) => {
-      await ctx.db.term.updateMany({
-        where: { active: true },
-        data: { active: false },
-      });
+      const term = await ctx.db.term.findUnique({ where: { id } });
+      if (!term) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Term not found" });
+      }
 
-      const updatedTerm = await ctx.db.term.update({
+      return ctx.db.term.update({
         where: { id },
-        data: { active: true },
+        data: { published: true },
       });
-
-      return {
-        success: true,
-        termId: updatedTerm.id,
-        message: "Term published successfully",
-      };
     }),
 
   syncUsersToTerm: coordinatorProcedure
