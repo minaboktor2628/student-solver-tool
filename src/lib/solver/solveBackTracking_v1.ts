@@ -1,55 +1,19 @@
-import type { CtxType } from "@/server/api/trpc";
-import type { Section, SectionAssignment } from "@prisma/client";
-import type { IframeHTMLAttributes } from "react";
+import type { Section } from "@prisma/client";
 import {
   defaultMarginOfErrorShortAllocationHours,
   defaultMarginOfErrorOverAllocationHours,
-} from "./constants";
-
-export const solverStrategies = ["greedy", "backTracking"] as const;
-export type SolverStrategy = (typeof solverStrategies)[number];
-
-export const solverStrategyMap: Record<
-  SolverStrategy,
-  {
-    label: string;
-    description: string;
-    fn: (data: SolverData) => Map<string, string[]>;
-  }
-> = {
-  greedy: {
-    label: "Greedy",
-    description: "Simple and fast i guess",
-    fn: solveGreedy,
-  },
-  backTracking: {
-    label: "BTS v1",
-    description: "Takes only qualifications into account",
-    fn: solveBackTracking_v1,
-  },
-} as const;
-
-export function solveAssignments(
-  strategy: SolverStrategy,
-  solverData: SolverData,
-): Map<string, string[]> {
-  return solverStrategyMap[strategy].fn(solverData);
-}
-
-function solveGreedy({
-  staffPreferences,
-  sections,
-}: SolverData): Map<string, string[]> {
-  // TODO:
-  return new Map();
-}
+} from "../constants";
+import type { SolverData } from ".";
 
 // basic backtracking search
 // TODO: no partial solution
 // TODO: no student preference consideration
 // TODO: no professor preference consideration
 // TODO: no hours covered consideration
-function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
+export function solveBackTracking_v1({
+  staffPreferences,
+  sections,
+}: SolverData) {
   // returns user ids for all available staff for given section
   function availableStaff(section: Section): string[] {
     const sectionId = section.id;
@@ -234,7 +198,6 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
   //      if good: next valid solution for section i+2
   //      if bad: next valid solution for section i
   //    if bad: return error
-
   const solution = new Map<string, string[]>();
   const sectionIndices = new Map<string, number>();
 
@@ -254,52 +217,4 @@ function solveBackTracking_v1({ staffPreferences, sections }: SolverData) {
     // console.log("No solution found!");
     return new Map();
   }
-}
-
-// the data we feed the solver function
-export type SolverData = Awaited<ReturnType<typeof getSolverData>>;
-
-export async function getSolverData(ctx: CtxType, termId: string) {
-  const [sections, staffPreferences] = await Promise.all([
-    ctx.db.section.findMany({
-      where: { termId },
-      include: {
-        assignments: true,
-        preferredPreferences: true,
-        professor: true,
-        professorPreference: true,
-        qualifiedPreferences: true,
-      },
-    }),
-    ctx.db.staffPreference.findMany({
-      where: {
-        termId,
-        user: {
-          // ignore staff who said they are not available this term/semester
-          staffPreferences: {
-            none: {
-              isAvailableForTerm: false,
-            },
-          },
-          // Only return users who are NOT locked to a section already this term
-          sectionAssignments: {
-            none: {
-              locked: true,
-              section: {
-                termId,
-              },
-            },
-          },
-        },
-      },
-      include: {
-        preferredSections: true,
-        qualifiedForSections: true,
-        timesAvailable: true,
-        user: true,
-      },
-    }),
-  ]);
-
-  return { sections, staffPreferences };
 }
