@@ -43,9 +43,14 @@ export async function getSolverData(ctx: CtxType, termId: string) {
       include: {
         assignments: true,
         preferredPreferences: true,
-        professor: true,
-        professorPreference: true,
         qualifiedPreferences: true,
+        professor: true,
+        professorPreference: {
+          select: {
+            avoidedStaff: { select: { staff: true } },
+            preferredStaff: { select: { staff: true } },
+          },
+        },
       },
     }),
     ctx.db.staffPreference.findMany({
