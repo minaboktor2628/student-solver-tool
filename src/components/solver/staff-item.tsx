@@ -9,6 +9,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { BaseScheduleSelector, slotToDate } from "@/lib/schedule-selector";
+import { humanizeKey } from "@/lib/utils";
 export type StaffItemProps =
   RouterOutputs["staff"]["getStaffForSection"]["staff"][0] & {
     children?: React.ReactNode;
@@ -75,12 +76,21 @@ export function StaffItem({
             <div>
               <p className="font-medium">Preferred Sections:</p>
               <ol className="mx-4 list-disc">
-                {preferredSections.map((s) => (
-                  <li key={s.section.id}>
-                    {s.section.courseCode} - {s.section.courseSection}{" "}
-                    <span className="text-sm font-medium">({s.rank})</span>
-                  </li>
-                ))}
+                {[...preferredSections] // copy it since sorting sorts in place
+                  .sort((a, b) => {
+                    if (a.rank === b.rank) return 0;
+                    if (a.rank === "STRONGLY_PREFER") return -1;
+                    else if (a.rank === "PREFER") return 1;
+                    else return 0; // should never happen
+                  })
+                  .map((s) => (
+                    <li key={s.section.id}>
+                      {s.section.courseCode}-{s.section.courseSection}{" "}
+                      <span className="text-sm font-medium">
+                        ({humanizeKey(s.rank)})
+                      </span>
+                    </li>
+                  ))}
               </ol>
             </div>
           )}
@@ -97,10 +107,8 @@ export function StaffItem({
 
         <div className="w-1/2 font-medium">
           Times Available:
-          <div className="rounded-md border p-2">
-            <BaseScheduleSelector
-              selection={timesAvailable.map((d) => slotToDate(d))}
-            />
+          <div className="pointer-events-none rounded-md border p-2">
+            <BaseScheduleSelector selection={timesAvailable.map(slotToDate)} />
           </div>
         </div>
       </HoverCardContent>
