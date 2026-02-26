@@ -10,6 +10,18 @@ import { CopyButton } from "@/components/copy-button";
 import { DataTableColumnHeader } from "@/components/data-table";
 import type { UserTableRow } from "./manage-users-content";
 import { UserTableRowAction } from "./user-table-row-actions";
+import { isProfessor, isAssistant } from "@/lib/utils";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { api } from "@/trpc/react";
+import StaffAssignment from "@/components/staff/staff-assignment-card";
+import { unknownProfessorName } from "@/lib/constants";
+import { GlobalSuspense } from "@/components/global-suspense";
+import StaffDashboardFormSumary from "@/components/staff/staff-dashboard-form-summary";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
@@ -103,22 +115,44 @@ export const createColumns = (
     },
     cell: ({ row }) => {
       const hasPreference = row.original.hasPreference;
+      const isProf = isProfessor(row.original);
+      const isStaff = isAssistant(row.original);
 
       return (
-        <Badge
-          variant={hasPreference ? "success" : "destructive"}
-          className="text-xs"
-        >
-          {hasPreference ? (
-            <>
-              <CheckIcon /> Submitted
-            </>
-          ) : (
-            <>
-              <XIcon /> Not submitted
-            </>
-          )}
-        </Badge>
+        <HoverCard>
+          <HoverCardTrigger>
+            <Badge
+              variant={hasPreference ? "success" : "destructive"}
+              className="text-xs hover:underline"
+            >
+              {hasPreference ? (
+                <>
+                  <CheckIcon /> Submitted
+                </>
+              ) : (
+                <>
+                  <XIcon /> Not submitted
+                </>
+              )}
+            </Badge>
+          </HoverCardTrigger>
+          <HoverCardContent className="max-h-[45vh] w-xl overflow-y-auto p-4">
+            {!hasPreference ? (
+              <p>
+                Not submitted yet. You can manually edit their preferences by
+                clicking the &quot;...&quot; button. After their preferences are
+                filled out, you will see them here.
+              </p>
+            ) : isStaff ? (
+              <GlobalSuspense>
+                <StaffDashboardFormSumary
+                  userId={row.original.id}
+                  termId={activeTermId}
+                />
+              </GlobalSuspense>
+            ) : null}
+          </HoverCardContent>
+        </HoverCard>
       );
     },
   },
