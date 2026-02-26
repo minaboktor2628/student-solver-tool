@@ -4,7 +4,11 @@ import { getToken } from "next-auth/jwt";
 import { env } from "./env";
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: env.AUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: env.AUTH_SECRET,
+    secureCookie: req.nextUrl.protocol === "https:",
+  });
 
   const { origin, href } = req.nextUrl;
 

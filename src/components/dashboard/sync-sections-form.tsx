@@ -67,7 +67,7 @@ function getAddSectionsApi() {
         toast.warning(
           `Warning. There were ${unresolvedProfessorNames.length} unresolved professor names.`,
           {
-            description: `Still added ${count} sections. Unresolfed professor names: ${unresolvedProfessorNames.join(", ")}`,
+            description: `Still added ${count} sections. Unresolved professor names: ${unresolvedProfessorNames.join(", ")}`,
           },
         );
         return;

@@ -1,10 +1,9 @@
 "use client";
-// TODO: Clean up this component.
 
 import { Role } from "@prisma/client";
 import { api, type RouterOutputs } from "@/trpc/react";
 import { toast } from "sonner";
-import { RefreshCw, Lock, Unlock, RefreshCwIcon } from "lucide-react";
+import { RefreshCw, Lock, Unlock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table";
@@ -21,6 +20,8 @@ import { createColumns } from "./columns";
 import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-users-form";
 import { humanizeKey } from "@/lib/utils";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
+import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
+import { RefetchButton } from "@/components/refetch-button";
 
 export type UserTableRow =
   RouterOutputs["staff"]["getAllUsers"]["users"][number];
@@ -28,7 +29,7 @@ export type UserTableRow =
 export default function ManageUsersContent() {
   const { selectedTerm } = useTerm();
 
-  if (!selectedTerm) throw new Error("No selected term!");
+  if (!selectedTerm) return <NoTermsAlert />;
 
   const utils = api.useUtils();
   const [{ users }, usersApi] = api.staff.getAllUsers.useSuspenseQuery({
@@ -89,17 +90,7 @@ export default function ManageUsersContent() {
             preference forms for individuals here.
           </CardDescription>
           <CardAction>
-            <Button
-              onClick={() => usersApi.refetch()}
-              disabled={usersApi.isRefetching}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCwIcon
-                className={usersApi.isRefetching ? "animate-spin" : ""}
-              />{" "}
-              Re-fetch
-            </Button>
+            <RefetchButton query={usersApi} />
           </CardAction>
         </CardHeader>
         <CardContent>

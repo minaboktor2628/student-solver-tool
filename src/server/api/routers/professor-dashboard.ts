@@ -28,21 +28,34 @@ export const professorDashboardRoute = createTRPCRouter({
       ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-      const professor = await ctx.db.user.findUnique({
-        where: {
-          id: input.professorId,
-        },
-      });
 
-      const term = await ctx.db.term.findUnique({
-        where: {
-          id: input.termId,
-        },
-      });
+      const [professor, term, hasSubmittedPreferences] = await Promise.all([
+        ctx.db.user.findUnique({
+          where: { id: input.professorId },
+        }),
+        ctx.db.term.findUnique({
+          where: { id: input.termId },
+        }),
+        ctx.db.section
+          .findFirst({
+            where: {
+              termId: input.termId,
+              professorId: input.professorId,
+              professorPreference: {
+                isNot: null,
+              },
+            },
+            select: { id: true },
+          })
+          .then((section) => !!section),
+      ]);
 
       return {
         info: {
-          professor: professor?.name,
+          professor: {
+            name: professor?.name,
+            hasSubmitted: hasSubmittedPreferences,
+          },
           term: {
             termLetter: term?.termLetter,
             termYear: term?.year,
@@ -141,6 +154,9 @@ export const professorDashboardRoute = createTRPCRouter({
       const sections = await ctx.db.section.findMany({
         where: {
           professorId: input.professorId,
+          term: {
+            published: true,
+          },
         },
         include: {
           term: {

@@ -66,7 +66,9 @@ export default async function PreferencesFormPage(props: PageProps) {
       )}
       <div>
         <h1 className="text-2xl font-bold">Preferences Form</h1>
-        <p className="text-muted-foreground">{user?.name}</p>
+        <p className="text-muted-foreground">
+          {user?.name?.split(", ").reverse().join(" ")}
+        </p>
       </div>
       <MultiStepFormModal
         userId={userId}

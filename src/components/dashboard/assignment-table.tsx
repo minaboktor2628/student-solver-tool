@@ -37,13 +37,15 @@ export function AssignmentTable({ termId }: { termId: string }) {
           cell: ({ row }) => row.original.academicLevel,
         },
         {
-          accessorKey: "plas",
+          id: "plas",
           header: "PLA's",
+          accessorFn: (row) => row.plas.join("; "),
           cell: ({ row }) => row.original.plas.join("; "),
         },
         {
-          accessorKey: "tas",
+          id: "tas",
           header: "TA's",
+          accessorFn: (row) => row.tas.join("; "),
           cell: ({ row }) => row.original.tas.join("; "),
         },
       ]}

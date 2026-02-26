@@ -97,11 +97,10 @@ export function TermProvider({
   const all = useMemo(() => rawAll ?? EMPTY_TERMS, [rawAll]);
   const active = useMemo(() => rawActive ?? NO_ACTIVE, [rawActive]);
 
-  // Keep the selected item in session storage so it survives page refreshes
-  // Defaults to the current active term in the database.
+  // Default selectedId = active term id, or first term id, or null
   const [selectedId, setSelectedId] = useSessionStorage<string | null>(
     "sts:selectedTermId",
-    active?.id ?? null,
+    active?.id ?? all[0]?.id ?? null,
   );
 
   const selectedTerm = useMemo(
