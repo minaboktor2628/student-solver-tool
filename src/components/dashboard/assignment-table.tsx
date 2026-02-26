@@ -17,7 +17,11 @@ export function AssignmentTable({ termId }: { termId: string }) {
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title="Title" />
           ),
-          cell: ({ row }) => row.original.title,
+          cell: ({ row }) => (
+            <p title={row.original.title} className="max-w-[24rem] truncate">
+              {row.original.title}
+            </p>
+          ),
         },
         {
           accessorKey: "professor",
@@ -40,13 +44,27 @@ export function AssignmentTable({ termId }: { termId: string }) {
           id: "plas",
           header: "PLA's",
           accessorFn: (row) => row.plas.join("; "),
-          cell: ({ row }) => row.original.plas.join("; "),
+          cell: ({ row }) => {
+            const content = row.original.plas.join("; ");
+            return (
+              <p title={content} className="max-w-[12rem] truncate">
+                {content}
+              </p>
+            );
+          },
         },
         {
           id: "tas",
           header: "TA's",
           accessorFn: (row) => row.tas.join("; "),
-          cell: ({ row }) => row.original.tas.join("; "),
+          cell: ({ row }) => {
+            const content = row.original.tas.join("; ");
+            return (
+              <p title={content} className="max-w-[12rem] truncate">
+                {content}
+              </p>
+            );
+          },
         },
       ]}
     />
