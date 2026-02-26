@@ -12,12 +12,6 @@ interface ProfessorHomePageProps {
 }
 
 function ProfessorHomePage({ professorId, termId }: ProfessorHomePageProps) {
-  const [{ sections }] =
-    api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
-      professorId,
-      termId,
-    });
-
   const [{ canEdit }] = api.professorForm.getCanEdit.useSuspenseQuery({
     userId: professorId,
   });
@@ -33,10 +27,10 @@ function ProfessorHomePage({ professorId, termId }: ProfessorHomePageProps) {
       termId,
     });
 
-  const username = info.professor;
+  const username = info.professor.name;
   const deadlineDate = info.term.termProfDueDate;
   if (!deadlineDate) throw new Error("Deadline Date Invalid");
-  const isSubmitted = sections.some((section) => section.professorPreference);
+  const isSubmitted = info.professor.hasSubmitted;
   const isPublished = info.term.isPublished;
 
   return (
@@ -53,7 +47,11 @@ function ProfessorHomePage({ professorId, termId }: ProfessorHomePageProps) {
         /* can edit */
         <div>
           <DeadlineCard deadlineDate={deadlineDate} isSubmitted={isSubmitted} />
-          <CoursesCard sections={sections} isSubmitted={isSubmitted} />
+          <CoursesCard
+            isSubmitted={isSubmitted}
+            professorId={professorId}
+            termId={termId}
+          />
         </div>
       ) : (
         /* can't edit */

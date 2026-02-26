@@ -23,6 +23,7 @@ import {
   dateToSlot,
   stylesByStatus,
   BaseScheduleSelector,
+  slotToKey,
 } from "@/lib/schedule-selector";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +37,8 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
   const needed = professor.timesRequired ?? [];
   const assigned = staff.flatMap((s) => s.timesAvailable) ?? [];
 
-  const neededKeys = new Set(needed.map((s) => `${s.day}:${s.hour}`));
-  const assignedKeys = new Set(assigned.map((s) => `${s.day}:${s.hour}`));
+  const neededKeys = new Set(needed.map(slotToKey));
+  const assignedKeys = new Set(assigned.map(slotToKey));
 
   const selection = dedupe([...needed, ...assigned]).map(slotToDate);
   const { percent, totalCovered, totalNeeded } = calculateCoverage(
@@ -80,7 +81,48 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-1">
             <div className="flex flex-col space-y-1 overflow-x-auto rounded-md border p-2">
-              <BaseScheduleSelector selection={selection} />
+              <BaseScheduleSelector
+                selection={selection}
+                renderDateCell={(time, _selected, setEl) => {
+                  const ref: React.Ref<HTMLDivElement> = (node) => {
+                    if (node) setEl(node);
+                  };
+
+                  const slot = dateToSlot(time);
+                  if (!slot) return <div ref={ref} className="h-4" />;
+
+                  const key = slotToKey(slot);
+                  const isNeeded = neededKeys.has(key);
+                  const isAssigned = assignedKeys.has(key);
+
+                  let status: keyof typeof stylesByStatus = "not-needed";
+
+                  if (isNeeded && isAssigned) {
+                    status = "needed-assigned";
+                  } else if (isNeeded && !isAssigned) {
+                    status = "needed-unassigned";
+                  } else if (!isNeeded && isAssigned) {
+                    status = "not-needed-assigned";
+                  } else {
+                    status = "not-needed";
+                  }
+
+                  const { cls, title } = stylesByStatus[status];
+
+                  return (
+                    <div
+                      ref={ref}
+                      role="gridcell"
+                      title={title}
+                      className={cn(
+                        "h-4 rounded-sm",
+                        "focus-visible:ring-ring/60 pointer-events-none focus-visible:ring-2 focus-visible:outline-none",
+                        cls,
+                      )}
+                    />
+                  );
+                }}
+              />{" "}
               <section>
                 <div className="text-muted-foreground">
                   Coverage: <strong>{percent}%</strong> ({totalCovered}/

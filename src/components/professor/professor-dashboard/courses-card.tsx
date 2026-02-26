@@ -8,16 +8,24 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { BaseScheduleSelector, slotToDate } from "@/lib/schedule-selector";
-import type { RouterOutputs } from "@/trpc/react";
+import { api } from "@/trpc/react";
 
 type CoursesCardProps = {
-  sections: RouterOutputs["professorForm"]["getProfessorSectionsForTerm"]["sections"];
   isSubmitted: boolean;
+  professorId: string;
+  termId: string;
 };
 export const CoursesCard: React.FC<CoursesCardProps> = ({
-  sections,
   isSubmitted,
+  termId,
+  professorId,
 }) => {
+  const [{ sections }] =
+    api.professorForm.getProfessorSectionsForTerm.useSuspenseQuery({
+      professorId,
+      termId,
+    });
+
   return (
     <Card>
       <CardHeader>
