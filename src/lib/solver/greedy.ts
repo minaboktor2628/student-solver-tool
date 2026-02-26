@@ -19,6 +19,34 @@ export function greedy({
   const sectionCurrentHours = new Map<string, number>(); // sectionId -> help hours assigned
   const staffAssignedSection = new Set<string>(); // staffId -> sectionId (staff can only be assigned to one section)
 
+  // Professor prefers these staff for each section
+  const profPreferredBySection = new Map<string, Set<string>>(); // sectionId -> Set<staffId>
+
+  for (const section of sections) {
+    const preferredStaff =
+      section.professorPreference?.preferredStaff?.map((p) => p.staff.id) ?? [];
+    profPreferredBySection.set(section.id, new Set(preferredStaff));
+  }
+
+  // Staff prefer these sections (with a score based on rank)
+  const staffPreferredSectionScore = new Map<string, Map<string, number>>(); // staffId -> (sectionId -> score)
+
+  for (const sp of staffPreferences) {
+    const staffId = sp.user.id;
+    const sectionScoreMap =
+      staffPreferredSectionScore.get(staffId) ?? new Map<string, number>();
+
+    for (const pref of sp.preferredSections) {
+      // Rank-based scoring: strongly pref > pref
+      const baseScore =
+        pref.rank === "STRONGLY_PREFER" ? 2 : pref.rank === "PREFER" ? 1 : 0;
+
+      sectionScoreMap.set(pref.sectionId, baseScore);
+    }
+
+    staffPreferredSectionScore.set(staffId, sectionScoreMap);
+  }
+
   for (const section of sections) {
     // get all the people that the coordinator manually locked.
     // we do not want the solver to override the locked sections.
@@ -65,8 +93,38 @@ export function greedy({
       (s) => !staffAssignedSection.has(s) && !sectionAssignments.includes(s),
     );
 
-    // TODO: would prob want to sort them here by prof prefs
-    // ...
+    // sorting by prof and assistant prefs
+    const profPreferredSet =
+      profPreferredBySection.get(sectionId) ?? new Set<string>();
+
+    function getStaffPrefScore(staffId: string, sectionId: string): number {
+      const sectionScoreMap = staffPreferredSectionScore.get(staffId);
+      if (!sectionScoreMap) return 0;
+      return sectionScoreMap.get(sectionId) ?? 0;
+    }
+
+    filteredStaff.sort((a, b) => {
+      // professor preference
+      const aProf = profPreferredSet.has(a) ? 1 : 0;
+      const bProf = profPreferredSet.has(b) ? 1 : 0;
+      if (aProf !== bProf) {
+        // preferred staff first
+        return bProf - aProf;
+      }
+
+      // staff's own preference for this section
+      const aStaffScore = getStaffPrefScore(a, sectionId);
+      const bStaffScore = getStaffPrefScore(b, sectionId);
+      if (aStaffScore !== bStaffScore) {
+        // higher score (STRONGLY_PREFER) first
+        return bStaffScore - aStaffScore;
+      }
+
+      // tie-breaker: less hours available first
+      const aHours = staffToHours.get(a) ?? 0;
+      const bHours = staffToHours.get(b) ?? 0;
+      return aHours - bHours;
+    });
 
     for (const staffId of filteredStaff) {
       if (sectionAssignments.includes(staffId)) continue;
