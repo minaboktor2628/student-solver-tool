@@ -1,5 +1,8 @@
 import type { SolverAssignments, SolverData } from ".";
 
+const PROF_PREFERENCE_WEIGHT = 3; // how strong prof pref is
+const STAFF_PREFERENCE_WEIGHT = 1; // how strong staff pref is
+
 export function greedy({
   staffPreferences,
   sections,
@@ -93,34 +96,39 @@ export function greedy({
       (s) => !staffAssignedSection.has(s) && !sectionAssignments.includes(s),
     );
 
-    // sorting by prof and assistant prefs
-    const profPreferredSet =
-      profPreferredBySection.get(sectionId) ?? new Set<string>();
-
     function getStaffPrefScore(staffId: string, sectionId: string): number {
       const sectionScoreMap = staffPreferredSectionScore.get(staffId);
       if (!sectionScoreMap) return 0;
       return sectionScoreMap.get(sectionId) ?? 0;
     }
 
+    function getCombinedScore(
+      staffId: string,
+      sectionId: string,
+      profPreferredSet: Set<string>,
+    ): number {
+      const profScore = profPreferredSet.has(staffId) ? 1 : 0;
+      const staffScore = getStaffPrefScore(staffId, sectionId);
+
+      return (
+        PROF_PREFERENCE_WEIGHT * profScore +
+        STAFF_PREFERENCE_WEIGHT * staffScore
+      );
+    }
+
+    const profPreferredSet =
+      profPreferredBySection.get(sectionId) ?? new Set<string>();
+
     filteredStaff.sort((a, b) => {
-      // professor preference
-      const aProf = profPreferredSet.has(a) ? 1 : 0;
-      const bProf = profPreferredSet.has(b) ? 1 : 0;
-      if (aProf !== bProf) {
-        // preferred staff first
-        return bProf - aProf;
+      const aScore = getCombinedScore(a, sectionId, profPreferredSet);
+      const bScore = getCombinedScore(b, sectionId, profPreferredSet);
+
+      if (aScore !== bScore) {
+        // higher combined score first
+        return bScore - aScore;
       }
 
-      // staff's own preference for this section
-      const aStaffScore = getStaffPrefScore(a, sectionId);
-      const bStaffScore = getStaffPrefScore(b, sectionId);
-      if (aStaffScore !== bStaffScore) {
-        // higher score (STRONGLY_PREFER) first
-        return bStaffScore - aStaffScore;
-      }
-
-      // tie-breaker: less hours available first
+      // tie-breaker: fewer hours available first
       const aHours = staffToHours.get(a) ?? 0;
       const bHours = staffToHours.get(b) ?? 0;
       return aHours - bHours;
