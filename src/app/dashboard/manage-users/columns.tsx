@@ -10,18 +10,15 @@ import { CopyButton } from "@/components/copy-button";
 import { DataTableColumnHeader } from "@/components/data-table";
 import type { UserTableRow } from "./manage-users-content";
 import { UserTableRowAction } from "./user-table-row-actions";
-import { isProfessor, isAssistant } from "@/lib/utils";
+import { isAssistant } from "@/lib/utils";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { api } from "@/trpc/react";
-import StaffAssignment from "@/components/staff/staff-assignment-card";
-import { unknownProfessorName } from "@/lib/constants";
 import { GlobalSuspense } from "@/components/global-suspense";
 import StaffDashboardFormSumary from "@/components/staff/staff-dashboard-form-summary";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
@@ -35,10 +32,8 @@ const getRoleBadgeClass = (role: Role): string => {
   return ROLE_COLORS[role];
 };
 
-// TODO: add locked pref col, has pref cols
-
 export const createColumns = (
-  activeTermId: string,
+  selectedTermId: string,
 ): ColumnDef<UserTableRow>[] => [
   {
     accessorKey: "name",
@@ -115,7 +110,7 @@ export const createColumns = (
     },
     cell: ({ row }) => {
       const hasPreference = row.original.hasPreference;
-      const isProf = isProfessor(row.original);
+      const userId = row.original.id;
       const isStaff = isAssistant(row.original);
 
       return (
@@ -137,20 +132,26 @@ export const createColumns = (
             </Badge>
           </HoverCardTrigger>
           <HoverCardContent className="max-h-[45vh] w-xl overflow-y-auto p-4">
-            {!hasPreference ? (
-              <p>
-                Not submitted yet. You can manually edit their preferences by
-                clicking the &quot;...&quot; button. After their preferences are
-                filled out, you will see them here.
-              </p>
-            ) : isStaff ? (
-              <GlobalSuspense>
+            <GlobalSuspense>
+              {!hasPreference ? (
+                <p>
+                  Not submitted yet. You can manually edit their preferences by
+                  clicking the &quot;...&quot; button. After their preferences
+                  are filled out, you will see them here.
+                </p>
+              ) : isStaff ? (
                 <StaffDashboardFormSumary
-                  userId={row.original.id}
-                  termId={activeTermId}
+                  userId={userId}
+                  termId={selectedTermId}
                 />
-              </GlobalSuspense>
-            ) : null}
+              ) : (
+                <CoursesCard
+                  termId={selectedTermId}
+                  professorId={userId}
+                  isSubmitted={hasPreference}
+                />
+              )}
+            </GlobalSuspense>
           </HoverCardContent>
         </HoverCard>
       );
@@ -189,7 +190,7 @@ export const createColumns = (
     id: "actions",
     meta: { export: false },
     cell: ({ row }) => (
-      <UserTableRowAction termId={activeTermId} user={row.original} />
+      <UserTableRowAction termId={selectedTermId} user={row.original} />
     ),
   },
 ];
