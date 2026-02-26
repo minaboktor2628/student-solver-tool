@@ -15,7 +15,7 @@ export type Slot = {
   hour: number;
 };
 
-function keyOf(slot: Slot) {
+export function slotToKey(slot: Slot) {
   return `${slot.day}:${slot.hour}`;
 }
 
@@ -24,7 +24,7 @@ export const isSlot = (s: Slot | null): s is Slot => s !== null;
 export function dedupe(slots: Slot[]): Slot[] {
   const seen = new Map<string, Slot>();
   for (const slot of slots) {
-    seen.set(keyOf(slot), slot);
+    seen.set(slotToKey(slot), slot);
   }
   return [...seen.values()];
 }
@@ -53,13 +53,13 @@ export function calculateCoverage(
     };
   }
 
-  const availableSet = new Set(available.map(keyOf));
+  const availableSet = new Set(available.map(slotToKey));
 
   const covered: Slot[] = [];
   const uncovered: Slot[] = [];
 
   for (const n of needed) {
-    if (availableSet.has(keyOf(n))) {
+    if (availableSet.has(slotToKey(n))) {
       covered.push(n);
     } else {
       uncovered.push(n);
