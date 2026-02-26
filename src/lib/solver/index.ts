@@ -1,17 +1,27 @@
 import type { CtxType } from "@/server/api/trpc";
 import { solveBackTracking_v1 } from "./solveBackTracking_v1";
+import { greedy } from "./greedy";
 
-export const solverStrategies = ["backTracking"] as const;
+export const solverStrategies = ["greedy", "backTracking"] as const;
 export type SolverStrategy = (typeof solverStrategies)[number];
+
+// the data we feed the solver function
+export type SolverData = Awaited<ReturnType<typeof getSolverData>>;
+export type SolverAssignments = Map<string, string[]>; // what each solver function should return
 
 export const solverStrategyMap: Record<
   SolverStrategy,
   {
     label: string;
     description: string;
-    fn: (data: SolverData) => Map<string, string[]>;
+    fn: (data: SolverData) => SolverAssignments;
   }
 > = {
+  greedy: {
+    label: "Greedy",
+    description: "Does not take scheduling into account.",
+    fn: greedy,
+  },
   backTracking: {
     label: "BTS v1",
     description: "Takes only qualifications into account",
@@ -22,12 +32,9 @@ export const solverStrategyMap: Record<
 export function solveAssignments(
   strategy: SolverStrategy,
   solverData: SolverData,
-): Map<string, string[]> {
+): SolverAssignments {
   return solverStrategyMap[strategy].fn(solverData);
 }
-
-// the data we feed the solver function
-export type SolverData = Awaited<ReturnType<typeof getSolverData>>;
 
 export async function getSolverData(ctx: CtxType, termId: string) {
   const [sections, staffPreferences] = await Promise.all([
