@@ -41,7 +41,7 @@ export async function getSolverData(ctx: CtxType, termId: string) {
     ctx.db.section.findMany({
       where: { termId },
       include: {
-        assignments: true,
+        assignments: { select: { staff: true, locked: true } },
         preferredPreferences: {
           select: { staffPreference: { select: { user: true } } },
         },
