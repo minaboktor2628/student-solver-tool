@@ -1,16 +1,25 @@
 "use client";
 import { api } from "@/trpc/react";
 import { DataTable, DataTableColumnHeader } from "../data-table";
+import { CopyButton } from "../copy-button";
 
 export function AssignmentTable({ termId }: { termId: string }) {
-  const [{ sections }] = api.dashboard.getAssignments.useSuspenseQuery({
-    termId,
-  });
+  const [{ sections, allEmails }] =
+    api.dashboard.getAssignments.useSuspenseQuery({
+      termId,
+    });
 
   return (
     <DataTable
       selectable
       data={sections}
+      renderToolbarActions={() => {
+        return (
+          <CopyButton value={allEmails.join(", ")} variant="default" size="sm">
+            Copy all emails
+          </CopyButton>
+        );
+      }}
       columns={[
         {
           accessorKey: "title",
