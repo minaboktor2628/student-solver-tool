@@ -7,7 +7,7 @@ export type SolverStrategy = (typeof solverStrategies)[number];
 
 // the data we feed the solver function
 export type SolverData = Awaited<ReturnType<typeof getSolverData>>;
-export type SolverAssignments = Map<string, string[]>; // what each solver function should return
+export type SolverAssignments = Map<string, string[]>; // what each solver function should return: sectionId, staffIds
 
 export const solverStrategyMap: Record<
   SolverStrategy,
