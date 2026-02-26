@@ -85,7 +85,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           <SidebarMenuItem>
             <SidebarMenuButton>
               <Link
-                href={`mailto:gr-ta-pla-tooling-mqp@wpi.edu&subject=${encodeURIComponent("STS Bug Report")}`}
+                href={`mailto:gr-ta-pla-tooling-mqp@wpi.edu?subject=${encodeURIComponent("STS Bug Report")}`}
                 className="flex w-full flex-row items-center gap-2"
               >
                 <Bug />
