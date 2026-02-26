@@ -42,8 +42,12 @@ export async function getSolverData(ctx: CtxType, termId: string) {
       where: { termId },
       include: {
         assignments: true,
-        preferredPreferences: true,
-        qualifiedPreferences: true,
+        preferredPreferences: {
+          select: { staffPreference: { select: { user: true } } },
+        },
+        qualifiedPreferences: {
+          select: { staffPreference: { select: { user: true } } },
+        },
         professor: true,
         professorPreference: {
           select: {
