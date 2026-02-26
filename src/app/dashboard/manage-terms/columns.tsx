@@ -31,10 +31,10 @@ export type TermActions = {
   onActivate: (id: string) => void;
   onDeactivate: (id: string) => void;
   onDelete: (id: string) => void;
-  releaseAssignments: (id: string) => void;
   lockAll: (termId: string) => void;
   unlockAll: (termId: string) => void;
-  releasePending: boolean;
+  publishTerm: (id: string) => void;
+  publishPending: boolean;
   lockPending: boolean;
   unlockPending: boolean;
 };

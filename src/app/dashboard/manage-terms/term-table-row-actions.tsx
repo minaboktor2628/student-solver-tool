@@ -47,13 +47,17 @@ export function TermTableRowActions({
               Upload users
             </DropdownMenuItem>
           </UploadAllowedUsersForm>
-          <SyncSectionsForm year={term.year} termLetter={term.termLetter} />
+          <SyncSectionsForm year={term.year} termLetter={term.termLetter}>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              Add section(s)
+            </DropdownMenuItem>
+          </SyncSectionsForm>
           <DropdownMenuItem
             onSelect={(e) => e.preventDefault()}
-            onClick={() => actions.releaseAssignments(term.id)}
-            disabled={actions.releasePending}
+            onClick={() => actions.publishTerm(term.id)}
+            disabled={actions.publishPending}
           >
-            Release Assignments
+            Publish Term
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => e.preventDefault()}

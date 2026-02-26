@@ -46,16 +46,15 @@ export function TermTable() {
     },
   });
 
-  const releaseAssignmentsMutation = api.term.releaseAssignments.useMutation({
-    onSuccess: async (res) => {
-      if (res?.success) {
-        toast.success("Assignments released.");
-        // invalidate relevant queries to pick up published state
-        await utils.term.getTermStats.invalidate();
-        await utils.term.getAllTerms.invalidate();
-      } else {
-        toast.error("Failed to release assignments");
-      }
+  const publishTermMutation = api.term.publishTerm.useMutation({
+    onSuccess: async () => {
+      toast.success("Term published.");
+      await Promise.all([
+        utils.dashboard.invalidate(),
+        utils.term.getTermStats.invalidate(),
+        utils.term.getAllTerms.invalidate(),
+        utils.term.invalidate(),
+      ]);
     },
     onError: (err) => {
       toast.error(err.message);
@@ -86,11 +85,10 @@ export function TermTable() {
     onActivate: (id: string) => activateTerm.mutate({ id }),
     onDeactivate: (id: string) => deactivateTerm.mutate({ id }),
     onDelete: (id: string) => deleteTerm.mutate({ id }),
-    releaseAssignments: (id: string) =>
-      releaseAssignmentsMutation.mutate({ id }),
+    publishTerm: (id: string) => publishTermMutation.mutate({ id }),
     lockAll: (termId: string) => lockAllMutation.mutate({ termId }),
     unlockAll: (termId: string) => unlockAllMutation.mutate({ termId }),
-    releasePending: releaseAssignmentsMutation.isPending,
+    publishPending: publishTermMutation.isPending,
     lockPending: lockAllMutation.isPending,
     unlockPending: unlockAllMutation.isPending,
   };

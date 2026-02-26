@@ -178,27 +178,6 @@ export const termRoute = createTRPCRouter({
       });
     }),
 
-  // Mark the term assignments as released/published so staff/professors can view them
-  releaseAssignments: coordinatorProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ input: { id }, ctx }) => {
-      const term = await ctx.db.term.findUnique({ where: { id } });
-      if (!term) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Term not found" });
-      }
-
-      const updated = await ctx.db.term.update({
-        where: { id },
-        data: { published: true },
-      });
-
-      return {
-        success: true,
-        termId: updated.id,
-        message: "Assignments released",
-      };
-    }),
-
   syncUsersToTerm: coordinatorProcedure
     .input(
       z.object({
