@@ -3,6 +3,11 @@ import type { User } from "next-auth";
 import { twMerge } from "tailwind-merge";
 import z from "zod";
 
+export function reverseBackwardsName(name: string | null | undefined) {
+  if (name) return name.split(", ").reverse().join(" ");
+  return "";
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

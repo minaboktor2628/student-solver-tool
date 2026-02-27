@@ -5,6 +5,8 @@ import { isUserAllowedInActiveTerm } from "@/lib/permission-helpers";
 import { auth } from "@/server/auth";
 import { api } from "@/trpc/server";
 import { InfoIcon } from "lucide-react";
+import { reverseBackwardsName } from "@/lib/utils";
+
 import {
   Banner,
   BannerClose,
@@ -67,7 +69,7 @@ export default async function PreferencesFormPage(props: PageProps) {
       <div>
         <h1 className="text-2xl font-bold">Preferences Form</h1>
         <p className="text-muted-foreground">
-          {user?.name?.split(", ").reverse().join(" ")}
+          {reverseBackwardsName(user?.name)}
         </p>
       </div>
       <MultiStepFormModal
