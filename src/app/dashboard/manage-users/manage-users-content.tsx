@@ -22,6 +22,7 @@ import { humanizeKey } from "@/lib/utils";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
 import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
 import { RefetchButton } from "@/components/refetch-button";
+import { CopyButton } from "@/components/copy-button";
 
 export type UserTableRow =
   RouterOutputs["staff"]["getAllUsers"]["users"][number];
@@ -136,6 +137,11 @@ export default function ManageUsersContent() {
               const effectiveUserIds =
                 selectedIds.length > 0 ? selectedIds : undefined;
 
+              const selectedEmails = table
+                .getSelectedRowModel()
+                .rows.map((r) => r.original.email)
+                .filter(Boolean);
+
               return (
                 <div className="ml-auto flex gap-2">
                   <UploadAllowedUsersForm termId={selectedTerm.id} />
@@ -166,6 +172,15 @@ export default function ManageUsersContent() {
                     )}
                     {selectedIds.length > 0 ? "Unlock selected" : "Unlock all"}
                   </Button>
+                  <CopyButton
+                    value={selectedEmails.join(", ")}
+                    size="default"
+                    variant="outline"
+                    disabled={selectedEmails.length === 0}
+                    title="Copy selected emails"
+                  >
+                    Copy selected
+                  </CopyButton>
                 </div>
               );
             }}
