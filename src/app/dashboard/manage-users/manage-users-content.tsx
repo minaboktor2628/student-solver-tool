@@ -3,8 +3,8 @@
 import { Role } from "@prisma/client";
 import { api, type RouterOutputs } from "@/trpc/react";
 import { toast } from "sonner";
-import { RefreshCw, Lock, Unlock } from "lucide-react";
-
+import { Lock, Unlock } from "lucide-react";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table";
 
@@ -130,58 +130,50 @@ export default function ManageUsersContent() {
               ],
             }}
             renderToolbarActions={(table) => {
-              const selectedIds = table
+              const selectedUsers = table
                 .getSelectedRowModel()
-                .rows.map((r) => r.original.id);
+                .rows.map((r) => r.original);
 
-              const effectiveUserIds =
-                selectedIds.length > 0 ? selectedIds : undefined;
+              const selectedIds = selectedUsers.map((u) => u.id);
 
-              const selectedEmails = table
-                .getSelectedRowModel()
-                .rows.map((r) => r.original.email)
+              const selectedEmails = selectedUsers
+                .map((u) => u.email)
                 .filter(Boolean);
 
-              return (
-                <div className="ml-auto flex gap-2">
-                  <UploadAllowedUsersForm termId={selectedTerm.id} />
-                  <Button
-                    onClick={() => handleLockAll(effectiveUserIds)}
-                    variant="destructive"
-                    className="gap-2"
-                    disabled={lockAllMutation.isPending}
-                  >
-                    {lockAllMutation.isPending ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
-                    )}
-                    {selectedIds.length > 0 ? "Lock selected" : "Lock all"}
-                  </Button>
+              const anySelectedRows = selectedUsers.length > 0;
 
-                  <Button
-                    onClick={() => handleUnlockAll(effectiveUserIds)}
-                    variant="outline"
-                    className="gap-2"
-                    disabled={unlockAllMutation.isPending}
-                  >
-                    {unlockAllMutation.isPending ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
+              return (
+                <ButtonGroup>
+                  <ButtonGroup title="Selected users actions. Must have at least one user selected to lock, unlock, or copy emails.">
+                    <Button
+                      onClick={() => handleUnlockAll(selectedIds)}
+                      variant="outline"
+                      className="gap-2"
+                      disabled={unlockAllMutation.isPending || !anySelectedRows}
+                      title="Unlock selected users ability to fill out the preference form"
+                    >
                       <Unlock className="h-4 w-4" />
-                    )}
-                    {selectedIds.length > 0 ? "Unlock selected" : "Unlock all"}
-                  </Button>
-                  <CopyButton
-                    value={selectedEmails.join(", ")}
-                    size="default"
-                    variant="outline"
-                    disabled={selectedEmails.length === 0}
-                    title="Copy selected emails"
-                  >
-                    Copy selected
-                  </CopyButton>
-                </div>
+                    </Button>
+                    <Button
+                      onClick={() => handleLockAll(selectedIds)}
+                      variant="destructive"
+                      disabled={lockAllMutation.isPending || !anySelectedRows}
+                      title="Lock selected users ability to fill out the preference form"
+                    >
+                      <Lock className="h-4 w-4" />
+                    </Button>
+                    <CopyButton
+                      value={selectedEmails.join(", ")}
+                      size="default"
+                      variant="outline"
+                      disabled={!anySelectedRows}
+                      title="Copy selected emails"
+                    />
+                  </ButtonGroup>
+                  <ButtonGroup>
+                    <UploadAllowedUsersForm termId={selectedTerm.id} />
+                  </ButtonGroup>
+                </ButtonGroup>
               );
             }}
           />
