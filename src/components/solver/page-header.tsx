@@ -34,6 +34,14 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
 
   const utils = api.useUtils();
 
+  const onSettled = async () => {
+    await Promise.all([
+      utils.courses.getAllCoursesForTerm.invalidate({ termId }),
+      utils.staff.getStaffForSection.invalidate(),
+      utils.dashboard.getAssignments.invalidate(),
+    ]);
+  };
+
   const unAssignAllUnlockedApi =
     api.assignment.removeAllUnlockedAssignments.useMutation({
       onSuccess: () => {
@@ -42,33 +50,17 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
       onError: (err) => {
         toast.error(err.message);
       },
-      onSettled: async () => {
-        await Promise.all([
-          utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-          utils.staff.getStaffForSection.invalidate(),
-          utils.dashboard.getAssignments.invalidate(),
-        ]);
-      },
+      onSettled,
     });
 
-  const solverApi = api.assignment.solve.useMutation({
-    onSuccess: () => {
-      toast.success("Successfully solved!");
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    },
-    onSettled: async () => {
-      await Promise.all([
-        utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-        utils.staff.getStaffForSection.invalidate(),
-        utils.dashboard.getAssignments.invalidate(),
-      ]);
-    },
-  });
+  const solverApi = api.assignment.solve.useMutation({ onSettled });
 
-  function handleSolve() {
-    solverApi.mutate({ termId, solverStrategy });
+  async function handleSolve() {
+    toast.promise(solverApi.mutateAsync({ termId, solverStrategy }), {
+      loading: "Solving assignments...",
+      success: "Successfully solved!",
+      error: "Error solving assignments.",
+    });
   }
 
   return (
