@@ -68,8 +68,9 @@ export const assignmentRoute = createTRPCRouter({
     )
     .mutation(async ({ input: { termId, solverStrategy }, ctx }) => {
       // first, remove all people who are assigned to a course but not locked.
-      await api.assignment.removeAllUnlockedAssignments({ termId });
-
+      await ctx.db.sectionAssignment.deleteMany({
+        where: { section: { termId }, locked: false },
+      });
       const solverData = await getSolverData(ctx, termId);
       const assignments = solveAssignments(solverStrategy, solverData);
 
