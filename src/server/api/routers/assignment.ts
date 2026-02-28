@@ -6,6 +6,7 @@ import {
   solveAssignments,
   solverStrategies,
 } from "@/lib/solver";
+import { api } from "@/trpc/server";
 
 export const assignmentRoute = createTRPCRouter({
   set: coordinatorProcedure
@@ -48,6 +49,16 @@ export const assignmentRoute = createTRPCRouter({
       });
     }),
 
+  // for a given term, unassign everyone to all sections who are not locked
+  // to a section already (by the coordinator)
+  removeAllUnlockedAssignments: coordinatorProcedure
+    .input(z.object({ termId: z.string() }))
+    .mutation(async ({ input: { termId }, ctx }) => {
+      return ctx.db.sectionAssignment.deleteMany({
+        where: { section: { termId }, locked: false },
+      });
+    }),
+
   solve: coordinatorProcedure
     .input(
       z.object({
@@ -56,6 +67,9 @@ export const assignmentRoute = createTRPCRouter({
       }),
     )
     .mutation(async ({ input: { termId, solverStrategy }, ctx }) => {
+      // first, remove all people who are assigned to a course but not locked.
+      await api.assignment.removeAllUnlockedAssignments({ termId });
+
       const solverData = await getSolverData(ctx, termId);
       const assignments = solveAssignments(solverStrategy, solverData);
 
