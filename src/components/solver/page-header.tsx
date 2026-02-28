@@ -29,7 +29,7 @@ export type SolverPageHeaderProps = {
 
 export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
   const [solverStrategy, setSolverStrategy] =
-    useState<SolverStrategy>("greedy");
+    useState<SolverStrategy>("greedy_v2");
 
   const utils = api.useUtils();
 
