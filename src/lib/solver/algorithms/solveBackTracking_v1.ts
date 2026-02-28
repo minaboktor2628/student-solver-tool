@@ -2,8 +2,8 @@ import type { Section } from "@prisma/client";
 import {
   defaultMarginOfErrorShortAllocationHours,
   defaultMarginOfErrorOverAllocationHours,
-} from "../constants";
-import type { SolverData } from ".";
+} from "../../constants";
+import type { SolverData } from "..";
 
 // basic backtracking search
 // TODO: no partial solution

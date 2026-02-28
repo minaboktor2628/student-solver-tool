@@ -1,5 +1,5 @@
-import type { SolverAssignments, SolverData } from ".";
-import { getLegalAssignmentsForSection } from "./helpers";
+import type { SolverAssignments, SolverData } from "..";
+import { getLegalAssignmentsForSection } from "../helpers";
 
 const PROF_PREFERENCE_WEIGHT = 3; // how strong prof pref is
 const STAFF_PREFERENCE_WEIGHT = 1; // how strong staff pref is

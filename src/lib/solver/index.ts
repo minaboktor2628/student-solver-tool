@@ -1,6 +1,6 @@
 import type { CtxType } from "@/server/api/trpc";
-import { solveBackTracking_v1 } from "./solveBackTracking_v1";
-import { greedy } from "./greedy";
+import { solveBackTracking_v1 } from "./algorithms/solveBackTracking_v1";
+import { greedy } from "./algorithms/greedy";
 
 export const solverStrategies = ["greedy", "backTracking"] as const;
 export type SolverStrategy = (typeof solverStrategies)[number];
