@@ -1,8 +1,8 @@
 import type { CtxType } from "@/server/api/trpc";
 import { solveBackTracking_v1 } from "./algorithms/solveBackTracking_v1";
-import { greedy } from "./algorithms/greedy";
+import { greedy_v2 } from "./algorithms/greedy";
 
-export const solverStrategies = ["greedy", "backTracking"] as const;
+export const solverStrategies = ["greedy_v2", "backTracking"] as const;
 export type SolverStrategy = (typeof solverStrategies)[number];
 
 // the data we feed the solver function
@@ -17,10 +17,11 @@ export const solverStrategyMap: Record<
     fn: (data: SolverData) => SolverAssignments;
   }
 > = {
-  greedy: {
-    label: "Greedy",
-    description: "Does not take scheduling into account.",
-    fn: greedy,
+  greedy_v2: {
+    label: "Greedy V2",
+    description:
+      "Does not take scheduling into account. Does take preferences into account.",
+    fn: greedy_v2,
   },
   backTracking: {
     label: "BTS v1",

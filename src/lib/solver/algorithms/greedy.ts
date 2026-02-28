@@ -4,7 +4,7 @@ import { getLegalAssignmentsForSection } from "../helpers";
 const PROF_PREFERENCE_WEIGHT = 3; // how strong prof pref is
 const STAFF_PREFERENCE_WEIGHT = 1; // how strong staff pref is
 
-export function greedy({
+export function greedy_v2({
   staffPreferences,
   sections,
 }: SolverData): SolverAssignments {
