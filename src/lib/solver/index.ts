@@ -1,0 +1,103 @@
+import type { CtxType } from "@/server/api/trpc";
+import { solveBackTracking_v1 } from "./algorithms/solveBackTracking_v1";
+import { greedy_v2 } from "./algorithms/greedy_v2";
+import { greedy_v1 } from "./algorithms/greedy_v1";
+
+export const solverStrategies = [
+  "greedy_v1",
+  "greedy_v2",
+  "backTracking",
+] as const;
+export type SolverStrategy = (typeof solverStrategies)[number];
+
+// the data we feed the solver function
+export type SolverData = Awaited<ReturnType<typeof getSolverData>>;
+export type SolverAssignments = Map<string, string[]>; // what each solver function should return: sectionId, staffIds
+
+export const solverStrategyMap: Record<
+  SolverStrategy,
+  {
+    label: string;
+    description: string;
+    fn: (data: SolverData) => SolverAssignments;
+  }
+> = {
+  greedy_v1: {
+    label: "Greedy V1",
+    description:
+      "Does not take scheduling into account. Does not take preferences into account.",
+    fn: greedy_v1,
+  },
+  greedy_v2: {
+    label: "Greedy V2",
+    description:
+      "Takes preferences into account. Does not take scheduling into account.",
+    fn: greedy_v2,
+  },
+  backTracking: {
+    label: "BTS v1",
+    description: "Takes only qualifications into account",
+    fn: solveBackTracking_v1,
+  },
+} as const;
+
+export function solveAssignments(
+  strategy: SolverStrategy,
+  solverData: SolverData,
+): SolverAssignments {
+  return solverStrategyMap[strategy].fn(solverData);
+}
+
+export async function getSolverData(ctx: CtxType, termId: string) {
+  const [sections, staffPreferences] = await Promise.all([
+    ctx.db.section.findMany({
+      where: { termId },
+      include: {
+        assignments: { select: { staff: true, locked: true } },
+        preferredPreferences: {
+          select: { staffPreference: { select: { user: true } } },
+        },
+        qualifiedPreferences: {
+          select: { staffPreference: { select: { user: true } } },
+        },
+        professor: true,
+        professorPreference: {
+          select: {
+            avoidedStaff: { select: { staff: true } },
+            preferredStaff: { select: { staff: true } },
+          },
+        },
+      },
+    }),
+    ctx.db.staffPreference.findMany({
+      where: {
+        termId,
+        user: {
+          // ignore staff who said they are not available this term/semester
+          staffPreferences: {
+            none: {
+              isAvailableForTerm: false,
+            },
+          },
+          // Only return users who are NOT locked to a section already this term
+          sectionAssignments: {
+            none: {
+              locked: true,
+              section: {
+                termId,
+              },
+            },
+          },
+        },
+      },
+      include: {
+        preferredSections: true,
+        qualifiedForSections: true,
+        timesAvailable: true,
+        user: true,
+      },
+    }),
+  ]);
+
+  return { sections, staffPreferences };
+}
