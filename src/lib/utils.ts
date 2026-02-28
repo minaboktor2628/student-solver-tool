@@ -7,6 +7,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const notNullFilter = <T>(s: T): s is NonNullable<T> => !!s;
+
 export function calculateRequiredAssistantHours(
   enrolledStudents: number,
 ): number {

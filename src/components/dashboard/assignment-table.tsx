@@ -1,23 +1,36 @@
 "use client";
 import { api } from "@/trpc/react";
 import { DataTable, DataTableColumnHeader } from "../data-table";
+import { CopyButton } from "../copy-button";
 
 export function AssignmentTable({ termId }: { termId: string }) {
-  const [{ sections }] = api.dashboard.getAssignments.useSuspenseQuery({
-    termId,
-  });
+  const [{ sections, allEmails }] =
+    api.dashboard.getAssignments.useSuspenseQuery({
+      termId,
+    });
 
   return (
     <DataTable
       selectable
       data={sections}
+      renderToolbarActions={() => {
+        return (
+          <CopyButton value={allEmails.join(", ")} variant="default" size="sm">
+            Copy all emails
+          </CopyButton>
+        );
+      }}
       columns={[
         {
           accessorKey: "title",
           header: ({ column }) => (
             <DataTableColumnHeader column={column} title="Title" />
           ),
-          cell: ({ row }) => row.original.title,
+          cell: ({ row }) => (
+            <p title={row.original.title} className="max-w-[24rem] truncate">
+              {row.original.title}
+            </p>
+          ),
         },
         {
           accessorKey: "professor",
@@ -40,13 +53,27 @@ export function AssignmentTable({ termId }: { termId: string }) {
           id: "plas",
           header: "PLA's",
           accessorFn: (row) => row.plas.join("; "),
-          cell: ({ row }) => row.original.plas.join("; "),
+          cell: ({ row }) => {
+            const content = row.original.plas.join("; ");
+            return (
+              <p title={content} className="max-w-[12rem] truncate">
+                {content}
+              </p>
+            );
+          },
         },
         {
           id: "tas",
           header: "TA's",
           accessorFn: (row) => row.tas.join("; "),
-          cell: ({ row }) => row.original.tas.join("; "),
+          cell: ({ row }) => {
+            const content = row.original.tas.join("; ");
+            return (
+              <p title={content} className="max-w-[12rem] truncate">
+                {content}
+              </p>
+            );
+          },
         },
       ]}
     />

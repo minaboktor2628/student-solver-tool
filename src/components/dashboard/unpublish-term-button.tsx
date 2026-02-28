@@ -8,11 +8,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { Calendar } from "lucide-react";
+import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Confirm } from "../confirm-action-wrapper";
 
-export function PublishTermButton({
+export function UnpublishTermButton({
   termId,
   children,
 }: {
@@ -20,9 +20,9 @@ export function PublishTermButton({
   children?: ReactNode;
 }) {
   const utils = api.useUtils();
-  const publishTermMutation = api.term.publishTerm.useMutation({
-    onSuccess: () => toast.success("Term published successfully!"),
-    onError: (err) => console.error("Error publishing term:", err),
+  const unpublishTermMutation = api.term.unpublishTerm.useMutation({
+    onSuccess: () => toast.success("Term unpublished successfully!"),
+    onError: (err) => console.error("Error unpublishing term:", err),
     onSettled: async () => {
       await Promise.all([
         utils.dashboard.invalidate(),
@@ -31,26 +31,29 @@ export function PublishTermButton({
     },
   });
 
-  function handlePublish() {
-    publishTermMutation.mutate({ id: termId });
+  function handleUnpublish() {
+    unpublishTermMutation.mutate({ id: termId });
   }
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Confirm
-          action={handlePublish}
-          description="Once published, users will be able to see their assignments. Only do this if you are absolutely sure."
+          action={handleUnpublish}
+          description="This term has already been unpublished. Professors and assistands were already able to see their assignments."
         >
           {children ?? (
-            <Button>
-              <Calendar className="h-4 w-4" /> Publish Term
+            <Button variant="destructive">
+              <TriangleAlertIcon /> Unpublish term
             </Button>
           )}
         </Confirm>
       </TooltipTrigger>
       <TooltipContent>
-        <p>Once published, staff and professors can see their assignments.</p>
+        <p>
+          Once unpublished, staff and professors can no longer see their
+          assignments.
+        </p>
       </TooltipContent>
     </Tooltip>
   );
