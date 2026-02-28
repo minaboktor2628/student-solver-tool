@@ -363,12 +363,12 @@ export default function SolverPage() {
               minSize={12}
               className="min-h-0"
             >
-              <aside className="h-full">
+              <aside className="relative h-full">
                 <GlobalSuspense>
                   {!selectedSectionId ? (
-                    <h2 className="text-center text-lg font-semibold">
+                    <p className="absolute inset-0 z-0 flex items-center justify-center text-center text-lg font-semibold">
                       No section selected!
-                    </h2>
+                    </p>
                   ) : (
                     <StaffSelectionSidebar sectionId={selectedSectionId} />
                   )}
