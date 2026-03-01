@@ -18,7 +18,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { normalize } from "@/lib/utils";
+import { getPreferenceScore, normalize } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,11 +39,17 @@ export type StaffSelectionSidebarProps = {
 type FilterKey =
   keyof RouterOutputs["staff"]["getStaffForSection"]["staff"][number]["flags"];
 
+type Staff = RouterOutputs["staff"]["getStaffForSection"]["staff"][number];
+
 export const StaffFilterMap: Record<FilterKey, string> = {
   availableThisTerm: "Available",
   notAvoidedByProfessor: "Not Avoided",
   qualifiedForThisSection: "Qualified",
 };
+
+export function getSectionPreference(staff: Staff, sectionId: string) {
+  return staff.preferredSections?.find((p) => p.section.id === sectionId)?.rank;
+}
 
 export function StaffSelectionSidebar({
   sectionId,
@@ -71,15 +77,29 @@ export function StaffSelectionSidebar({
     }
 
     const q = normalize(searchTerm).trim();
-    if (!q) return result;
+    if (q) {
+      const tokens = q.split(/\s+/).filter(Boolean);
+      result = result.filter((s) => {
+        const name = normalize(s.name ?? "");
+        const email = normalize(s.email ?? "");
+        return tokens.every((t) => name.includes(t) || email.includes(t));
+      });
+    }
 
-    const tokens = q.split(/\s+/).filter(Boolean);
-    return result.filter((s) => {
-      const name = normalize(s.name ?? "");
-      const email = normalize(s.email ?? "");
-      return tokens.every((t) => name.includes(t) || email.includes(t));
+    result.sort((a, b) => {
+      const diff =
+        getPreferenceScore(getSectionPreference(b, sectionId)) -
+        getPreferenceScore(getSectionPreference(a, sectionId));
+
+      if (diff !== 0) return diff;
+
+      const nameA = (a.name ?? "").toLocaleLowerCase();
+      const nameB = (b.name ?? "").toLocaleLowerCase();
+      return nameA.localeCompare(nameB);
     });
-  }, [staff, filters, searchTerm]);
+
+    return result;
+  }, [staff, filters, searchTerm, sectionId]);
 
   return (
     <div className="bg-card/40 flex h-full flex-col p-2">
@@ -147,7 +167,7 @@ export function StaffSelectionSidebar({
                   data={{ staff: s, isAlreadyAssigned: !!s.assignedSection }}
                   className="flex-1"
                 >
-                  <StaffItem {...s}>
+                  <StaffItem {...s} rank={getSectionPreference(s, sectionId)}>
                     <div className="flex flex-row space-x-2">
                       {!s.flags.availableThisTerm && (
                         <Tooltip>
