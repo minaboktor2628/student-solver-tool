@@ -29,7 +29,6 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
   termId,
 }) => {
   // Data collected from each step, initialized from database
-  const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>([]);
   const router = useRouter();
   const isMobile = useIsMobile();
 
@@ -45,11 +44,36 @@ const MultiStepFormModal: React.FC<MultiStepFormModalProps> = ({
     termId,
   });
 
+  // Fetch initial form data
+  const [{ availability }] =
+    api.studentForm.getWeeklyAvailability.useSuspenseQuery({
+      userId,
+      termId,
+    });
+  const [{ qualifiedSectionIds }] =
+    api.studentForm.getQualifications.useSuspenseQuery({
+      userId,
+      termId,
+    });
+  const [{ preferences }] = api.studentForm.getPreferences.useSuspenseQuery({
+    userId,
+    termId,
+  });
+  const [{ comments }] = api.studentForm.getComments.useSuspenseQuery({
+    userId,
+    termId,
+  });
+
+  // Data collected from each step
   const [step, setStep] = useState(1);
 
-  const [currentTimes, setCurrentTimes] = useState<Date[]>([]);
-  const [currentPrefs, setCurrentPrefs] = useState({});
-  const [currentComments, setCurrentComments] = useState("");
+  // Initialize state from DB
+  const [currentTimes, setCurrentTimes] = useState<Date[]>(availability ?? []);
+  const [qualifiedSections, setQualifiedSectionIds] = useState<string[]>(
+    qualifiedSectionIds ?? [],
+  );
+  const [currentPrefs, setCurrentPrefs] = useState(preferences ?? {});
+  const [currentComments, setCurrentComments] = useState(comments ?? "");
 
   const handleNext = () => setStep((s) => s + 1);
   const handleBack = () => setStep((s) => Math.max(1, s - 1));

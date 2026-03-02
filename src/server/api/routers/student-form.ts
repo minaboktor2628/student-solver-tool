@@ -8,6 +8,40 @@ import {
   allowedStrongTokens,
 } from "@/components/staff/MultiStepForm/form-entry-preferences";
 
+import type { Day } from "@prisma/client";
+
+// TODO: either refactor these to utils or move the slotToDate logic to the frontend
+type Slot = {
+  day: Day;
+  hour: number;
+};
+
+function slotToDate(slot: Slot) {
+  const dayMap: Record<Day, number> = {
+    M: 0,
+    T: 1,
+    W: 2,
+    R: 3,
+    F: 4,
+  };
+
+  const START = new Date(1970, 0, 5);
+  // Clone and normalize to midnight
+  const base = new Date(START);
+  base.setHours(0, 0, 0, 0);
+
+  // Compute the target day in that same week
+  const d = new Date(base);
+  d.setDate(base.getDate() + dayMap[slot.day]);
+
+  // Support fractional hours: 9.5 -> 9:30
+  const hours = Math.floor(slot.hour);
+  const minutes = Math.round((slot.hour - hours) * 60);
+  d.setHours(hours, minutes, 0, 0);
+
+  return d;
+}
+
 /**
  * Router: studentFormRoute
  *
@@ -89,11 +123,42 @@ export const studentFormRoute = createTRPCRouter({
 
   getWeeklyAvailability: assistantProcedure
     .input(baseInput)
-    .query(async ({ input }) => {
-      const { userId, termId } = input;
+    .query(async ({ input: { userId, termId }, ctx }) => {
+      if (
+        !hasPermission(
+          ctx.session.user,
+          "staffPreferenceForm",
+          "viewActiveTerm",
+          {
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
+        )
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
 
-      // TODO: query available hours
-      return { availability: [] as unknown[] };
+      const row = await ctx.db.staffPreference.findUnique({
+        where: {
+          userId_termId: { userId, termId },
+        },
+        include: {
+          timesAvailable: true,
+        },
+      });
+
+      let output = [] as Date[];
+      output =
+        row?.timesAvailable.map((r) => {
+          return slotToDate({ day: r.day, hour: r.hour });
+        }) ?? [];
+
+      return { availability: output };
     }),
 
   getQualifications: assistantProcedure
@@ -140,17 +205,50 @@ export const studentFormRoute = createTRPCRouter({
   getPreferences: assistantProcedure
     .input(baseInput)
     .query(async ({ input: { userId, termId }, ctx }) => {
-      // TODO: query prefer/strong tokens on StaffPreference.StaffPreferencePreferredSection
+      if (
+        !hasPermission(
+          ctx.session.user,
+          "staffPreferenceForm",
+          "viewActiveTerm",
+          {
+            userId,
+            isAllowedInActiveTerm: await isUserAllowedInActiveTerm(
+              ctx.session.user.id,
+            ),
+          },
+        )
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Cannot access qualifications for other users.`,
+        });
+      }
 
-      return { preferences: {} as Record<string, string> };
+      const row = await ctx.db.staffPreference.findUnique({
+        where: { userId_termId: { userId, termId } },
+        include: {
+          preferredSections: true,
+        },
+      });
+
+      const output = {} as Record<string, "prefer" | "strong" | undefined>;
+      row?.preferredSections?.forEach((r) => {
+        output[r.sectionId] =
+          r.rank === "STRONGLY_PREFER" ? "strong" : "prefer";
+      }) ?? [];
+
+      return { preferences: output };
     }),
 
   getComments: assistantProcedure
     .input(baseInput)
     .query(async ({ input: { userId, termId }, ctx }) => {
-      // TODO: Query StaffPreference.comments
+      const row = await ctx.db.staffPreference.findUnique({
+        where: { userId_termId: { userId, termId } },
+        select: { comments: true },
+      });
 
-      return { comments: null as string | null };
+      return { comments: row?.comments ?? null };
     }),
 
   saveStudentForm: assistantProcedure

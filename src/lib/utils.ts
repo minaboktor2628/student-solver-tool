@@ -4,8 +4,9 @@ import { twMerge } from "tailwind-merge";
 import z from "zod";
 
 export function reverseBackwardsName(name: string | null | undefined) {
-  if (name) return name.split(", ").reverse().join(" ");
-  return "";
+  if (!name) return "";
+  if (!name.includes(", ")) return name;
+  return name.split(", ").reverse().join(" ");
 }
 
 export function cn(...inputs: ClassValue[]) {
