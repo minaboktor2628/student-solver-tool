@@ -7,7 +7,10 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useState } from "react";
-import { StaffSelectionSidebar } from "@/components/solver/staff-selection-sidebar";
+import {
+  getSectionPreference,
+  StaffSelectionSidebar,
+} from "@/components/solver/staff-selection-sidebar";
 import { api } from "@/trpc/react";
 import { GlobalSuspense } from "@/components/global-suspense";
 import {

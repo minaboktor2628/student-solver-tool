@@ -8,6 +8,7 @@ import { Draggable } from "../draggable";
 import { StaffItem } from "./staff-item";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { getSectionPreference } from "./staff-selection-sidebar";
 
 export function AssignedAssistantsCard({
   section,
@@ -55,7 +56,10 @@ export function AssignedAssistantsCard({
                   {staff.locked ? <LockIcon /> : <UnlockIcon />}
                 </Toggle>
                 <Draggable id={staff.id} data={{ staff }} className="flex-1">
-                  <StaffItem {...staff}>
+                  <StaffItem
+                    {...staff}
+                    rank={getSectionPreference(staff, section.id)}
+                  >
                     {!staff.flags.notAvoidedByProfessor && (
                       <Tooltip>
                         <TooltipTrigger className="self-center">
