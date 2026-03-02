@@ -12,7 +12,16 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import Link from "next/link";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -23,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Confirm } from "../confirm-action-wrapper";
+import { ValidatorDisplay } from "./validator-display";
 
 export type SolverPageHeaderProps = {
   termId: string;
@@ -119,9 +129,29 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
           </DropdownMenu>
         </ButtonGroup>
         <ButtonGroup>
-          <Button size="sm" asChild>
-            <Link href="/dashboard">Done</Link>
-          </Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="sm" variant="outline">
+                Validator
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Validator</SheetTitle>
+                <SheetDescription>
+                  Check important solver stats here.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="grid flex-1 auto-rows-min gap-6 px-4">
+                <ValidatorDisplay />
+              </div>
+              <SheetFooter>
+                <SheetClose asChild>
+                  <Button variant="outline">Close</Button>
+                </SheetClose>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
         </ButtonGroup>
       </ButtonGroup>
     </div>
