@@ -1,3 +1,4 @@
+import type { PreferenceLevel } from "@prisma/client";
 import { clsx, type ClassValue } from "clsx";
 import type { User } from "next-auth";
 import { twMerge } from "tailwind-merge";
@@ -5,6 +6,18 @@ import z from "zod";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export const notNullFilter = <T>(s: T): s is NonNullable<T> => !!s;
+
+export function getPreferenceScore(pref: PreferenceLevel | undefined) {
+  const preferenceScoreMap: Record<PreferenceLevel, number> = {
+    STRONGLY_PREFER: 2,
+    PREFER: 1,
+  };
+
+  if (!pref) return 0;
+  return preferenceScoreMap[pref];
 }
 
 export function calculateRequiredAssistantHours(

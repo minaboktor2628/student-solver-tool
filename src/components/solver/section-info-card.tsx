@@ -116,7 +116,7 @@ export function SectionInfoCard({ section }: SectionInfoCardProps) {
                       title={title}
                       className={cn(
                         "h-4 rounded-sm",
-                        "focus-visible:ring-ring/60 pointer-events-none focus-visible:ring-2 focus-visible:outline-none",
+                        "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
                         cls,
                       )}
                     />
