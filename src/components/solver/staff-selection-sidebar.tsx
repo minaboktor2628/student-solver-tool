@@ -86,12 +86,22 @@ export function StaffSelectionSidebar({
       });
     }
 
+    // Sort staff by role priority (TAs first, then PLAs), then by
+    // preference score for this section, then by name.
+    const roleRank = (s: Staff) => {
+      if (s.roles.includes("TA")) return 0;
+      if (s.roles.includes("PLA")) return 1;
+      return 2;
+    };
+
     result.sort((a, b) => {
-      const diff =
+      const rDiff = roleRank(a) - roleRank(b);
+      if (rDiff !== 0) return rDiff;
+
+      const prefDiff =
         getPreferenceScore(getSectionPreference(b, sectionId)) -
         getPreferenceScore(getSectionPreference(a, sectionId));
-
-      if (diff !== 0) return diff;
+      if (prefDiff !== 0) return prefDiff;
 
       const nameA = (a.name ?? "").toLocaleLowerCase();
       const nameB = (b.name ?? "").toLocaleLowerCase();
