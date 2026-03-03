@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontalIcon } from "lucide-react";
 import { UploadAllowedUsersForm } from "@/components/dashboard/upload-allowed-users-form";
 import { SyncSectionsForm } from "@/components/dashboard/sync-sections-form";
-import type { TermRow, TermActions } from "./columns";
+import type { TermRow } from "./columns";
+import { api } from "@/trpc/react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,13 +26,69 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DropdownMenuLabel as _Ignore } from "@/components/ui/dropdown-menu";
 
-export function TermTableRowActions({
-  term,
-  actions,
-}: {
-  term: TermRow;
-  actions: TermActions;
-}) {
+export function TermTableRowActions({ term }: { term: TermRow }) {
+  const utils = api.useUtils();
+
+  const deleteTerm = api.term.deleteTerm.useMutation({
+    onSuccess: async () => {
+      toast.success("Term deleted.");
+      await utils.term.getTermStats.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+    onSettled: async () => {
+      await utils.term.invalidate();
+    },
+  });
+
+  const publishTerm = api.term.publishTerm.useMutation({
+    onSuccess: async () => {
+      toast.success("Term published.");
+      await Promise.all([
+        utils.dashboard.invalidate(),
+        utils.term.getTermStats.invalidate(),
+        utils.term.getAllTerms.invalidate(),
+        utils.term.invalidate(),
+      ]);
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
+  });
+
+  const lockAll = api.staff.lockAllStaffPreferences.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const unlockAll = api.staff.unlockAllStaffPreferences.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      await utils.staff.getAllUsers.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const activateTerm = api.term.activateTerm.useMutation({
+    onSuccess: async () => {
+      await utils.term.getTermStats.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+    onSettled: async () => await utils.term.invalidate(),
+  });
+
+  const deactivateTerm = api.term.deactivateTerm.useMutation({
+    onSuccess: async () => {
+      await utils.term.getTermStats.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+    onSettled: async () => await utils.term.invalidate(),
+  });
+
   return (
     <div className="text-right">
       <DropdownMenu>
@@ -54,22 +112,22 @@ export function TermTableRowActions({
           </SyncSectionsForm>
           <DropdownMenuItem
             onSelect={(e) => e.preventDefault()}
-            onClick={() => actions.publishTerm(term.id)}
-            disabled={actions.publishPending}
+            onClick={() => publishTerm.mutate({ id: term.id })}
+            disabled={publishTerm.isPending}
           >
             Publish Term
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => e.preventDefault()}
-            onClick={() => actions.lockAll(term.id)}
-            disabled={actions.lockPending}
+            onClick={() => lockAll.mutate({ termId: term.id })}
+            disabled={lockAll.isPending}
           >
             Lock all
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={(e) => e.preventDefault()}
-            onClick={() => actions.unlockAll(term.id)}
-            disabled={actions.unlockPending}
+            onClick={() => unlockAll.mutate({ termId: term.id })}
+            disabled={unlockAll.isPending}
           >
             Unlock all
           </DropdownMenuItem>
@@ -78,8 +136,8 @@ export function TermTableRowActions({
             onSelect={(e) => e.preventDefault()}
             onClick={() =>
               term.active
-                ? actions.onDeactivate(term.id)
-                : actions.onActivate(term.id)
+                ? deactivateTerm.mutate({ id: term.id })
+                : activateTerm.mutate({ id: term.id })
             }
           >
             {term.active ? "Deactivate" : "Activate"}
@@ -100,7 +158,9 @@ export function TermTableRowActions({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => actions.onDelete(term.id)}>
+                <AlertDialogAction
+                  onClick={() => deleteTerm.mutate({ id: term.id })}
+                >
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>

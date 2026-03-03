@@ -27,19 +27,7 @@ export type TermRow = {
   name: string;
 };
 
-export type TermActions = {
-  onActivate: (id: string) => void;
-  onDeactivate: (id: string) => void;
-  onDelete: (id: string) => void;
-  lockAll: (termId: string) => void;
-  unlockAll: (termId: string) => void;
-  publishTerm: (id: string) => void;
-  publishPending: boolean;
-  lockPending: boolean;
-  unlockPending: boolean;
-};
-
-export const createColumns = (actions: TermActions): ColumnDef<TermRow>[] => [
+export const createColumns = (): ColumnDef<TermRow>[] => [
   {
     accessorKey: "name",
     header: "Term Name",
@@ -81,7 +69,7 @@ export const createColumns = (actions: TermActions): ColumnDef<TermRow>[] => [
     header: () => <div className="text-right">Actions</div>,
     cell: ({ row }) => {
       const term = row.original;
-      return <TermTableRowActions term={term} actions={actions} />;
+      return <TermTableRowActions term={term} />;
     },
   },
 ];
