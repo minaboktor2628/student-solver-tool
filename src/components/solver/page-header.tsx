@@ -143,7 +143,7 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
                   Check important solver stats here.
                 </SheetDescription>
               </SheetHeader>
-              <div className="grid flex-1 auto-rows-min gap-6 px-4">
+              <div className="flex-1 gap-6 overflow-scroll px-4">
                 <GlobalSuspense>
                   <ValidatorDisplay termId={termId} />
                 </GlobalSuspense>
