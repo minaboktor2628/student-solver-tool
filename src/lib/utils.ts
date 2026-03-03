@@ -41,7 +41,9 @@ export function isCoordinator(user?: User): boolean {
 }
 
 export function isAssistant(user?: User): boolean {
-  return user?.roles?.some((r) => r === "TA" || r === "PLA") ?? false;
+  return (
+    user?.roles?.some((r) => r === "TA" || r === "PLA" || r === "GLA") ?? false
+  );
 }
 
 export function isProfessor(user?: User): boolean {
