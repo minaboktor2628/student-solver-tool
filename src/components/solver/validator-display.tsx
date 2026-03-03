@@ -13,12 +13,13 @@ export function ValidatorDisplay({ termId }: ValidatorDisplayProps) {
 }
 
 function ValidatorStaffGotPreferences(props: ValidatorDisplayProps) {
-  const [data] = api.validator.staffGotPreferences.useSuspenseQuery(props);
+  const [{ userPrefRows, counts }] =
+    api.validator.staffGotPreferences.useSuspenseQuery(props);
   return (
     <code>
       <pre>
         {JSON.stringify(
-          data.filter((d) => d.result.status !== "GOT_PREFERENCE"),
+          userPrefRows.filter((d) => d.result.status !== "GOT_PREFERENCE"),
           null,
           2,
         )}

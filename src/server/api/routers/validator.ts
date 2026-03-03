@@ -109,7 +109,7 @@ export const validatorRoute = createTRPCRouter({
 
       if (!term) throw new TRPCError({ code: "NOT_FOUND" });
 
-      return term.allowedUsers.map((user) => {
+      const userPrefRows = term.allowedUsers.map((user) => {
         // app-level guarantee: 0 or 1 section assignment per term
         const assignment = user.sectionAssignments[0] ?? null;
         const staffPref = user.staffPreferences[0] ?? null;
@@ -178,5 +178,21 @@ export const validatorRoute = createTRPCRouter({
           result,
         };
       });
+
+      const counts: Record<UserPreferenceStatus["status"], number> = {
+        UNASSIGNED: 0,
+        ASSIGNED_NO_PREFS: 0,
+        ASSIGNED_NON_PREFERRED: 0,
+        GOT_PREFERENCE: 0,
+      };
+
+      for (const row of userPrefRows) {
+        counts[row.result.status]++;
+      }
+
+      return {
+        userPrefRows,
+        counts,
+      };
     }),
 });
