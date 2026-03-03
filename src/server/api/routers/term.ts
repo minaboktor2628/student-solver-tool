@@ -178,6 +178,20 @@ export const termRoute = createTRPCRouter({
       });
     }),
 
+  unpublishTerm: coordinatorProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input: { id }, ctx }) => {
+      const term = await ctx.db.term.findUnique({ where: { id } });
+      if (!term) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Term not found" });
+      }
+
+      return ctx.db.term.update({
+        where: { id },
+        data: { published: false },
+      });
+    }),
+
   syncUsersToTerm: coordinatorProcedure
     .input(
       z.object({

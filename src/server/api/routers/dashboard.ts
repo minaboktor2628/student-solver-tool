@@ -2,6 +2,7 @@ import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { Role } from "@prisma/client";
+import { notNullFilter } from "@/lib/utils";
 
 export const dashboardRoute = createTRPCRouter({
   getAssignments: coordinatorProcedure
@@ -10,48 +11,71 @@ export const dashboardRoute = createTRPCRouter({
       const sections = await ctx.db.section.findMany({
         where: { termId },
         include: {
-          professor: { select: { name: true } },
+          professor: { select: { name: true, email: true } },
           assignments: {
-            select: { staff: { select: { name: true, roles: true } } },
+            select: {
+              staff: { select: { name: true, email: true, roles: true } },
+            },
           },
         },
       });
 
-      return {
-        sections: sections.map(
-          ({
-            professor,
-            assignments,
+      const allEmailsSet = new Set<string>();
+
+      const mappedSections = sections.map(
+        ({
+          professor,
+          assignments,
+          meetingPattern,
+          academicLevel,
+          courseTitle,
+          courseCode,
+          courseSection,
+        }) => {
+          const staffList = assignments
+            .map((a) => a.staff)
+            .filter(notNullFilter)
+            .map((s) => ({
+              email: s.email,
+              name: s.name,
+              roles: s.roles.map((r) => r.role),
+            }));
+
+          const plas = staffList.filter((s) => s.roles.includes("PLA"));
+          const tas = staffList.filter((s) => s.roles.includes("TA"));
+
+          const staffEmails = staffList
+            .map((s) => s.email)
+            .filter(notNullFilter);
+
+          const sectionEmails = [
+            ...staffEmails,
+            ...(professor?.email ? [professor.email] : []),
+          ];
+
+          // Add to global set
+          sectionEmails.forEach((email) => allEmailsSet.add(email));
+
+          return {
+            title: `${courseCode}-${courseSection} - ${courseTitle}`,
+            professor: professor?.name ?? null,
             meetingPattern,
             academicLevel,
-            courseTitle,
-            courseCode,
-            courseSection,
-          }) => {
-            const staffList = assignments
-              .map((a) => a.staff)
-              .filter((s): s is NonNullable<typeof s> => !!s)
-              .map((s) => ({
-                name: s.name,
-                roles: s.roles.map((r) => r.role),
-              }));
+            plas: plas.map((p) => p.name),
+            tas: tas.map((p) => p.name),
+            // if you want them per section in the future
+            // emails: sectionEmails,
+          };
+        },
+      );
 
-            const plas = staffList.filter((s) => s.roles.includes("PLA"));
-            const tas = staffList.filter((s) => s.roles.includes("TA"));
+      const allEmails = Array.from(allEmailsSet);
 
-            return {
-              title: `${courseCode}-${courseSection} - ${courseTitle}`,
-              professor: professor?.name ?? null,
-              meetingPattern,
-              academicLevel,
-              plas: plas.map((p) => p.name),
-              tas: tas.map((p) => p.name),
-            };
-          },
-        ),
+      return {
+        sections: mappedSections,
+        allEmails,
       };
     }),
-
   solverAlertInfo: coordinatorProcedure
     .input(z.object({ termId: z.string() }))
     .query(async ({ ctx, input: { termId } }) => {

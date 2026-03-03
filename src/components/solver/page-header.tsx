@@ -1,5 +1,5 @@
 "use client";
-import { ChevronDownIcon, InfoIcon } from "lucide-react";
+import { ChevronDownIcon, InfoIcon, X } from "lucide-react";
 import { TermCombobox } from "../term-combobox";
 import { Button } from "../ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "../ui/button-group";
@@ -22,6 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Confirm } from "../confirm-action-wrapper";
 
 export type SolverPageHeaderProps = {
   termId: string;
@@ -29,34 +30,54 @@ export type SolverPageHeaderProps = {
 
 export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
   const [solverStrategy, setSolverStrategy] =
-    useState<SolverStrategy>("greedy");
+    useState<SolverStrategy>("greedy_v2");
 
   const utils = api.useUtils();
 
-  const solverApi = api.assignment.solve.useMutation({
-    onSuccess: () => {
-      toast.success("Successfully solved!");
-    },
-    onError: (err) => {
-      toast.error(err.message);
-    },
-    onSettled: async () => {
-      await Promise.all([
-        utils.courses.getAllCoursesForTerm.invalidate({ termId }),
-        utils.staff.getStaffForSection.invalidate(),
-        utils.dashboard.getAssignments.invalidate(),
-      ]);
-    },
-  });
+  const onSettled = async () => {
+    await Promise.all([
+      utils.courses.getAllCoursesForTerm.invalidate({ termId }),
+      utils.staff.getStaffForSection.invalidate(),
+      utils.dashboard.getAssignments.invalidate(),
+    ]);
+  };
 
-  function handleSolve() {
-    solverApi.mutate({ termId, solverStrategy });
+  const unAssignAllUnlockedApi =
+    api.assignment.removeAllUnlockedAssignments.useMutation({
+      onSuccess: () => {
+        toast.success("Successfully unassigned all unlocked staff!");
+      },
+      onError: (err) => {
+        toast.error(err.message);
+      },
+      onSettled,
+    });
+
+  const solverApi = api.assignment.solve.useMutation({ onSettled });
+
+  async function handleSolve() {
+    toast.promise(solverApi.mutateAsync({ termId, solverStrategy }), {
+      loading: "Solving assignments...",
+      success: "Successfully solved!",
+      error: "Error solving assignments.",
+    });
   }
 
   return (
     <div className="flex items-center px-4">
       <h1 className="pr-2 font-bold">Term: </h1> <TermCombobox />
       <ButtonGroup className="ml-auto">
+        <ButtonGroup>
+          <Confirm action={() => unAssignAllUnlockedApi.mutate({ termId })}>
+            <Button
+              size="sm"
+              variant="destructive"
+              title="Unassign all staff on all sections who are not locked to that section."
+            >
+              <X /> Remove all unlocked
+            </Button>
+          </Confirm>
+        </ButtonGroup>
         <ButtonGroup>
           <Button
             size="sm"

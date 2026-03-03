@@ -6,6 +6,7 @@ import { Role } from "@prisma/client";
 
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -29,6 +30,7 @@ import {
 import { ExpandableList } from "@/components/expandable-list";
 import { EmailUsers } from "@/components/email-users";
 import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
+import { UnpublishTermButton } from "@/components/dashboard/unpublish-term-button";
 
 // Helper to format deadline info
 const formatDeadline = (date: Date) => {
@@ -96,6 +98,9 @@ export default function DashboardContent() {
                 Here are all the assignments for this term. You can export this
                 using the download button.
               </CardDescription>
+              <CardAction>
+                <UnpublishTermButton termId={selectedTerm.id} />
+              </CardAction>
             </CardHeader>
             <CardContent>
               <AssignmentTable termId={selectedTerm.id} />

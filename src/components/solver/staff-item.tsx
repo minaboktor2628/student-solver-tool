@@ -1,5 +1,5 @@
 "use client";
-import { GripVertical } from "lucide-react";
+import { GripVertical, StarHalfIcon, StarIcon } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
@@ -10,9 +10,11 @@ import { Button } from "../ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { BaseScheduleSelector, slotToDate } from "@/lib/schedule-selector";
 import { humanizeKey } from "@/lib/utils";
+import type { PreferenceLevel } from "@prisma/client";
 export type StaffItemProps =
   RouterOutputs["staff"]["getStaffForSection"]["staff"][0] & {
     children?: React.ReactNode;
+    rank: PreferenceLevel | undefined;
   };
 
 export function StaffItem({
@@ -26,6 +28,7 @@ export function StaffItem({
   preferredSections,
   assignedSection,
   children,
+  rank,
 }: StaffItemProps) {
   return (
     <HoverCard>
@@ -41,17 +44,25 @@ export function StaffItem({
               <span className="sr-only">Drag to reorder</span>
             </Button>
             <div className="p-0">
-              <p className="font-semibold">{name}</p>
+              <div className="flex gap-2 font-semibold">
+                <p>{name}</p>
+                {roles.map((role) => (
+                  <Badge
+                    key={role}
+                    className="text-xs capitalize"
+                    variant="secondary"
+                  >
+                    {role}
+                  </Badge>
+                ))}
+              </div>
               <p className="text-muted-foreground text-sm">{email}</p>
             </div>
             {children && <div className="flex items-center">{children}</div>}
           </div>
-          <div className="gap-1">
-            {roles.map((role) => (
-              <Badge key={role} className="capitalize">
-                {role}
-              </Badge>
-            ))}
+          <div className="gap-1" title={humanizeKey(rank ?? "No rank")}>
+            {rank === "PREFER" && <StarHalfIcon />}
+            {rank === "STRONGLY_PREFER" && <StarIcon />}
           </div>
         </div>
       </HoverCardTrigger>
