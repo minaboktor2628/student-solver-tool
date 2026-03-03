@@ -9,6 +9,7 @@ import { staffRoute } from "./routers/staff";
 import { termRoute } from "./routers/term";
 import { dashboardRoute } from "./routers/dashboard";
 import { userRoute } from "./routers/users";
+import { validatorRoute } from "./routers/validator";
 
 /**
  * This is the primary router for your server.
@@ -26,6 +27,7 @@ export const appRouter = createTRPCRouter({
   term: termRoute,
   user: userRoute,
   dashboard: dashboardRoute,
+  validator: validatorRoute,
 });
 
 // export type definition of API

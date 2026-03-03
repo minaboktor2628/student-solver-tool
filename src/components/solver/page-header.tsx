@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Confirm } from "../confirm-action-wrapper";
 import { ValidatorDisplay } from "./validator-display";
+import { GlobalSuspense } from "../global-suspense";
 
 export type SolverPageHeaderProps = {
   termId: string;
@@ -143,7 +144,9 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
                 </SheetDescription>
               </SheetHeader>
               <div className="grid flex-1 auto-rows-min gap-6 px-4">
-                <ValidatorDisplay />
+                <GlobalSuspense>
+                  <ValidatorDisplay termId={termId} />
+                </GlobalSuspense>
               </div>
               <SheetFooter>
                 <SheetClose asChild>
