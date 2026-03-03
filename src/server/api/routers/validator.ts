@@ -12,23 +12,12 @@ export type AssignmentInfo = {
   courseTitle: string;
 };
 
-export type UserPreferenceStatus =
-  | {
-      status: "UNASSIGNED"; // no SectionAssignment in this term
-    }
-  | {
-      status: "GOT_PREFERENCE";
-      level: PreferenceLevel; // STRONGLY_PREFER | PREFER etc
-      assignment: AssignmentInfo;
-    }
-  | {
-      status: "ASSIGNED_NON_PREFERRED"; // assigned, but not in preferredSections
-      assignment: AssignmentInfo;
-    }
-  | {
-      status: "ASSIGNED_NO_PREFS"; // assigned, but user has no StaffPreference or no preferredSections
-      assignment: AssignmentInfo;
-    };
+type UserInfo = {
+  userId: string;
+  name: string;
+  email: string;
+  roles: string[];
+};
 
 export const validatorRoute = createTRPCRouter({
   staffGotPreferences: coordinatorProcedure
@@ -109,22 +98,44 @@ export const validatorRoute = createTRPCRouter({
 
       if (!term) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const userPrefRows = term.allowedUsers.map((user) => {
-        // app-level guarantee: 0 or 1 section assignment per term
+      const grouped: {
+        unassigned: { user: UserInfo }[];
+        gotPreference: {
+          user: UserInfo;
+          level: PreferenceLevel;
+          assignment: AssignmentInfo;
+        }[];
+        assignedButDidntGetPreferences: {
+          user: UserInfo;
+          assignment: AssignmentInfo;
+        }[];
+        assignedButNoPreferencesSubmitted: {
+          user: UserInfo;
+          assignment: AssignmentInfo;
+        }[];
+      } = {
+        unassigned: [],
+        gotPreference: [],
+        assignedButDidntGetPreferences: [],
+        assignedButNoPreferencesSubmitted: [],
+      };
+
+      for (const user of term.allowedUsers) {
         const assignment = user.sectionAssignments[0] ?? null;
         const staffPref = user.staffPreferences[0] ?? null;
         const preferredSections = staffPref?.preferredSections ?? [];
 
         if (!assignment) {
-          // User is allowed in term but not assigned to any section
-          const result: UserPreferenceStatus = { status: "UNASSIGNED" };
-          return {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            roles: user.roles.map((r) => r.role),
-            result,
-          };
+          grouped.unassigned.push({
+            user: {
+              userId: user.id,
+              name: user.name ?? "",
+              email: user.name ?? "",
+              roles: user.roles.map((r) => r.role),
+            },
+          });
+
+          continue;
         }
 
         const assignmentInfo: AssignmentInfo = {
@@ -136,17 +147,16 @@ export const validatorRoute = createTRPCRouter({
 
         if (!staffPref || preferredSections.length === 0) {
           // Assigned but no preferences recorded at all
-          const result: UserPreferenceStatus = {
-            status: "ASSIGNED_NO_PREFS",
+          grouped.assignedButNoPreferencesSubmitted.push({
             assignment: assignmentInfo,
-          };
-          return {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            roles: user.roles.map((r) => r.role),
-            result,
-          };
+            user: {
+              userId: user.id,
+              name: user.name ?? "",
+              email: user.email ?? "",
+              roles: user.roles.map((r) => r.role),
+            },
+          });
+          continue;
         }
 
         const matchedPref = preferredSections.find(
@@ -154,49 +164,32 @@ export const validatorRoute = createTRPCRouter({
         );
 
         if (matchedPref) {
-          const result: UserPreferenceStatus = {
-            status: "GOT_PREFERENCE",
-            level: matchedPref.rank, // STRONGLY_PREFER or PREFER
+          grouped.gotPreference.push({
+            level: matchedPref.rank,
             assignment: assignmentInfo,
-          };
-          return {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            roles: user.roles.map((r) => r.role),
-            result,
-          };
+            user: {
+              userId: user.id,
+              name: user.name ?? "",
+              email: user.email ?? "",
+              roles: user.roles.map((r) => r.role),
+            },
+          });
+
+          continue;
         }
 
         // Assigned to something they are qualified for (maybe), but not in their preferred list
-        const result: UserPreferenceStatus = {
-          status: "ASSIGNED_NON_PREFERRED",
+        grouped.assignedButDidntGetPreferences.push({
           assignment: assignmentInfo,
-        };
-
-        return {
-          userId: user.id,
-          name: user.name,
-          email: user.email,
-          roles: user.roles.map((r) => r.role),
-          result,
-        };
-      });
-
-      const counts: Record<UserPreferenceStatus["status"], number> = {
-        UNASSIGNED: 0,
-        ASSIGNED_NO_PREFS: 0,
-        ASSIGNED_NON_PREFERRED: 0,
-        GOT_PREFERENCE: 0,
-      };
-
-      for (const row of userPrefRows) {
-        counts[row.result.status]++;
+          user: {
+            userId: user.id,
+            name: user.name ?? "",
+            email: user.email ?? "",
+            roles: user.roles.map((r) => r.role),
+          },
+        });
       }
 
-      return {
-        userPrefRows,
-        counts,
-      };
+      return { grouped };
     }),
 });

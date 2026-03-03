@@ -23,270 +23,220 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { CheckIcon, ChevronDownIcon, InfoIcon } from "lucide-react";
+import { BanIcon, CheckIcon, ChevronDownIcon, InfoIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import type { UserPreferenceStatus } from "@/server/api/routers/validator";
-import { useMemo } from "react";
+import { type ReactNode } from "react";
 import { humanizeKey } from "@/lib/utils";
 
 type ValidatorDisplayProps = { termId: string };
 
 export function ValidatorDisplay({ termId }: ValidatorDisplayProps) {
   return (
-    <div>
+    <div className="flex flex-col space-y-4">
       <ValidatorStaffGotPreferences termId={termId} />
     </div>
   );
 }
 
-function ValidatorStaffGotPreferences(props: ValidatorDisplayProps) {
-  const [{ userPrefRows, counts }] =
-    api.validator.staffGotPreferences.useSuspenseQuery(props);
+function ValidatorDisplayItem({
+  status,
+  title,
+  description,
+  children,
+}: {
+  status: "WARNING" | "OK" | "ERROR";
+  title: ReactNode;
+  description: ReactNode;
+  children?: ReactNode;
+}) {
+  const iconByStatus: Record<typeof status, ReactNode> = {
+    OK: <CheckIcon className="text-success" />,
+    WARNING: <InfoIcon className="text-warning" />,
+    ERROR: <BanIcon className="text-destructive" />,
+  } as const;
 
-  const rowsByStatus = useMemo(() => {
-    const grouped: Record<UserPreferenceStatus["status"], typeof userPrefRows> =
-      {
-        UNASSIGNED: [],
-        ASSIGNED_NO_PREFS: [],
-        ASSIGNED_NON_PREFERRED: [],
-        GOT_PREFERENCE: [],
-      } as const;
+  return (
+    <Collapsible>
+      <Item variant="outline">
+        <ItemMedia variant="icon">{iconByStatus[status]}</ItemMedia>
+        <ItemContent>
+          <ItemTitle>{title}</ItemTitle>
+          <ItemDescription>{description}</ItemDescription>
+        </ItemContent>
+        {children && (
+          <>
+            <ItemActions>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="group w-full">
+                  <ChevronDownIcon className="ml-auto group-data-[state=open]:rotate-180" />
+                </Button>
+              </CollapsibleTrigger>
+            </ItemActions>
+            <CollapsibleContent className="overflow-scroll">
+              {children}
+            </CollapsibleContent>
+          </>
+        )}
+      </Item>
+    </Collapsible>
+  );
+}
 
-    for (const row of userPrefRows) {
-      const status = row.result.status;
-      if (grouped[status]) {
-        grouped[status].push(row);
-      }
-    }
+function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
+  const [{ grouped }] = api.validator.staffGotPreferences.useSuspenseQuery({
+    termId,
+  });
 
-    return grouped;
-  }, [userPrefRows]);
-
-  const strongPreferenceCount = rowsByStatus.GOT_PREFERENCE.filter(
-    (u) =>
-      u.result.status === "GOT_PREFERENCE" &&
-      u.result.level === "STRONGLY_PREFER",
+  const strongPreferenceCount = grouped.gotPreference.filter(
+    (u) => u.level === "STRONGLY_PREFER",
   ).length;
 
-  const preferenceCount = rowsByStatus.GOT_PREFERENCE.filter(
-    (u) => u.result.status === "GOT_PREFERENCE" && u.result.level === "PREFER",
+  const preferenceCount = grouped.gotPreference.filter(
+    (u) => u.level === "PREFER",
   ).length;
 
   return (
-    <div className="flex flex-col space-y-4">
-      <Collapsible>
-        <Item variant="outline">
-          <ItemMedia variant="icon">
-            {counts.UNASSIGNED === 0 ? (
-              <CheckIcon className="text-success" />
-            ) : (
-              <InfoIcon className="text-warning" />
-            )}
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Unassigned Staff</ItemTitle>
-            <ItemDescription>Count: {counts.UNASSIGNED}</ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="group w-full">
-                <ChevronDownIcon className="ml-auto group-data-[state=open]:rotate-180" />
-              </Button>
-            </CollapsibleTrigger>
-          </ItemActions>
-          <CollapsibleContent className="rounded-md border">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Roles</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {userPrefRows
-                  .filter((u) => u.result.status === "UNASSIGNED")
-                  .map((u) => (
-                    <TableRow key={u.userId}>
-                      <TableCell className="font-medium">{u.name}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>
-                        <Badge className="text-xs">{u.roles.join(", ")}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </CollapsibleContent>
-        </Item>
-      </Collapsible>
+    <>
+      <ValidatorDisplayItem
+        status={grouped.unassigned.length === 0 ? "OK" : "WARNING"}
+        title="Unassigned Staff"
+        description={`Count: ${grouped.unassigned.length}`}
+      >
+        <Table className="w-full">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Roles</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {grouped.unassigned.map(({ user }) => (
+              <TableRow key={user.userId}>
+                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ValidatorDisplayItem>
 
-      <Collapsible>
-        <Item variant="outline">
-          <ItemMedia variant="icon">
-            {counts.ASSIGNED_NO_PREFS === 0 ? (
-              <CheckIcon className="text-success" />
-            ) : (
-              <InfoIcon className="text-warning" />
-            )}
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Assigned staff w/o preferences</ItemTitle>
-            <ItemDescription>Count: {counts.ASSIGNED_NO_PREFS}</ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="group w-full">
-                <ChevronDownIcon className="ml-auto group-data-[state=open]:rotate-180" />
-              </Button>
-            </CollapsibleTrigger>
-          </ItemActions>
-          <CollapsibleContent className="overflow-scroll rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Name</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Roles</TableHead>
+      <ValidatorDisplayItem
+        status={
+          grouped.assignedButNoPreferencesSubmitted.length === 0
+            ? "OK"
+            : "WARNING"
+        }
+        title="Assigned staff w/o preferences"
+        description={`Count: ${grouped.assignedButNoPreferencesSubmitted.length}`}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Name</TableHead>
+              <TableHead>Course</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Roles</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {grouped.assignedButNoPreferencesSubmitted.map(
+              ({ user, assignment }) => (
+                <TableRow key={user.userId}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell>
+                    {assignment.courseCode}-{assignment.courseSection}
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rowsByStatus.ASSIGNED_NO_PREFS.map((u) => (
-                  <TableRow key={u.userId}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell>
-                      {u.result.status === "ASSIGNED_NO_PREFS" &&
-                        `${u.result.assignment.courseCode}-${u.result.assignment.courseSection}`}
-                    </TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <Badge className="text-xs">{u.roles.join(", ")}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CollapsibleContent>
-        </Item>
-      </Collapsible>
+              ),
+            )}
+          </TableBody>
+        </Table>
+      </ValidatorDisplayItem>
 
-      <Collapsible>
-        <Item variant="outline">
-          <ItemMedia variant="icon">
-            {counts.ASSIGNED_NO_PREFS === 0 ? (
-              <CheckIcon className="text-success" />
-            ) : (
-              <InfoIcon className="text-warning" />
-            )}
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>
-              Assigned staff that didn&apos;t get their preferences
-            </ItemTitle>
-            <ItemDescription>
-              Count: {counts.ASSIGNED_NON_PREFERRED}
-            </ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="group w-full">
-                <ChevronDownIcon className="ml-auto group-data-[state=open]:rotate-180" />
-              </Button>
-            </CollapsibleTrigger>
-          </ItemActions>
-          <CollapsibleContent className="overflow-scroll rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Name</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Roles</TableHead>
+      <ValidatorDisplayItem
+        status={
+          grouped.assignedButDidntGetPreferences.length === 0 ? "OK" : "WARNING"
+        }
+        title="Assigned staff that didn't get their preferences"
+        description={`Count: ${grouped.assignedButDidntGetPreferences.length}`}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Name</TableHead>
+              <TableHead>Course</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Roles</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {grouped.assignedButDidntGetPreferences.map(
+              ({ user, assignment }) => (
+                <TableRow key={user.userId}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell>
+                    {assignment.courseCode}-{assignment.courseSection}
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rowsByStatus.ASSIGNED_NON_PREFERRED.map((u) => (
-                  <TableRow key={u.userId}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell>
-                      {u.result.status === "ASSIGNED_NON_PREFERRED" &&
-                        `${u.result.assignment.courseCode}-${u.result.assignment.courseSection}`}
-                    </TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <Badge className="text-xs">{u.roles.join(", ")}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CollapsibleContent>
-        </Item>
-      </Collapsible>
+              ),
+            )}
+          </TableBody>
+        </Table>
+      </ValidatorDisplayItem>
 
-      <Collapsible>
-        <Item variant="outline">
-          <ItemMedia variant="icon">
-            {counts.ASSIGNED_NO_PREFS === 0 ? (
-              <InfoIcon className="text-warning" />
-            ) : (
-              <CheckIcon className="text-success" />
-            )}
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>Assigned staff that got their preferences</ItemTitle>
-            <ItemDescription className="flex flex-col">
-              <p>Count: {counts.GOT_PREFERENCE}</p>
-              <p>Strong preference: {strongPreferenceCount}</p>
-              <p>Preference: {preferenceCount}</p>
-            </ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="group w-full">
-                <ChevronDownIcon className="ml-auto group-data-[state=open]:rotate-180" />
-              </Button>
-            </CollapsibleTrigger>
-          </ItemActions>
-          <CollapsibleContent className="overflow-scroll rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Name</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Preference</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Roles</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rowsByStatus.GOT_PREFERENCE.map((u) => (
-                  <TableRow key={u.userId}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell>
-                      {u.result.status === "GOT_PREFERENCE" &&
-                        `${u.result.assignment.courseCode}-${u.result.assignment.courseSection}`}
-                    </TableCell>
-                    <TableCell>
-                      {u.result.status === "GOT_PREFERENCE" && (
-                        <Badge variant="outline">
-                          {humanizeKey(u.result.level)}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <Badge className="text-xs">{u.roles.join(", ")}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CollapsibleContent>
-        </Item>
-      </Collapsible>
-    </div>
+      <ValidatorDisplayItem
+        status={grouped.gotPreference.length === 0 ? "ERROR" : "OK"}
+        title="Assigned staff that got their preferences"
+        description={
+          <div className="flex flex-col">
+            <p>Count: {grouped.gotPreference.length}</p>
+            <p>Strong preference: {strongPreferenceCount}</p>
+            <p>Preference: {preferenceCount}</p>
+          </div>
+        }
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Name</TableHead>
+              <TableHead>Course</TableHead>
+              <TableHead>Preference</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Roles</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {grouped.gotPreference.map(({ user, assignment, level }) => (
+              <TableRow key={user.userId}>
+                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>
+                  {assignment.courseCode}-{assignment.courseSection}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">{humanizeKey(level)}</Badge>
+                </TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ValidatorDisplayItem>
+    </>
   );
 }
