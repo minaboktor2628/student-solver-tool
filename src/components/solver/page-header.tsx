@@ -34,7 +34,6 @@ import {
 import { Confirm } from "../confirm-action-wrapper";
 import { ValidatorDisplay } from "./validator-display";
 import { GlobalSuspense } from "../global-suspense";
-import { ScrollArea } from "../ui/scroll-area";
 
 export type SolverPageHeaderProps = {
   termId: string;
@@ -144,7 +143,7 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
                   Check important solver stats here.
                 </SheetDescription>
               </SheetHeader>
-              <div className="flex-1 gap-6 px-4">
+              <div className="flex-1 gap-6 overflow-scroll px-4">
                 <GlobalSuspense>
                   <ValidatorDisplay termId={termId} />
                 </GlobalSuspense>

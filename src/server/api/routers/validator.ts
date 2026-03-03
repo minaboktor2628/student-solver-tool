@@ -5,14 +5,14 @@ import type { PreferenceLevel } from "@prisma/client";
 
 const termInput = z.object({ termId: z.string() });
 
-type AssignmentInfo = {
+export type AssignmentInfo = {
   sectionId: string;
   courseCode: string;
   courseSection: string;
   courseTitle: string;
 };
 
-type UserPreferenceStatus =
+export type UserPreferenceStatus =
   | {
       status: "UNASSIGNED"; // no SectionAssignment in this term
     }
@@ -122,6 +122,7 @@ export const validatorRoute = createTRPCRouter({
             userId: user.id,
             name: user.name,
             email: user.email,
+            roles: user.roles.map((r) => r.role),
             result,
           };
         }
@@ -143,6 +144,7 @@ export const validatorRoute = createTRPCRouter({
             userId: user.id,
             name: user.name,
             email: user.email,
+            roles: user.roles.map((r) => r.role),
             result,
           };
         }
@@ -161,6 +163,7 @@ export const validatorRoute = createTRPCRouter({
             userId: user.id,
             name: user.name,
             email: user.email,
+            roles: user.roles.map((r) => r.role),
             result,
           };
         }
@@ -175,6 +178,7 @@ export const validatorRoute = createTRPCRouter({
           userId: user.id,
           name: user.name,
           email: user.email,
+          roles: user.roles.map((r) => r.role),
           result,
         };
       });
