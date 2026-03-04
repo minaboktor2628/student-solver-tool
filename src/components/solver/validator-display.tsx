@@ -28,12 +28,14 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { type ReactNode } from "react";
 import { humanizeKey } from "@/lib/utils";
+import type { IllegalAssignment } from "@/server/api/routers/validator";
 
 type ValidatorDisplayProps = { termId: string };
 
 export function ValidatorDisplay({ termId }: ValidatorDisplayProps) {
   return (
     <div className="flex flex-col space-y-4">
+      <ValidatorIllegalAssignment termId={termId} />
       <ValidatorStaffGotPreferences termId={termId} />
     </div>
   );
@@ -83,25 +85,101 @@ function ValidatorDisplayItem({
   );
 }
 
-function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
-  const [{ grouped }] = api.validator.staffGotPreferences.useSuspenseQuery({
+function ValidatorIllegalAssignment({ termId }: ValidatorDisplayProps) {
+  const [
+    { notAvailableForTerm, notQualifiedForSection, professorAvoidedStaff },
+  ] = api.validator.illegalAssignment.useSuspenseQuery({
     termId,
   });
 
-  const strongPreferenceCount = grouped.gotPreference.filter(
+  function IllegalAssignmentTable({
+    illegalAssignments,
+  }: {
+    illegalAssignments: IllegalAssignment[];
+  }) {
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[100px]">Name</TableHead>
+            <TableHead>Course</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Roles</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {illegalAssignments.map(({ user, assignment }) => (
+            <TableRow key={user.userId}>
+              <TableCell className="font-medium">{user.name}</TableCell>
+              <TableCell>
+                {assignment.courseCode}-{assignment.courseSection}
+              </TableCell>
+              <TableCell>{user.email}</TableCell>
+              <TableCell>
+                <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  return (
+    <>
+      <ValidatorDisplayItem
+        status={notAvailableForTerm.length === 0 ? "OK" : "ERROR"}
+        title="Assignments where assistant is not available for the term"
+        description={`Count: ${notAvailableForTerm.length}`}
+      >
+        <IllegalAssignmentTable illegalAssignments={notAvailableForTerm} />
+      </ValidatorDisplayItem>
+      <ValidatorDisplayItem
+        status={notQualifiedForSection.length === 0 ? "OK" : "ERROR"}
+        title="Assignments where assistant is unqualified"
+        description={`Count: ${notQualifiedForSection.length}`}
+      >
+        <IllegalAssignmentTable illegalAssignments={notQualifiedForSection} />
+      </ValidatorDisplayItem>
+      <ValidatorDisplayItem
+        status={professorAvoidedStaff.length === 0 ? "OK" : "ERROR"}
+        title="Assignments where assistnat is an anti-preference of the teaching professor"
+        description={`Count: ${professorAvoidedStaff.length}`}
+      >
+        <IllegalAssignmentTable illegalAssignments={professorAvoidedStaff} />
+      </ValidatorDisplayItem>
+    </>
+  );
+}
+
+function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
+  const [
+    {
+      grouped: {
+        gotPreference,
+        unassigned,
+        assignedButDidntGetPreferences,
+        assignedButNoPreferencesSubmitted,
+      },
+    },
+  ] = api.validator.staffAssignmentPreferences.useSuspenseQuery({
+    termId,
+  });
+
+  const strongPreferenceCount = gotPreference.filter(
     (u) => u.level === "STRONGLY_PREFER",
   ).length;
 
-  const preferenceCount = grouped.gotPreference.filter(
+  const preferenceCount = gotPreference.filter(
     (u) => u.level === "PREFER",
   ).length;
 
   return (
     <>
       <ValidatorDisplayItem
-        status={grouped.unassigned.length === 0 ? "OK" : "WARNING"}
+        status={unassigned.length === 0 ? "OK" : "WARNING"}
         title="Unassigned Staff"
-        description={`Count: ${grouped.unassigned.length}`}
+        description={`Count: ${unassigned.length}`}
       >
         <Table className="w-full">
           <TableHeader>
@@ -112,7 +190,7 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {grouped.unassigned.map(({ user }) => (
+            {unassigned.map(({ user }) => (
               <TableRow key={user.userId}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
@@ -127,12 +205,10 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
 
       <ValidatorDisplayItem
         status={
-          grouped.assignedButNoPreferencesSubmitted.length === 0
-            ? "OK"
-            : "WARNING"
+          assignedButNoPreferencesSubmitted.length === 0 ? "OK" : "WARNING"
         }
         title="Assigned staff w/o preferences"
-        description={`Count: ${grouped.assignedButNoPreferencesSubmitted.length}`}
+        description={`Count: ${assignedButNoPreferencesSubmitted.length}`}
       >
         <Table>
           <TableHeader>
@@ -144,30 +220,26 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {grouped.assignedButNoPreferencesSubmitted.map(
-              ({ user, assignment }) => (
-                <TableRow key={user.userId}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>
-                    {assignment.courseCode}-{assignment.courseSection}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge className="text-xs">{user.roles.join(", ")}</Badge>
-                  </TableCell>
-                </TableRow>
-              ),
-            )}
+            {assignedButNoPreferencesSubmitted.map(({ user, assignment }) => (
+              <TableRow key={user.userId}>
+                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>
+                  {assignment.courseCode}-{assignment.courseSection}
+                </TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </ValidatorDisplayItem>
 
       <ValidatorDisplayItem
-        status={
-          grouped.assignedButDidntGetPreferences.length === 0 ? "OK" : "WARNING"
-        }
+        status={assignedButDidntGetPreferences.length === 0 ? "OK" : "WARNING"}
         title="Assigned staff that didn't get their preferences"
-        description={`Count: ${grouped.assignedButDidntGetPreferences.length}`}
+        description={`Count: ${assignedButDidntGetPreferences.length}`}
       >
         <Table>
           <TableHeader>
@@ -179,33 +251,31 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {grouped.assignedButDidntGetPreferences.map(
-              ({ user, assignment }) => (
-                <TableRow key={user.userId}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>
-                    {assignment.courseCode}-{assignment.courseSection}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge className="text-xs">{user.roles.join(", ")}</Badge>
-                  </TableCell>
-                </TableRow>
-              ),
-            )}
+            {assignedButDidntGetPreferences.map(({ user, assignment }) => (
+              <TableRow key={user.userId}>
+                <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell>
+                  {assignment.courseCode}-{assignment.courseSection}
+                </TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </ValidatorDisplayItem>
 
       <ValidatorDisplayItem
-        status={grouped.gotPreference.length === 0 ? "ERROR" : "OK"}
+        status={gotPreference.length === 0 ? "ERROR" : "OK"}
         title="Assigned staff that got their preferences"
         description={
-          <div className="flex flex-col">
-            <p>Count: {grouped.gotPreference.length}</p>
-            <p>Strong preference: {strongPreferenceCount}</p>
-            <p>Preference: {preferenceCount}</p>
-          </div>
+          <span className="flex flex-col">
+            <span>Count: {gotPreference.length}</span>
+            <span>Strong preference: {strongPreferenceCount}</span>
+            <span>Preference: {preferenceCount}</span>
+          </span>
         }
       >
         <Table>
@@ -219,7 +289,7 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {grouped.gotPreference.map(({ user, assignment, level }) => (
+            {gotPreference.map(({ user, assignment, level }) => (
               <TableRow key={user.userId}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>
