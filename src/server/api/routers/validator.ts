@@ -210,6 +210,102 @@ export const validatorRoute = createTRPCRouter({
       throw new TRPCError({ code: "NOT_IMPLEMENTED" });
     }),
 
+  courseNeedsMet: coordinatorProcedure
+    .input(termInput)
+    .query(async ({ input: { termId }, ctx }) => {
+      const sections = await ctx.db.section.findMany({
+        where: { termId },
+        select: {
+          id: true,
+          courseCode: true,
+          courseSection: true,
+          courseTitle: true,
+          requiredHours: true,
+          assignments: {
+            select: {
+              staff: {
+                select: {
+                  id: true,
+                  hours: true,
+                  roles: true,
+                  staffPreferences: {
+                    where: { termId },
+                    select: { isAvailableForTerm: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (sections.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      type SectionHours = AssignmentInfo & {
+        neededHours: number;
+        assignedHours: number;
+        delta: number; // assigned - needed (negative => short)
+        status: "SHORT" | "OVER" | "MET";
+      };
+
+      const perSection: SectionHours[] = [];
+
+      let totalNeededHours = 0;
+      let totalAssignedHours = 0;
+
+      for (const s of sections) {
+        const neededHours = s.requiredHours ?? 0;
+        totalNeededHours += neededHours;
+
+        // sum hours for assigned staff who are (TA/PLA/GLA) AND available this term
+        const assignedHours = s.assignments.reduce((sum, a) => {
+          const staff = a.staff;
+
+          const isStaffRole = staff.roles.some((r) =>
+            ["TA", "PLA", "GLA"].includes(r.role),
+          );
+
+          const staffPref = staff.staffPreferences[0] ?? null;
+          const isAvailable = staffPref?.isAvailableForTerm === true;
+
+          if (!isStaffRole || !isAvailable) return sum;
+
+          return sum + (staff.hours ?? 0);
+        }, 0);
+
+        totalAssignedHours += assignedHours;
+
+        const delta = assignedHours - neededHours;
+        const status: SectionHours["status"] =
+          delta === 0 ? "MET" : delta < 0 ? "SHORT" : "OVER";
+
+        perSection.push({
+          sectionId: s.id,
+          courseCode: s.courseCode,
+          courseSection: s.courseSection,
+          courseTitle: s.courseTitle,
+          neededHours,
+          assignedHours,
+          delta,
+          status,
+        });
+      }
+
+      const short = perSection.filter((x) => x.status === "SHORT");
+      const over = perSection.filter((x) => x.status === "OVER");
+
+      return {
+        totalNeededHours,
+        totalAssignedHours,
+        totalsDelta: totalAssignedHours - totalNeededHours,
+        short, // list of classes short of hours
+        over, // list of classes over hours
+        perSection, //  full breakdown
+      };
+    }),
+
   illegalAssignment: coordinatorProcedure
     .input(termInput)
     .query(async ({ input: { termId }, ctx }) => {

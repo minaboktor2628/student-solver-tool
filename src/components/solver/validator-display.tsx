@@ -37,6 +37,7 @@ export function ValidatorDisplay({ termId }: ValidatorDisplayProps) {
     <div className="flex flex-col space-y-4">
       <ValidatorIllegalAssignment termId={termId} />
       <ValidatorStaffGotPreferences termId={termId} />
+      <ValidatorCourseNeedsMet termId={termId} />
     </div>
   );
 }
@@ -124,6 +125,64 @@ function AssignmentTable({
         </TableBody>
       </Table>
     </div>
+  );
+}
+function ValidatorCourseNeedsMet({ termId }: ValidatorDisplayProps) {
+  const [{ totalAssignedHours, over, short, totalNeededHours }] =
+    api.validator.courseNeedsMet.useSuspenseQuery({
+      termId,
+    });
+
+  return (
+    <>
+      <ValidatorDisplayItem
+        status={short.length === 0 || over.length === 0 ? "OK" : "WARNING"}
+        title="Course help hours needs met"
+        description={`Total assigned hours / total needed hours: ${totalAssignedHours}/${totalNeededHours}`}
+      >
+        <div className="w-full rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">Title</TableHead>
+                <TableHead className="text-right">Needed</TableHead>
+                <TableHead className="text-right">Assigned</TableHead>
+                <TableHead className="text-right">Delta</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...over, ...short].map((section) => (
+                <TableRow key={section.sectionId}>
+                  <TableCell className="font-medium">
+                    {section.courseCode}-{section.courseSection}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {section.neededHours}h
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {section.assignedHours}h
+                  </TableCell>
+                  <TableCell className="text-right">{section.delta}h</TableCell>
+                  <TableCell className="text-right">
+                    <Badge className="text-xs" variant="warning">
+                      {section.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {over.length === 0 && short.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-12 text-center">
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </ValidatorDisplayItem>
+    </>
   );
 }
 
