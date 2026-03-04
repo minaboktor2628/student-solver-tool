@@ -75,7 +75,7 @@ function ValidatorDisplayItem({
                 </Button>
               </CollapsibleTrigger>
             </ItemActions>
-            <CollapsibleContent className="overflow-scroll">
+            <CollapsibleContent className="flex w-full flex-col items-center justify-center overflow-scroll">
               {children}
             </CollapsibleContent>
           </>
@@ -85,19 +85,13 @@ function ValidatorDisplayItem({
   );
 }
 
-function ValidatorIllegalAssignment({ termId }: ValidatorDisplayProps) {
-  const [
-    { notAvailableForTerm, notQualifiedForSection, professorAvoidedStaff },
-  ] = api.validator.illegalAssignment.useSuspenseQuery({
-    termId,
-  });
-
-  function IllegalAssignmentTable({
-    illegalAssignments,
-  }: {
-    illegalAssignments: IllegalAssignment[];
-  }) {
-    return (
+function AssignmentTable({
+  assignments,
+}: {
+  assignments: IllegalAssignment[];
+}) {
+  return (
+    <div className="w-full rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -108,7 +102,7 @@ function ValidatorIllegalAssignment({ termId }: ValidatorDisplayProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {illegalAssignments.map(({ user, assignment }) => (
+          {assignments.map(({ user, assignment }) => (
             <TableRow key={user.userId}>
               <TableCell className="font-medium">{user.name}</TableCell>
               <TableCell>
@@ -120,10 +114,25 @@ function ValidatorIllegalAssignment({ termId }: ValidatorDisplayProps) {
               </TableCell>
             </TableRow>
           ))}
+          {assignments.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={4} className="h-12 text-center">
+                No results.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
-    );
-  }
+    </div>
+  );
+}
+
+function ValidatorIllegalAssignment({ termId }: ValidatorDisplayProps) {
+  const [
+    { notAvailableForTerm, notQualifiedForSection, professorAvoidedStaff },
+  ] = api.validator.illegalAssignment.useSuspenseQuery({
+    termId,
+  });
 
   return (
     <>
@@ -132,21 +141,21 @@ function ValidatorIllegalAssignment({ termId }: ValidatorDisplayProps) {
         title="Assignments where assistant is not available for the term"
         description={`Count: ${notAvailableForTerm.length}`}
       >
-        <IllegalAssignmentTable illegalAssignments={notAvailableForTerm} />
+        <AssignmentTable assignments={notAvailableForTerm} />
       </ValidatorDisplayItem>
       <ValidatorDisplayItem
         status={notQualifiedForSection.length === 0 ? "OK" : "ERROR"}
         title="Assignments where assistant is unqualified"
         description={`Count: ${notQualifiedForSection.length}`}
       >
-        <IllegalAssignmentTable illegalAssignments={notQualifiedForSection} />
+        <AssignmentTable assignments={notQualifiedForSection} />
       </ValidatorDisplayItem>
       <ValidatorDisplayItem
         status={professorAvoidedStaff.length === 0 ? "OK" : "ERROR"}
         title="Assignments where assistnat is an anti-preference of the teaching professor"
         description={`Count: ${professorAvoidedStaff.length}`}
       >
-        <IllegalAssignmentTable illegalAssignments={professorAvoidedStaff} />
+        <AssignmentTable assignments={professorAvoidedStaff} />
       </ValidatorDisplayItem>
     </>
   );
@@ -181,26 +190,17 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
         title="Unassigned Staff"
         description={`Count: ${unassigned.length}`}
       >
-        <Table className="w-full">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {unassigned.map(({ user }) => (
-              <TableRow key={user.userId}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <AssignmentTable
+          assignments={unassigned.map((row) => ({
+            user: row.user,
+            assignment: {
+              courseCode: "n/a",
+              sectionId: "n/a",
+              courseSection: "n/a",
+              courseTitle: "n/a",
+            },
+          }))}
+        />
       </ValidatorDisplayItem>
 
       <ValidatorDisplayItem
@@ -210,30 +210,7 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
         title="Assigned staff w/o preferences"
         description={`Count: ${assignedButNoPreferencesSubmitted.length}`}
       >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Name</TableHead>
-              <TableHead>Course</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assignedButNoPreferencesSubmitted.map(({ user, assignment }) => (
-              <TableRow key={user.userId}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>
-                  {assignment.courseCode}-{assignment.courseSection}
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <AssignmentTable assignments={assignedButNoPreferencesSubmitted} />
       </ValidatorDisplayItem>
 
       <ValidatorDisplayItem
@@ -241,30 +218,7 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
         title="Assigned staff that didn't get their preferences"
         description={`Count: ${assignedButDidntGetPreferences.length}`}
       >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Name</TableHead>
-              <TableHead>Course</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assignedButDidntGetPreferences.map(({ user, assignment }) => (
-              <TableRow key={user.userId}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>
-                  {assignment.courseCode}-{assignment.courseSection}
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <AssignmentTable assignments={assignedButDidntGetPreferences} />
       </ValidatorDisplayItem>
 
       <ValidatorDisplayItem
@@ -278,34 +232,36 @@ function ValidatorStaffGotPreferences({ termId }: ValidatorDisplayProps) {
           </span>
         }
       >
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Name</TableHead>
-              <TableHead>Course</TableHead>
-              <TableHead>Preference</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Roles</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {gotPreference.map(({ user, assignment, level }) => (
-              <TableRow key={user.userId}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>
-                  {assignment.courseCode}-{assignment.courseSection}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{humanizeKey(level)}</Badge>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge className="text-xs">{user.roles.join(", ")}</Badge>
-                </TableCell>
+        <div className="w-full rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">Name</TableHead>
+                <TableHead>Course</TableHead>
+                <TableHead>Preference</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Roles</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {gotPreference.map(({ user, assignment, level }) => (
+                <TableRow key={user.userId}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell>
+                    {assignment.courseCode}-{assignment.courseSection}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{humanizeKey(level)}</Badge>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge className="text-xs">{user.roles.join(", ")}</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </ValidatorDisplayItem>
     </>
   );
