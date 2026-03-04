@@ -2,6 +2,11 @@ import z from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import type { PreferenceLevel } from "@prisma/client";
+import {
+  calculateCoverage,
+  type CoverageStats,
+  type Slot,
+} from "@/lib/schedule-coverage";
 
 const termInput = z.object({ termId: z.string() });
 
@@ -204,13 +209,130 @@ export const validatorRoute = createTRPCRouter({
       return { grouped };
     }),
 
-  professorCoverage: coordinatorProcedure
+  courseSchedulingNeedsMet: coordinatorProcedure
     .input(termInput)
     .query(async ({ input: { termId }, ctx }) => {
-      throw new TRPCError({ code: "NOT_IMPLEMENTED" });
+      const sections = await ctx.db.section.findMany({
+        where: { termId },
+        select: {
+          id: true,
+          courseCode: true,
+          courseSection: true,
+          courseTitle: true,
+          professorPreference: {
+            select: {
+              timesRequired: {
+                select: { day: true, hour: true },
+              },
+            },
+          },
+
+          assignments: {
+            select: {
+              staff: {
+                select: {
+                  roles: true,
+                  staffPreferences: {
+                    where: { termId },
+                    select: {
+                      isAvailableForTerm: true,
+                      timesAvailable: {
+                        select: { day: true, hour: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // findMany returns [] when nothing matches
+      if (sections.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      type SectionScheduleCoverage = AssignmentInfo & CoverageStats;
+
+      const perSection: SectionScheduleCoverage[] = [];
+
+      let totalNeeded = 0;
+      let totalCovered = 0;
+
+      for (const s of sections) {
+        const assignmentInfo: AssignmentInfo = {
+          sectionId: s.id,
+          courseCode: s.courseCode,
+          courseSection: s.courseSection,
+          courseTitle: s.courseTitle,
+        };
+
+        // Needed slots: professorPreference.timesRequired
+        const neededSlots: Slot[] =
+          s.professorPreference?.timesRequired.map((t) => ({
+            day: t.day,
+            hour: t.hour,
+          })) ?? [];
+
+        // Available slots: union of timesAvailable from assigned staff (TA/PLA/GLA) who are available this term
+        const availableSlots: Slot[] = [];
+
+        for (const a of s.assignments) {
+          const staff = a.staff;
+
+          const isStaffRole = staff.roles.some((r) =>
+            ["TA", "PLA", "GLA"].includes(r.role),
+          );
+          if (!isStaffRole) continue;
+
+          const pref = staff.staffPreferences[0] ?? null;
+          if (!pref || pref.isAvailableForTerm !== true) continue;
+
+          for (const t of pref.timesAvailable) {
+            availableSlots.push({ day: t.day, hour: t.hour });
+          }
+        }
+
+        const coverage = calculateCoverage(neededSlots, availableSlots);
+
+        totalNeeded += coverage.totalNeeded;
+        totalCovered += coverage.totalCovered;
+
+        perSection.push({
+          ...assignmentInfo,
+          totalNeeded: coverage.totalNeeded,
+          totalCovered: coverage.totalCovered,
+          percent: coverage.percent,
+          covered: coverage.covered,
+          uncovered: coverage.uncovered,
+        });
+      }
+
+      const short = perSection.filter((x) => x.uncovered.length > 0);
+      const met = perSection.filter((x) => x.uncovered.length === 0);
+
+      const overallPercent =
+        totalNeeded === 0
+          ? 100
+          : Math.round((totalCovered / totalNeeded) * 100 * 100) / 100;
+
+      // sort "short" by worst coverage first
+      short.sort((a, b) => a.percent - b.percent);
+
+      return {
+        totals: {
+          totalNeeded,
+          totalCovered,
+          percent: overallPercent,
+        },
+        short,
+        met,
+        perSection,
+      };
     }),
 
-  courseNeedsMet: coordinatorProcedure
+  courseHelpHoursNeedsMet: coordinatorProcedure
     .input(termInput)
     .query(async ({ input: { termId }, ctx }) => {
       const sections = await ctx.db.section.findMany({
