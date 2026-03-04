@@ -1,6 +1,7 @@
 {
   "name": "student-teaching-staff",
-  "version": "0.1.0",
+  "url": "sts.cs.wpi.edu",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
