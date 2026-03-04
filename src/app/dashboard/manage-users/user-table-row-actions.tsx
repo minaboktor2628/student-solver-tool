@@ -38,6 +38,7 @@ import { FormCombobox, FormInput } from "@/components/form";
 import { Role } from "@prisma/client";
 import Link from "next/link";
 import { updateUserInputSchema } from "@/types/form-inputs";
+import { Confirm } from "@/components/confirm-action-wrapper";
 
 export function UserTableRowAction({
   termId,
@@ -208,10 +209,14 @@ export function UserTableRowAction({
             </DialogContent>
           </Dialog>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={handleDelete}>
-            {/*TODO: add alert dialog*/}
-            <Trash2 className="h-4 w-4" /> Delete
-          </DropdownMenuItem>
+          <Confirm action={handleDelete}>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={(e) => e.preventDefault()}
+            >
+              <Trash2 className="h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          </Confirm>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
