@@ -25,7 +25,7 @@ services:
       - "3000"
     env_file:
       - .env
-    enviroment:
+    environment:
       # production needs this path for db. it will override whatever is in the .env file.
       DATABASE_URL: "file:/data/prod.db"
     volumes:
