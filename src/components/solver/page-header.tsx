@@ -136,6 +136,7 @@ export function SolverPageHeader({ termId }: SolverPageHeaderProps) {
     </div>
   );
 }
+
 function ValidatorSheet({ termId }: { termId: string }) {
   return (
     <Sheet>
