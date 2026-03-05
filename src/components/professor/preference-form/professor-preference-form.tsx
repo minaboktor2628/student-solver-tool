@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { SelectAssistantPref } from "./select-assistant-pref";
 import { SelectRequiredTimes } from "./select-required-times";
 import { FormEntryComments } from "./comment-box";
-import type { Slot } from "@/lib/schedule-selector";
+import type { Slot } from "@/lib/schedule-coverage";
 import { Separator } from "@/components/ui/separator";
 import type { User } from "next-auth";
 import { useRouter } from "next/navigation";

@@ -17,14 +17,13 @@ import {
 } from "../ui/table";
 import { Badge } from "../ui/badge";
 import {
-  calculateCoverage,
-  dedupe,
   slotToDate,
   dateToSlot,
   stylesByStatus,
   BaseScheduleSelector,
-  slotToKey,
 } from "@/lib/schedule-selector";
+import { dedupe, slotToKey } from "@/lib/schedule-coverage";
+import { calculateCoverage } from "@/lib/schedule-coverage";
 import { cn } from "@/lib/utils";
 
 type SectionInfoCardProps = {

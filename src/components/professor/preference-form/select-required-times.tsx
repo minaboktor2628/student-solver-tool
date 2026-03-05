@@ -4,10 +4,9 @@ import React, { useState } from "react";
 import {
   BaseScheduleSelector,
   dateToSlot,
-  isSlot,
   slotToDate,
-  type Slot,
 } from "@/lib/schedule-selector";
+import { isSlot, type Slot } from "@/lib/schedule-coverage";
 import {
   Item,
   ItemActions,
