@@ -43,6 +43,7 @@ export const dashboardRoute = createTRPCRouter({
 
           const plas = staffList.filter((s) => s.roles.includes("PLA"));
           const tas = staffList.filter((s) => s.roles.includes("TA"));
+          const glas = staffList.filter((s) => s.roles.includes("GLA"));
 
           const staffEmails = staffList
             .map((s) => s.email)
@@ -63,6 +64,7 @@ export const dashboardRoute = createTRPCRouter({
             academicLevel,
             plas: plas.map((p) => p.name),
             tas: tas.map((p) => p.name),
+            glas: glas.map((p) => p.name),
             // if you want them per section in the future
             // emails: sectionEmails,
           };
@@ -206,13 +208,15 @@ export const dashboardRoute = createTRPCRouter({
           ? Math.round((staffSubmittedCount / staffTotalCount) * 100)
           : 0;
 
-      // Compute total available hours using role based increments per submission.
-      // TA submissions add 20, PLA submissions add 10
-      // Compute total available hours from each submitted user's hours field.
-      const totalAvailableHours = submittedStaff.reduce(
-        (sum, s) => sum + s.hours,
-        0,
-      );
+      // Compute total available hours from each submitted user's hours field if they are available
+      const totalAvailableHours = submittedStaff.reduce((sum, s) => {
+        const pref =
+          s.staffPreferences && s.staffPreferences.length > 0
+            ? s.staffPreferences[0]
+            : null;
+        const isAvailable = pref ? pref.isAvailableForTerm : false;
+        return sum + (isAvailable ? s.hours : 0);
+      }, 0);
 
       const roleStats: Record<
         "TA" | "PLA",

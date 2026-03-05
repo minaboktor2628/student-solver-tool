@@ -4,7 +4,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { calculateCoverage, type Slot } from "@/lib/schedule-selector";
+import { calculateCoverage, type Slot } from "@/lib/schedule-coverage";
 import { CalendarIcon } from "lucide-react";
 
 export type SectionSolverScheduleCoverageProp = {
