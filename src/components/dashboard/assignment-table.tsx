@@ -75,6 +75,19 @@ export function AssignmentTable({ termId }: { termId: string }) {
             );
           },
         },
+        {
+          id: "glas",
+          header: "GLA's",
+          accessorFn: (row) => row.glas.join("; "),
+          cell: ({ row }) => {
+            const content = row.original.glas.join("; ");
+            return (
+              <p title={content} className="max-w-[12rem] truncate">
+                {content}
+              </p>
+            );
+          },
+        },
       ]}
     />
   );
