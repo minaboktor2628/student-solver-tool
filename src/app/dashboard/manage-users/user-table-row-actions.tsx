@@ -4,7 +4,6 @@ import type { UserTableRow } from "./manage-users-content";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createUserInputSchema } from "@/types/form-inputs";
 import {
   Edit,
   LockIcon,
@@ -38,6 +37,8 @@ import type z from "zod";
 import { FormCombobox, FormInput } from "@/components/form";
 import { Role } from "@prisma/client";
 import Link from "next/link";
+import { updateUserInputSchema } from "@/types/form-inputs";
+import { Confirm } from "@/components/confirm-action-wrapper";
 
 export function UserTableRowAction({
   termId,
@@ -78,11 +79,13 @@ export function UserTableRowAction({
   });
 
   const editForm = useForm({
-    resolver: zodResolver(createUserInputSchema),
+    resolver: zodResolver(updateUserInputSchema),
     defaultValues: {
+      userId: user.id,
       name: user.name ?? "",
       email: user.email ?? "",
       role: user.roles[0] ?? ("PLA" as const),
+      hours: user.hours ?? 0,
     },
   });
 
@@ -94,11 +97,8 @@ export function UserTableRowAction({
     toggleUserLockMutation.mutate({ userId, termId });
   }
 
-  function onEdit(values: z.infer<typeof createUserInputSchema>) {
-    updateUserMutation.mutate({
-      userId: user.id,
-      ...values,
-    });
+  function onEdit(values: z.infer<typeof updateUserInputSchema>) {
+    updateUserMutation.mutate(values);
   }
 
   return (
@@ -185,6 +185,11 @@ export function UserTableRowAction({
                     label: value,
                   }))}
                 />
+                <FormInput
+                  control={editForm.control}
+                  name="hours"
+                  label="Hours"
+                />
                 <DialogFooter>
                   <Button type="submit" disabled={updateUserMutation.isPending}>
                     {updateUserMutation.isPending ? (
@@ -204,10 +209,14 @@ export function UserTableRowAction({
             </DialogContent>
           </Dialog>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={handleDelete}>
-            {/*TODO: add alert dialog*/}
-            <Trash2 className="h-4 w-4" /> Delete
-          </DropdownMenuItem>
+          <Confirm action={handleDelete}>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={(e) => e.preventDefault()}
+            >
+              <Trash2 className="h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          </Confirm>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

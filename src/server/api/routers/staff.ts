@@ -7,6 +7,7 @@ import {
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { Role, type Day, type PreferenceLevel } from "@prisma/client";
+import { updateUserInputSchema } from "@/types/form-inputs";
 
 type StaffMember = {
   id: string;
@@ -295,95 +296,78 @@ export const staffRoute = createTRPCRouter({
     }),
 
   updateUser: coordinatorProcedure
-    .input(
-      z.object({
-        userId: z.string(),
-        name: z.string().optional(),
-        email: z.string().email().optional(),
-        role: z.nativeEnum(Role).optional(),
-        hours: z.number().optional(),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const { userId, name, email, role, hours } = input;
-
-      // Check if user exists
-      const existingUser = await ctx.db.user.findUnique({
-        where: { id: userId },
-        include: { roles: true },
-      });
-
-      if (!existingUser) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
+    .input(updateUserInputSchema)
+    .mutation(async ({ input: { userId, name, email, role, hours }, ctx }) => {
+      return ctx.db.$transaction(async (db) => {
+        // Check if user exists
+        const existingUser = await db.user.findUnique({
+          where: { id: userId },
+          include: { roles: true },
         });
-      }
 
-      // Check if coordinator role
-      const isCoordinator = existingUser.roles.some(
-        (r) => r.role === "COORDINATOR",
-      );
-      if (isCoordinator) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Cannot edit coordinator users",
-        });
-      }
+        if (!existingUser) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
 
-      // If email is being changed, check if new email already exists
-      if (email && email !== existingUser.email) {
-        const emailExists = await ctx.db.user.findUnique({
-          where: { email },
-        });
-        if (emailExists) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Email already in use",
+        // If email is being changed, check if new email already exists
+        if (email && email !== existingUser.email) {
+          const emailExists = await db.user.findUnique({ where: { email } });
+
+          if (emailExists) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Email already in use",
+            });
+          }
+        }
+
+        // Update user
+        const updateData: {
+          name?: string;
+          email?: string;
+          hours?: number;
+        } = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (hours !== undefined) updateData.hours = hours;
+
+        const roleChanged =
+          role !== undefined &&
+          !existingUser.roles.some((r) => r.role === role);
+
+        const hasUserChanges = Object.keys(updateData).length > 0;
+
+        // apply changes (only if needed)
+        if (hasUserChanges) {
+          await db.user.update({
+            where: { id: userId },
+            data: updateData,
           });
         }
-      }
 
-      // Update user
-      const updateData: {
-        name?: string;
-        email?: string;
-        hours?: number;
-      } = {};
-      if (name !== undefined) updateData.name = name;
-      if (email !== undefined) updateData.email = email;
-      if (hours !== undefined) updateData.hours = hours;
+        if (roleChanged) {
+          // Delete old roles (except COORDINATOR)
+          await db.userRole.deleteMany({
+            where: {
+              userId,
+              role: { not: "COORDINATOR" },
+            },
+          });
 
-      const user = await ctx.db.user.update({
-        where: { id: userId },
-        data: updateData,
-        include: { roles: true },
+          // Create new role
+          await db.userRole.create({
+            data: { userId, role },
+          });
+        }
+
+        // return fresh user
+        const user = await db.user.findUnique({
+          where: { id: userId },
+          include: { roles: true },
+        });
+
+        return { user };
       });
-
-      // Update role if provided and different
-      if (role && !existingUser.roles.some((r) => r.role === role)) {
-        // Delete old roles (except COORDINATOR)
-        await ctx.db.userRole.deleteMany({
-          where: {
-            userId,
-            role: { not: "COORDINATOR" },
-          },
-        });
-
-        // Create new role
-        await ctx.db.userRole.create({
-          data: {
-            userId,
-            role,
-          },
-        });
-      }
-
-      return {
-        success: true,
-        message: "User updated successfully",
-        user,
-      };
     }),
 
   deleteUser: coordinatorProcedure

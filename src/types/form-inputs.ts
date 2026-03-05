@@ -13,3 +13,11 @@ export const createUserInputSchema = z.object({
   email: z.string().email(),
   role: z.nativeEnum(Role),
 });
+
+export const updateUserInputSchema = z.object({
+  userId: z.string(),
+  name: z.string().optional(),
+  email: z.string().email().optional(),
+  role: z.nativeEnum(Role).optional(),
+  hours: z.number().int().nonnegative().optional(),
+});
