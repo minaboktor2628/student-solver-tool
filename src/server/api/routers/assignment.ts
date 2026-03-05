@@ -6,7 +6,6 @@ import {
   solveAssignments,
   solverStrategies,
 } from "@/lib/solver";
-import { api } from "@/trpc/server";
 
 export const assignmentRoute = createTRPCRouter({
   set: coordinatorProcedure

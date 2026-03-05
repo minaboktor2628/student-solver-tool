@@ -1,9 +1,7 @@
 "use client";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit, MoreHorizontal, RefreshCw, Save, Trash2 } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +23,7 @@ import type z from "zod";
 import type { CourseRow } from "./columns";
 import { SectionItemSchema } from "@/lib/courselisting-api";
 import { SingleSectionForm } from "@/components/dashboard/single-section-form";
+import { Confirm } from "@/components/confirm-action-wrapper";
 
 export function CourseTableRowAction({ course }: { course: CourseRow }) {
   const utils = api.useUtils();
@@ -91,10 +90,14 @@ export function CourseTableRowAction({ course }: { course: CourseRow }) {
             </DialogContent>
           </Dialog>
           <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={handleDelete}>
-            {/*TODO: add alert dialog*/}
-            <Trash2 className="h-4 w-4" /> Delete
-          </DropdownMenuItem>
+          <Confirm action={handleDelete}>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={(e) => e.preventDefault()}
+            >
+              <Trash2 className="h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          </Confirm>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

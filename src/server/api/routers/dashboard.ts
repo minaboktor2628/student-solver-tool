@@ -43,6 +43,7 @@ export const dashboardRoute = createTRPCRouter({
 
           const plas = staffList.filter((s) => s.roles.includes("PLA"));
           const tas = staffList.filter((s) => s.roles.includes("TA"));
+          const glas = staffList.filter((s) => s.roles.includes("GLA"));
 
           const staffEmails = staffList
             .map((s) => s.email)
@@ -63,6 +64,7 @@ export const dashboardRoute = createTRPCRouter({
             academicLevel,
             plas: plas.map((p) => p.name),
             tas: tas.map((p) => p.name),
+            glas: glas.map((p) => p.name),
             // if you want them per section in the future
             // emails: sectionEmails,
           };
