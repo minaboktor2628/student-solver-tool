@@ -104,6 +104,14 @@ export const professorDashboardRoute = createTRPCRouter({
                   name: true,
                   email: true,
                   roles: { select: { role: true } },
+                  staffPreferences: {
+                    where: {
+                      termId: input.termId,
+                    },
+                    include: {
+                      timesAvailable: true,
+                    },
+                  },
                 },
               },
             },
@@ -123,6 +131,7 @@ export const professorDashboardRoute = createTRPCRouter({
             name: a.staff.name,
             email: a.staff.email,
             roles: a.staff.roles.map((r) => r.role),
+            timesAvailable: a.staff.staffPreferences[0]?.timesAvailable ?? [],
           })),
         })),
       };
@@ -174,6 +183,7 @@ export const professorDashboardRoute = createTRPCRouter({
                   name: true,
                   email: true,
                   roles: { select: { role: true } },
+                  staffPreferences: { include: { timesAvailable: true } },
                 },
               },
             },
@@ -196,6 +206,8 @@ export const professorDashboardRoute = createTRPCRouter({
             name: assignment.staff.name,
             email: assignment.staff.email,
             roles: assignment.staff.roles.map((role) => role.role),
+            timesAvailable:
+              assignment.staff.staffPreferences[0]?.timesAvailable ?? [],
           })),
         })),
       };
