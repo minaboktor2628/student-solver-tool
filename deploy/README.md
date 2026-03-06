@@ -61,5 +61,5 @@ You can then copy the database to your local computer by running something like 
 > You can also change the destination path to something else if you wish.
 
 ```bash
-scp <your usernmae>@sts.cs.wpi.edu:/tmp/prod.db ./prisma/dev.db
+scp <your username>@sts.cs.wpi.edu:/tmp/prod.db ./prisma/dev.db
 ```
