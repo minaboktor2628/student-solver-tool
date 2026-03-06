@@ -1,5 +1,4 @@
 import { api } from "@/trpc/react";
-import { useTerm } from "@/components/term-combobox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -17,6 +16,7 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
   onExit,
 }) => {
   const utils = api.useUtils();
+  const [activeTerm] = api.term.getActive.useSuspenseQuery();
   const updateAvailabilityMutation =
     api.studentForm.saveStudentForm.useMutation({
       onError: (error) => {
@@ -38,12 +38,11 @@ const FormEntryAvailability: React.FC<AvailabilityProps> = ({
     });
   }
 
-  const { selectedTerm } = useTerm();
   return (
     <div className="text-center">
       <h2 className="mb-2 text-base font-semibold sm:text-lg md:text-xl">
-        Are you available to work for {selectedTerm?.termLetter} term{" "}
-        {selectedTerm?.year}?
+        Are you available to work for {activeTerm?.termLetter} term{" "}
+        {activeTerm?.year}?
       </h2>
       <div className="flex flex-col justify-center gap-4">
         <Button

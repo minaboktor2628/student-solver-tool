@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { DeadlineCard } from "@/components/staff/staff-deadline-card";
-import { useTerm } from "@/components/term-combobox";
 import { Header } from "@/components/staff/staff-dashboard-header";
 import { api } from "@/trpc/react";
 import StaffDashboardFormSumary from "./staff-dashboard-form-summary";
@@ -11,7 +10,7 @@ interface StaffHomePageProps {
   userId: string;
 }
 const StaffHomePage: React.FC<StaffHomePageProps> = ({ userId }) => {
-  const { active: activeTerm } = useTerm();
+  const [activeTerm] = api.term.getActive.useSuspenseQuery();
   if (!activeTerm) throw new Error("Term is invalid.");
 
   const [currentAssignment] =
