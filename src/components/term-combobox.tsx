@@ -74,21 +74,9 @@ const NO_ACTIVE: Term | null = null;
 
 const TermContext = createContext<TermContextValue | null>(null);
 
-// This wraps the whole app so you can call useTerm() anywhere
-export function TermProvider({
-  children,
-  enabled,
-}: {
-  children: ReactNode;
-  enabled: boolean;
-}) {
-  // Only fetch when enabled (i.e., user is authed). Also only use suspense when enabled.
-  const { data } = api.term.getTerms.useQuery(undefined, {
-    enabled,
-    suspense: true,
-    retry: false,
-  });
-
+// you can call useTerm() anywhere
+export function TermProvider({ children }: { children: ReactNode }) {
+  const [data] = api.term.getTerms.useSuspenseQuery();
   // Grab raw values
   const rawAll = data?.all;
   const rawActive = data?.active;

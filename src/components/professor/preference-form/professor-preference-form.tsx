@@ -54,6 +54,10 @@ export default function ProfessorPreferenceForm({
       professorId: userId,
     });
 
+  const [{ canEdit }] = api.professorForm.getCanEdit.useSuspenseQuery({
+    userId,
+  });
+
   const [prefsBySection, setPrefsBySection] = useState<
     Record<string, SectionPrefs>
   >(() => {
@@ -132,6 +136,20 @@ export default function ProfessorPreferenceForm({
           No sections assigned to you for this term. If you think this is a
           mistake, please contact the coordinator.
         </h1>
+      </div>
+    );
+  }
+
+  if (!canEdit?.canEditForm) {
+    return (
+      <div>
+        <h1 className="text-3xl font-bold">
+          Preferences Form is closed for this term.
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          The coordinator has locked the form, and edits cannot be made at this
+          time.
+        </p>
       </div>
     );
   }
