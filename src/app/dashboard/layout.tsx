@@ -1,3 +1,4 @@
+import { TermProvider } from "@/components/term-combobox";
 import { redirectToForbidden } from "@/lib/navigation";
 import { isCoordinator } from "@/lib/utils";
 import { auth } from "@/server/auth";
@@ -13,5 +14,5 @@ export default async function Layout({
     return null;
   }
 
-  return <>{children}</>;
+  return <TermProvider>{children}</TermProvider>;
 }
