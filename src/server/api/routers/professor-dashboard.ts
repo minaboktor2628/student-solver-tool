@@ -104,6 +104,14 @@ export const professorDashboardRoute = createTRPCRouter({
                   name: true,
                   email: true,
                   roles: { select: { role: true } },
+                  staffPreferences: {
+                    where: {
+                      termId: input.termId,
+                    },
+                    include: {
+                      timesAvailable: true,
+                    },
+                  },
                 },
               },
             },
@@ -123,6 +131,7 @@ export const professorDashboardRoute = createTRPCRouter({
             name: a.staff.name,
             email: a.staff.email,
             roles: a.staff.roles.map((r) => r.role),
+            timesAvailable: a.staff.staffPreferences[0]?.timesAvailable ?? [],
           })),
         })),
       };
