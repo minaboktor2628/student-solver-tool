@@ -19,5 +19,5 @@ export const updateUserInputSchema = z.object({
   name: z.string().optional(),
   email: z.string().email().optional(),
   role: z.nativeEnum(Role).optional(),
-  hours: z.number().int().nonnegative().optional(),
+  hours: z.coerce.number().int().nonnegative().optional(),
 });
