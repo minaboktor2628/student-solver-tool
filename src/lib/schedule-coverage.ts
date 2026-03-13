@@ -1,4 +1,4 @@
-import type { Day } from "@prisma/client";
+import type { Day } from "@/types/global";
 
 export type Slot = {
   day: Day;

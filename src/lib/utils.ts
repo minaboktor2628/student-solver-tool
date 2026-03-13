@@ -1,4 +1,4 @@
-import type { PreferenceLevel } from "@prisma/client";
+import type { PreferenceLevel } from "@/types/global";
 import { clsx, type ClassValue } from "clsx";
 import type { User } from "next-auth";
 import { twMerge } from "tailwind-merge";

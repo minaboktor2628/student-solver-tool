@@ -16,18 +16,18 @@ import { api } from "@/trpc/react";
 import { PlusIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { createTermInputSchema } from "@/types/form-inputs";
-import { TermLetter } from "@prisma/client";
 import type z from "zod";
 import { FormDateTimeLocal, FormInput, FormSelect } from "@/components/form";
 import { SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
+import { TermLetter } from "@/types/global";
 
 export function CreateTermDialogForm() {
   const utils = api.useUtils();
   const form = useForm({
     resolver: zodResolver(createTermInputSchema),
     defaultValues: {
-      termLetter: "A" as TermLetter,
+      termLetter: "A" as const,
       year: new Date().getFullYear(),
       termProfessorDueDate: new Date(),
       termStaffDueDate: new Date(),

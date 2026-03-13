@@ -8,7 +8,7 @@ import { ZodError } from "zod";
 
 import { auth } from "@/server/auth";
 import { db } from "@/server/db";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/global";
 
 /**
  * 1. CONTEXT

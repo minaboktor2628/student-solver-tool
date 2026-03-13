@@ -6,7 +6,7 @@ import {
   coordinatorProcedure,
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { Role, TermLetter } from "@prisma/client";
+import { Role, TermLetter } from "@/types/global";
 import {
   createTermInputSchema,
   createUserInputSchema,

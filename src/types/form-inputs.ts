@@ -1,4 +1,4 @@
-import { Role, TermLetter } from "@prisma/client";
+import { Role, TermLetter } from "@/types/global";
 import z from "zod";
 
 export const createTermInputSchema = z.object({

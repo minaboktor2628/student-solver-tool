@@ -2,7 +2,7 @@ import {
   CourseListingApiSchema,
   type ReportEntryRow,
 } from "../types/courselisting-api";
-import { AcademicLevel, type TermLetter } from "@prisma/client";
+import { AcademicLevel, type TermLetter } from "@/types/global";
 import { calculateRequiredAssistantHours } from "./utils";
 import z from "zod";
 import { unknownProfessorName } from "./constants";

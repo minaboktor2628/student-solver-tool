@@ -1,12 +1,11 @@
 import type { PermissionCheck } from "@/lib/permissions";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/global";
 import {
   BookOpenIcon,
   ComputerIcon,
   DatabaseIcon,
   HomeIcon,
   InfoIcon,
-  ScanFaceIcon,
   UsersIcon,
   UserStarIcon,
   History,

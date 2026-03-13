@@ -2,7 +2,6 @@
 
 import { Users, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { api } from "@/trpc/react";
-import { Role } from "@prisma/client";
 
 import {
   Card,
@@ -31,6 +30,7 @@ import { ExpandableList } from "@/components/expandable-list";
 import { EmailUsers } from "@/components/email-users";
 import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
 import { UnpublishTermButton } from "@/components/dashboard/unpublish-term-button";
+import { Role } from "@/types/global";
 
 // Helper to format deadline info
 const formatDeadline = (date: Date) => {
