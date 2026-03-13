@@ -2,6 +2,12 @@ packages:
   - .
 
 onlyBuiltDependencies:
+  - '@prisma/engines'
+  - '@tailwindcss/oxide'
   - better-sqlite3
-  - cypress
   - core-js
+  - cypress
+  - esbuild
+  - prisma
+  - sharp
+  - unrs-resolver

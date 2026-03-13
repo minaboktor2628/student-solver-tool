@@ -13,6 +13,7 @@ yarn.lock
 /coverage
 
 # database
+/prisma/generated
 /prisma/db.sqlite
 /prisma/db.sqlite-journal
 db.sqlite
