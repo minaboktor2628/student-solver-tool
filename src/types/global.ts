@@ -5,6 +5,6 @@ export {
   Day,
   TermLetter,
   PreferenceLevel,
-} from "prisma/generated/enums";
+} from "@/prisma/generated/enums";
 
-export type { Section, User } from "prisma/generated/client";
+export type { Section, User } from "@/prisma/generated/client";
