@@ -6,7 +6,7 @@ import {
   protectedProcedure,
 } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { Role, type Day, type PreferenceLevel } from "@prisma/client";
+import { Role, type Day, type PreferenceLevel } from "@/types/global";
 import { updateUserInputSchema } from "@/types/form-inputs";
 
 type StaffMember = {

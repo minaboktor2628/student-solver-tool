@@ -1,6 +1,17 @@
-import { PrismaClient, AcademicLevel, Role, TermLetter } from "@prisma/client";
+import { env } from "@/env";
+import {
+  AcademicLevel,
+  PrismaClient,
+  Role,
+  TermLetter,
+} from "./generated/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaBetterSqlite3({
+  url: env.DATABASE_URL,
+});
+
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Start from a clean slate (for dev only!)

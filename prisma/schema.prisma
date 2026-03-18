@@ -1,12 +1,12 @@
 // docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "./generated"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -56,8 +56,8 @@ model Term {
 
   published Boolean @default(false)
 
-  createdAt            DateTime @default(now())
-  active               Boolean  @default(false)
+  createdAt DateTime @default(now())
+  active    Boolean  @default(false)
 
   @@unique([termLetter, year])
 }
@@ -216,7 +216,7 @@ model User {
   name          String?
   email         String?    @unique
   emailVerified DateTime?
-  canEditForm   Boolean @default(true)
+  canEditForm   Boolean    @default(true)
   accounts      Account[]
   sessions      Session[]
   roles         UserRole[]

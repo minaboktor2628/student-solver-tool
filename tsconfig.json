@@ -28,7 +28,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@/.source": ["./.source"]
+      "@/prisma/*": ["./prisma/*"]
     }
   },
   "include": [

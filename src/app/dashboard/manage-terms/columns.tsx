@@ -1,20 +1,9 @@
 "use client";
 import { type ColumnDef } from "@tanstack/react-table";
-import { type TermLetter } from "@prisma/client";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { TermTableRowActions } from "./term-table-row-actions";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import type { TermLetter } from "@/types/global";
 
 export type TermRow = {
   id: string;
@@ -73,71 +62,3 @@ export const createColumns = (): ColumnDef<TermRow>[] => [
     },
   },
 ];
-
-function ActivateDeactivateButton({
-  active,
-  onActivate,
-  onDeactivate,
-}: {
-  active: boolean;
-  onActivate: () => void;
-  onDeactivate: () => void;
-}) {
-  const isDeactivate = active;
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-          {isDeactivate ? "Deactivate" : "Activate"}
-        </DropdownMenuItem>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {isDeactivate ? "Deactivate term?" : "Activate term?"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {isDeactivate
-              ? "This will deactivate the term and prevent it from being used."
-              : "This will activate the term and make it available for use. Student staff and professors will be affecting this term when filling out their preferences. Activating this term will deactivate all other terms."}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={isDeactivate ? onDeactivate : onActivate}>
-            {isDeactivate ? "Deactivate" : "Activate"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
-function DeleteButton({ onClick }: { onClick: () => void }) {
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <DropdownMenuItem
-          variant="destructive"
-          onSelect={(e) => e.preventDefault()}
-        >
-          Delete
-        </DropdownMenuItem>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete term?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the term
-            and all associated data.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onClick}>Delete</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}

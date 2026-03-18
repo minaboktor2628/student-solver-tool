@@ -1,6 +1,6 @@
 "use client";
 
-import { Role } from "@prisma/client";
+import { Role } from "@/types/global";
 import { api, type RouterOutputs } from "@/trpc/react";
 import { toast } from "sonner";
 import { Lock, Unlock } from "lucide-react";

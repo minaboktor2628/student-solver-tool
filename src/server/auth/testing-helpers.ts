@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/global";
 
 export const testingPasswordMap: Record<string, Role[]> = {
   testpla: ["PLA"],

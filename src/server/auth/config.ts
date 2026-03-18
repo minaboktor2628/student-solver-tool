@@ -2,7 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import { db } from "@/server/db";
 import { env } from "@/env";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/global";
 import { providers } from "./providers";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { JWT } from "next-auth/jwt";

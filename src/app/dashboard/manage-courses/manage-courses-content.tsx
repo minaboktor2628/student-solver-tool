@@ -14,10 +14,10 @@ import {
 import { createColumns } from "./columns";
 import { TermCombobox, useTerm } from "@/components/term-combobox";
 import { SyncSectionsForm } from "@/components/dashboard/sync-sections-form";
-import { AcademicLevel } from "@prisma/client";
 import { humanizeKey } from "@/lib/utils";
 import { NoTermsAlert } from "@/components/dashboard/no-term-alert";
 import { RefetchButton } from "@/components/refetch-button";
+import { AcademicLevel } from "@/types/global";
 
 export default function ManageCoursesContent() {
   const { selectedTerm } = useTerm();

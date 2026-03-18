@@ -11,7 +11,6 @@ import {
 import { UserIcon } from "lucide-react";
 import type { AppRouter } from "@/server/api/root";
 import type { inferRouterOutputs } from "@trpc/server";
-import type { TermLetter } from "@prisma/client";
 import { CopyButton } from "@/components/copy-button";
 import {
   Item,
@@ -28,6 +27,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { BaseScheduleSelector, slotToDate } from "@/lib/schedule-selector";
+import type { TermLetter } from "@/types/global";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 

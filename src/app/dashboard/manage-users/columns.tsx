@@ -4,7 +4,6 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock, CheckIcon, XIcon } from "lucide-react";
-import type { Role } from "@prisma/client";
 
 import { CopyButton } from "@/components/copy-button";
 import { DataTableColumnHeader } from "@/components/data-table";
@@ -19,6 +18,7 @@ import {
 import { GlobalSuspense } from "@/components/global-suspense";
 import StaffDashboardFormSumary from "@/components/staff/staff-dashboard-form-summary";
 import { CoursesCard } from "@/components/professor/professor-dashboard/courses-card";
+import type { Role } from "@/types/global";
 
 const ROLE_COLORS: Record<Role, string> = {
   PLA: "bg-primary/20 text-primary border-primary/30",
