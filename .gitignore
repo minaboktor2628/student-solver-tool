@@ -15,6 +15,7 @@ yarn.lock
 # database
 /prisma/generated
 /prisma/db.sqlite
+/prisma/generated
 /prisma/db.sqlite-journal
 db.sqlite
 /prisma/*.db
