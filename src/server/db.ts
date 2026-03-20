@@ -1,6 +1,6 @@
 import "server-only";
 import { env } from "@/env";
-import { PrismaClient } from "prisma/generated/client";
+import { PrismaClient } from "@/prisma/generated/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 const adapter = new PrismaBetterSqlite3({
