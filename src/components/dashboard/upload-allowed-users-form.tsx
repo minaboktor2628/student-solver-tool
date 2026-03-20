@@ -7,10 +7,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/trpc/react";
-import { Role } from "@prisma/client";
+import { Role } from "@/types/global";
 import { toast } from "sonner";
 
-import { z } from "zod";
+import type { z } from "zod";
 import { CSVDropzone } from "@/components/csv-dropzone";
 import { Button } from "@/components/ui/button";
 import { createUserInputSchema } from "@/types/form-inputs";

@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import type { RouterOutputs } from "@/trpc/react";
 import { BaseScheduleSelector, slotToDate } from "@/lib/schedule-selector";
 import { humanizeKey } from "@/lib/utils";
-import type { PreferenceLevel } from "@prisma/client";
+import type { PreferenceLevel } from "@/types/global";
 export type StaffItemProps =
   RouterOutputs["staff"]["getStaffForSection"]["staff"][0] & {
     children?: React.ReactNode;

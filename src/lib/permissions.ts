@@ -4,7 +4,7 @@
  * */
 
 import { canViewPage, ROUTES, type NavItem } from "@/lib/routes-to-permissions";
-import type { Role } from "@prisma/client";
+import { Role } from "@/types/global";
 import type { User } from "next-auth";
 
 export type PermissionCheck<Key extends keyof Permissions> =

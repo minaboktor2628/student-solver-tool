@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api, type RouterOutputs } from "@/trpc/react";
-import type { TermLetter } from "@prisma/client";
+import type { TermLetter } from "@/types/global";
 import {
   AlertDialog,
   AlertDialogAction,

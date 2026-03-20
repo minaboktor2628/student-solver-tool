@@ -35,7 +35,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type z from "zod";
 import { FormCombobox, FormInput } from "@/components/form";
-import { Role } from "@prisma/client";
+import { Role } from "@/types/global";
 import Link from "next/link";
 import { updateUserInputSchema } from "@/types/form-inputs";
 import { Confirm } from "@/components/confirm-action-wrapper";
