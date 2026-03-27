@@ -50,11 +50,6 @@ pnpm -v   # should be >=10.15.0
 
 ## Getting Started
 
-You will need the proper database and environment variables set up to run the app.
-For local development, you must set up a local Postgres instance.
-There is a provided [start-database.sh](./start-database.sh) script that you can run.
-The script also contains extra instructions at the top of the file.
-
 The app will **NOT** run without properly set environment variables.
 Copy the example file (`.env.example`) into a `.env` file:
 
