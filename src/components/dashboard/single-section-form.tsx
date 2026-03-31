@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { AcademicLevel } from "@prisma/client";
+import { AcademicLevel } from "@/types/global";
 import {
   FormCombobox,
   FormInput,
@@ -14,7 +14,6 @@ import { SelectItem } from "@/components/ui/select";
 import { SectionItemSchema, type SectionItem } from "@/lib/courselisting-api";
 import type { User } from "next-auth";
 import type z from "zod";
-import { useEffect } from "react";
 
 export type CreateSectionFormProps = {
   onSubmit: (data: SectionItem) => void;

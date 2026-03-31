@@ -2,7 +2,7 @@
  * there is an export here for a base component to use. use this instead
  * of the one that the lib provides, as this one is styled to match
  * the rest of the app. */
-import type { Day } from "@prisma/client";
+import type { Day } from "@/types/global";
 
 import ScheduleSelector from "react-schedule-selector";
 import { cn } from "./utils";

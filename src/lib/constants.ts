@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/global";
 
 export function defaultTAHours() {
   return 20;

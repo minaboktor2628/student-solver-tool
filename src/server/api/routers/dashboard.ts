@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { Role } from "@prisma/client";
+import { Role } from "@/types/global";
 import { notNullFilter } from "@/lib/utils";
 
 export const dashboardRoute = createTRPCRouter({

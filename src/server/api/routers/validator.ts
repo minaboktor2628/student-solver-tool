@@ -1,7 +1,7 @@
 import z from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import type { PreferenceLevel } from "@prisma/client";
+import type { PreferenceLevel } from "@/types/global";
 import {
   calculateCoverage,
   type CoverageStats,

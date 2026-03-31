@@ -2,7 +2,7 @@ import { z } from "zod";
 import { coordinatorProcedure, createTRPCRouter } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { calculateRequiredAssistantHours } from "@/lib/utils";
-import { TermLetter, AcademicLevel } from "@prisma/client";
+import { TermLetter, AcademicLevel } from "@/types/global";
 import { SectionItemSchema } from "@/lib/courselisting-api";
 import { unknownProfessorName } from "@/lib/constants";
 
